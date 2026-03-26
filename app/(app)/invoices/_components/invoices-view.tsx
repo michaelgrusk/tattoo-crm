@@ -10,6 +10,7 @@ import {
   Eye,
   BellRing,
   CheckCircle2,
+  FileX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Invoice, InvoiceSummary } from "../page";
@@ -260,8 +261,12 @@ export function InvoicesView({
 
         {/* Table */}
         {filtered.length === 0 ? (
-          <div className="py-16 text-center text-sm text-gray-400">
-            No invoices found
+          <div className="py-16 flex flex-col items-center text-center">
+            <FileX size={32} className="text-[#D6EAF0] mb-3" />
+            <p className="text-sm font-medium text-gray-500">No invoices found</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {filter === "all" ? "Create your first invoice above" : `No ${filter} invoices`}
+            </p>
           </div>
         ) : (
           <table className="w-full text-sm">

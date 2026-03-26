@@ -18,14 +18,31 @@ const COLUMNS: {
 ];
 
 function parseDescription(raw: string) {
+  const FIELD_RE = /^(Placement|Size|Preferred date|Phone):\s*(.+)$/;
   const lines = raw.split("\n");
   const structured: Record<string, string> = {};
   const descLines: string[] = [];
+
   for (const line of lines) {
-    const match = line.match(/^(Placement|Size|Preferred date|Phone):\s*(.+)$/);
-    if (match) structured[match[1]] = match[2];
-    else descLines.push(line);
+    const m = line.match(FIELD_RE);
+    if (m) structured[m[1]] = m[2].trim();
+    else if (line.trim()) descLines.push(line);
   }
+
+  // Fallback: if no structured fields found and all on one line, try inline parsing.
+  // Handles legacy data like "Kitsune tattoo Placement: Right arm Size: 50cm Phone: 555-0100"
+  if (Object.keys(structured).length === 0 && lines.length === 1) {
+    const parts = raw.split(/\s+(?=(?:Placement|Size|Preferred date|Phone):\s*)/);
+    if (parts.length > 1) {
+      descLines.length = 0;
+      for (const part of parts) {
+        const m = part.trim().match(FIELD_RE);
+        if (m) structured[m[1]] = m[2].trim();
+        else if (part.trim()) descLines.push(part.trim());
+      }
+    }
+  }
+
   return {
     tattooDescription: descLines.join("\n").trim(),
     placement: structured["Placement"] ?? "",

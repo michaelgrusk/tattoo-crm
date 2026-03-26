@@ -100,9 +100,15 @@ function timeToTop(timeStr: string): number {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+function formatApptTime(timeStr: string): string {
+  const [h, m] = timeStr.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
 function AppointmentBlock({ appt, onClick }: { appt: Appointment; onClick: () => void }) {
   const top = timeToTop(appt.time);
-  console.log("[calendar] AppointmentBlock", appt.date, appt.time, "→ top:", top, "max:", HOURS.length * HOUR_HEIGHT);
   if (top < 0 || top >= HOURS.length * HOUR_HEIGHT) return null;
   const color = getTypeColor(appt.type);
 
@@ -115,8 +121,8 @@ function AppointmentBlock({ appt, onClick }: { appt: Appointment; onClick: () =>
       <p className={`text-xs font-semibold leading-tight truncate ${color.text}`}>
         {appt.clients?.name ?? appt.artist_name ?? "Appointment"}
       </p>
-      <p className={`text-[11px] mt-0.5 leading-tight truncate opacity-75 ${color.text}`}>
-        {appt.type}
+      <p className={`text-[11px] mt-0.5 leading-tight truncate opacity-60 ${color.text}`}>
+        {formatApptTime(appt.time)}
       </p>
     </div>
   );

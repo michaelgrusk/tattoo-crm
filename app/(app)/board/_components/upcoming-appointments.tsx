@@ -1,3 +1,4 @@
+import { CalendarX2 } from "lucide-react";
 import type { Appointment } from "../page";
 
 const STATUS_CONFIG: Record<
@@ -70,8 +71,10 @@ export function UpcomingAppointments({
       </div>
       <div className="bg-white rounded-xl border border-[#D6EAF0] overflow-hidden shadow-sm">
         {appointments.length === 0 ? (
-          <div className="p-10 text-center text-sm text-gray-400">
-            No upcoming appointments
+          <div className="py-12 flex flex-col items-center text-center">
+            <CalendarX2 size={32} className="text-[#D6EAF0] mb-3" />
+            <p className="text-sm font-medium text-gray-500">No upcoming appointments</p>
+            <p className="text-xs text-gray-400 mt-1">Booked appointments will appear here</p>
           </div>
         ) : (
           <table className="w-full text-sm">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Search, UserPlus, CheckCircle2 } from "lucide-react";
+import { Search, UserPlus, CheckCircle2, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ClientListItem } from "../page";
 import { ClientDetailPanel } from "./client-detail-panel";
@@ -47,10 +47,10 @@ function ClientRow({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors rounded-lg ${
+      className={`w-full flex items-center gap-3 px-4 py-4 text-left transition-all rounded-lg ${
         isSelected
-          ? "bg-[#E8F5FA] border border-[#B8DDE8]"
-          : "hover:bg-[#F8FCFE] border border-transparent"
+          ? "bg-[#E8F5FA] shadow-[inset_3px_0_0_0_#1A8FAF]"
+          : "hover:bg-[#F8FCFE]"
       }`}
     >
       <div
@@ -161,9 +161,13 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
         {/* Client list */}
         <div className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
           {filtered.length === 0 ? (
-            <p className="text-center text-sm text-gray-400 py-10">
-              No clients found
-            </p>
+            <div className="flex flex-col items-center py-12 px-4 text-center">
+              <Users size={28} className="text-[#D6EAF0] mb-3" />
+              <p className="text-sm font-medium text-gray-500">No clients found</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {search ? "Try a different search term" : "Add your first client above"}
+              </p>
+            </div>
           ) : (
             filtered.map((client) => (
               <ClientRow

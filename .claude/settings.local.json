@@ -7,7 +7,9 @@
       "Bash(npx next:*)",
       "Bash(node -e \"const n = require\\(''./node_modules/next/package.json''\\); console.log\\(n.version\\)\")",
       "Bash(xargs grep:*)",
-      "Bash(node -e \"const c = require\\(''./node_modules/next/dist/lib/constants.js''\\); console.log\\(''MIDDLEWARE_FILENAME:'', c.MIDDLEWARE_FILENAME\\); console.log\\(''PROXY_FILENAME:'', c.PROXY_FILENAME\\);\")"
+      "Bash(node -e \"const c = require\\(''./node_modules/next/dist/lib/constants.js''\\); console.log\\(''MIDDLEWARE_FILENAME:'', c.MIDDLEWARE_FILENAME\\); console.log\\(''PROXY_FILENAME:'', c.PROXY_FILENAME\\);\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\fxckc\\\\OneDrive\\\\Documents\\\\Projects\\\\tattoo-crm\\\\app\\\\intake\\\\[slug]\\\\_components\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\fxckc\\\\OneDrive\\\\Documents\\\\Projects\\\\tattoo-crm\\\\app\\\\intake\\\\[slug]\\\\confirmation\")"
     ]
   }
 }

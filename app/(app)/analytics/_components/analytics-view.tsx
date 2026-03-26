@@ -12,7 +12,7 @@ import { supabase, getUserId } from "@/lib/supabase/client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Period = "6m" | "month" | "year";
+type Period = "month" | "3m" | "6m" | "year" | "custom";
 
 type Invoice = {
   id: string;
@@ -28,9 +28,11 @@ type RequestRow = { style: string };
 // ─── Period helpers ───────────────────────────────────────────────────────────
 
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
-  { value: "6m", label: "Last 6 months" },
   { value: "month", label: "This month" },
+  { value: "3m", label: "Past 3 months" },
+  { value: "6m", label: "Past 6 months" },
   { value: "year", label: "This year" },
+  { value: "custom", label: "Custom range" },
 ];
 
 function pad(n: number) {
@@ -41,50 +43,32 @@ function toLocalDateStr(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function getStartDate(period: Period): string {
+function getStartDate(period: Exclude<Period, "custom">): string {
   const now = new Date();
   if (period === "month")
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
   if (period === "year") return `${now.getFullYear()}-01-01`;
   const d = new Date(now);
-  d.setMonth(d.getMonth() - 6);
+  d.setMonth(d.getMonth() - (period === "3m" ? 3 : 6));
   return toLocalDateStr(d);
 }
 
-/** Monthly x-axis buckets for the revenue chart */
-function getMonthBuckets(period: Period) {
-  const now = new Date();
-  const curYear = now.getFullYear();
-  const curMonth = now.getMonth();
-
-  if (period === "6m") {
-    return Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(curYear, curMonth - 5 + i);
-      return {
-        year: d.getFullYear(),
-        month: d.getMonth(),
-        label: d.toLocaleDateString("en-US", { month: "short" }),
-      };
+/** Monthly x-axis buckets for the revenue chart, derived from explicit date range. */
+function getMonthBuckets(startStr: string, endStr: string) {
+  const cur = new Date(startStr + "T00:00:00");
+  cur.setDate(1);
+  const endMonth = new Date(endStr + "T00:00:00");
+  endMonth.setDate(1);
+  const buckets = [];
+  while (cur <= endMonth) {
+    buckets.push({
+      year: cur.getFullYear(),
+      month: cur.getMonth(),
+      label: cur.toLocaleDateString("en-US", { month: "short" }),
     });
+    cur.setMonth(cur.getMonth() + 1);
   }
-  if (period === "month") {
-    return [
-      {
-        year: curYear,
-        month: curMonth,
-        label: now.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-      },
-    ];
-  }
-  // year → Jan … current month
-  return Array.from({ length: curMonth + 1 }, (_, i) => {
-    const d = new Date(curYear, i);
-    return {
-      year: curYear,
-      month: i,
-      label: d.toLocaleDateString("en-US", { month: "short" }),
-    };
-  });
+  return buckets;
 }
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
@@ -155,14 +139,16 @@ function StatCard({
 
 function RevenueChart({
   invoices,
-  period,
+  start,
+  end,
   loading,
 }: {
   invoices: Invoice[];
-  period: Period;
+  start: string;
+  end: string;
   loading: boolean;
 }) {
-  const buckets = getMonthBuckets(period);
+  const buckets = getMonthBuckets(start, end);
 
   const data = buckets.map(({ year, month, label }) => {
     const total = invoices
@@ -258,9 +244,16 @@ function BusiestHours({
     }
   }
 
-  // Show hours 9–18, sorted by count descending for display order
-  const hours = Array.from({ length: 10 }, (_, i) => i + 9);
+  // Show hours 9–20 (9 AM to 8 PM)
+  const hours = Array.from({ length: 12 }, (_, i) => i + 9);
   const max = Math.max(...hours.map((h) => counts[h] ?? 0), 1);
+  const hasData = hours.some((h) => (counts[h] ?? 0) > 0);
+
+  if (!loading && !hasData) {
+    return (
+      <p className="text-sm text-gray-400 py-6 text-center">No appointments yet</p>
+    );
+  }
 
   return (
     <div
@@ -434,8 +427,13 @@ function PopularStyles({
 
 // ─── Main view ────────────────────────────────────────────────────────────────
 
+const DATE_INPUT_CLS =
+  "h-9 w-full rounded-lg border border-[#D6EAF0] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#1A8FAF] focus:ring-2 focus:ring-[#1A8FAF]/20 transition-colors";
+
 export function AnalyticsView() {
   const [period, setPeriod] = useState<Period>("6m");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
   const [allAppointments, setAllAppointments] = useState<AppointmentRow[]>([]);
@@ -443,9 +441,19 @@ export function AnalyticsView() {
   const [requests, setRequests] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const today = toLocalDateStr(new Date());
+
+  // Derive the effective date range for queries and chart
+  const effectiveStart =
+    period === "custom" ? customFrom : getStartDate(period);
+  const effectiveEnd = period === "custom" ? customTo : today;
+  const isCustomReady =
+    period !== "custom" ||
+    (!!customFrom && !!customTo && customFrom <= customTo);
+
   useEffect(() => {
+    if (!isCustomReady) return;
     setLoading(true);
-    const start = getStartDate(period);
 
     async function load() {
       const userId = await getUserId();
@@ -463,23 +471,27 @@ export function AnalyticsView() {
           .select("id, amount, date, client_id, clients(name)")
           .eq("user_id", userId)
           .eq("status", "paid")
-          .gte("date", start),
+          .gte("date", effectiveStart)
+          .lte("date", effectiveEnd),
         supabase
           .from("appointments")
           .select("time, date")
           .eq("user_id", userId)
-          .gte("date", start),
+          .gte("date", effectiveStart)
+          .lte("date", effectiveEnd),
         supabase
           .from("clients")
           .select("id")
           .eq("user_id", userId)
-          .gte("created_at", start),
+          .gte("created_at", effectiveStart)
+          .lte("created_at", effectiveEnd + "T23:59:59"),
         supabase
           .from("tattoo_requests")
           .select("style")
           .eq("user_id", userId)
-          .gte("created_at", start),
-        // All-time appointments for busiest hours (not period-filtered)
+          .gte("created_at", effectiveStart)
+          .lte("created_at", effectiveEnd + "T23:59:59"),
+        // All-time appointments for busiest hours (never period-filtered)
         supabase
           .from("appointments")
           .select("time, date")
@@ -495,19 +507,35 @@ export function AnalyticsView() {
     }
 
     load();
-  }, [period]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period, customFrom, customTo]);
 
   const totalRevenue = invoices.reduce((sum, inv) => sum + inv.amount, 0);
   const totalSessions = appointments.length;
   const avgPerSession = totalSessions > 0 ? totalRevenue / totalSessions : 0;
 
-  const currentPeriodLabel =
-    PERIOD_OPTIONS.find((o) => o.value === period)?.label ?? "";
+  // Human-readable label for stat card subtitles
+  let periodLabel: string;
+  if (period === "custom") {
+    if (customFrom && customTo) {
+      const fmtDate = (s: string) =>
+        new Date(s + "T00:00:00").toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+      const year = new Date(customTo + "T00:00:00").getFullYear();
+      periodLabel = `${fmtDate(customFrom)} – ${fmtDate(customTo)}, ${year}`;
+    } else {
+      periodLabel = "Custom range";
+    }
+  } else {
+    periodLabel = PERIOD_OPTIONS.find((o) => o.value === period)?.label ?? "";
+  }
 
   return (
     <div className="p-8 space-y-7">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-6">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Analytics</h1>
           <p className="mt-1 text-sm text-gray-500">
@@ -515,23 +543,68 @@ export function AnalyticsView() {
           </p>
         </div>
 
-        {/* Period selector */}
-        <div className="relative">
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value as Period)}
-            className="appearance-none pl-4 pr-8 py-2 text-sm font-medium bg-white border border-[#D6EAF0] rounded-lg text-gray-700 cursor-pointer focus:outline-none focus:border-[#1A8FAF] focus:ring-2 focus:ring-[#1A8FAF]/20 transition-colors shadow-sm"
-          >
-            {PERIOD_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown
-            size={13}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-          />
+        {/* Period controls */}
+        <div className="flex items-start gap-3 shrink-0">
+          {/* Custom date inputs */}
+          {period === "custom" && (
+            <div className="flex items-center gap-2">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                  From
+                </label>
+                <input
+                  type="date"
+                  value={customFrom}
+                  max={customTo || today}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  className={DATE_INPUT_CLS}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                  To
+                </label>
+                <input
+                  type="date"
+                  value={customTo}
+                  min={customFrom || undefined}
+                  max={today}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  className={DATE_INPUT_CLS}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Period dropdown */}
+          <div className="space-y-1">
+            {period === "custom" && (
+              <div className="h-4" /> /* spacer to align with date input labels */
+            )}
+            <div className="relative">
+              <select
+                value={period}
+                onChange={(e) => {
+                  setPeriod(e.target.value as Period);
+                  if (e.target.value !== "custom") {
+                    setCustomFrom("");
+                    setCustomTo("");
+                  }
+                }}
+                className="appearance-none pl-4 pr-8 py-2 text-sm font-medium bg-white border border-[#D6EAF0] rounded-lg text-gray-700 cursor-pointer focus:outline-none focus:border-[#1A8FAF] focus:ring-2 focus:ring-[#1A8FAF]/20 transition-colors shadow-sm h-9"
+              >
+                {PERIOD_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={13}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -540,7 +613,7 @@ export function AnalyticsView() {
         <StatCard
           label="Total Revenue"
           value={fmt(totalRevenue)}
-          sub={currentPeriodLabel}
+          sub={periodLabel}
           icon={TrendingUp}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
@@ -558,7 +631,7 @@ export function AnalyticsView() {
         <StatCard
           label="Total Sessions"
           value={String(totalSessions)}
-          sub={currentPeriodLabel}
+          sub={periodLabel}
           icon={Users}
           iconBg="bg-violet-50"
           iconColor="text-violet-600"
@@ -567,7 +640,7 @@ export function AnalyticsView() {
         <StatCard
           label="New Clients"
           value={String(newClientCount)}
-          sub={currentPeriodLabel}
+          sub={periodLabel}
           icon={UserPlus}
           iconBg="bg-amber-50"
           iconColor="text-amber-600"
@@ -582,9 +655,20 @@ export function AnalyticsView() {
             <h2 className="text-sm font-semibold text-gray-800">
               Revenue Over Time
             </h2>
-            <span className="text-xs text-gray-400">{currentPeriodLabel}</span>
+            <span className="text-xs text-gray-400">{periodLabel}</span>
           </div>
-          <RevenueChart invoices={invoices} period={period} loading={loading} />
+          {isCustomReady ? (
+            <RevenueChart
+              invoices={invoices}
+              start={effectiveStart}
+              end={effectiveEnd}
+              loading={loading}
+            />
+          ) : (
+            <p className="text-sm text-gray-400 py-10 text-center">
+              Select a date range to view revenue
+            </p>
+          )}
         </div>
 
         <div className="col-span-2 bg-white rounded-xl border border-[#D6EAF0] p-6 shadow-sm">
@@ -592,7 +676,7 @@ export function AnalyticsView() {
             <h2 className="text-sm font-semibold text-gray-800">
               Busiest Hours
             </h2>
-            <span className="text-xs text-gray-400">by appointment count</span>
+            <span className="text-xs text-gray-400">all time</span>
           </div>
           <BusiestHours appointments={allAppointments} loading={loading} />
         </div>
