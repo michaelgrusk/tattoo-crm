@@ -253,6 +253,23 @@ export function SlugIntakeForm({
       return;
     }
 
+    // Fire notification email — don't await, don't block redirect on failure
+    fetch("/api/notify-intake", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: userId,
+        studio_name: studioName,
+        client_name: form.name.trim(),
+        client_email: form.email.trim(),
+        description: form.description.trim(),
+        style: form.style,
+        placement: form.placement.trim(),
+        size: form.size.trim(),
+        preferred_date: form.preferredDate,
+      }),
+    }).catch(() => {});
+
     const params = new URLSearchParams({
       name: form.name.trim().split(" ")[0],
       style: form.style,
