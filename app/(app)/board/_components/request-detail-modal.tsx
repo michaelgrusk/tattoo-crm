@@ -78,7 +78,7 @@ const selectCls =
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+    <p className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide mb-2">
       {children}
     </p>
   );
@@ -102,7 +102,7 @@ function DeclineButton({
       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
         confirm
           ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
-          : "bg-[#1C1C24] text-gray-400 border-[#2A2A34] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+          : "bg-[#1E1E2A] text-[#9090A8] border-[#2E2E3D] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
       }`}
     >
       {working === "decline" && <Loader2 size={12} className="animate-spin" />}
@@ -338,15 +338,15 @@ export function RequestDetailModal({
           <div className="space-y-5 pt-1">
 
             {/* Client card */}
-            <div className="rounded-xl border border-[#2A2A34] bg-[#1C1C24] px-4 py-4">
+            <div className="rounded-xl border border-[#2E2E3D] bg-[#1E1E2A] px-4 py-4">
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="min-w-0">
-                  <p className="text-base font-semibold text-gray-900 truncate">
+                  <p className="text-base font-semibold text-[#F0F0F5] truncate">
                     {request.client_name}
                   </p>
-                  <p className="text-sm text-gray-500 truncate">{request.client_email}</p>
+                  <p className="text-sm text-[#9090A8] truncate">{request.client_email}</p>
                   {parsed.phone && (
-                    <p className="text-sm text-gray-500">{parsed.phone}</p>
+                    <p className="text-sm text-[#9090A8]">{parsed.phone}</p>
                   )}
                 </div>
                 <span
@@ -357,14 +357,14 @@ export function RequestDetailModal({
                 </span>
               </div>
               {request.quote_amount != null && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-[#9090A8] mt-1">
                   Quote:{" "}
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-semibold text-[#F0F0F5]">
                     ${request.quote_amount.toLocaleString()}
                   </span>
                 </p>
               )}
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-[#9090A8] mt-1">
                 Submitted{" "}
                 {new Date(request.created_at).toLocaleDateString("en-US", {
                   month: "short",
@@ -379,31 +379,31 @@ export function RequestDetailModal({
               <SectionLabel>Tattoo Details</SectionLabel>
               <div className="space-y-2.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center rounded-full bg-[#1A1425] px-2.5 py-0.5 text-xs font-medium text-[#7C3AED]">
+                  <span className="inline-flex items-center rounded-full bg-[#2A1F3D] px-2.5 py-0.5 text-xs font-medium text-[#7C3AED]">
                     {request.style}
                   </span>
                   {parsed.placement && (
-                    <span className="text-xs text-gray-500">
-                      Placement: <span className="text-gray-700 font-medium">{parsed.placement}</span>
+                    <span className="text-xs text-[#9090A8]">
+                      Placement: <span className="text-[#F0F0F5] font-medium">{parsed.placement}</span>
                     </span>
                   )}
                   {parsed.size && (
-                    <span className="text-xs text-gray-500">
-                      Size: <span className="text-gray-700 font-medium">{parsed.size}</span>
+                    <span className="text-xs text-[#9090A8]">
+                      Size: <span className="text-[#F0F0F5] font-medium">{parsed.size}</span>
                     </span>
                   )}
                 </div>
 
                 {parsed.tattooDescription && (
-                  <p className="text-sm text-gray-700 leading-relaxed bg-[#1C1C24] rounded-lg border border-[#1C1C24] px-3 py-2.5">
+                  <p className="text-sm text-[#F0F0F5] leading-relaxed bg-[#1E1E2A] rounded-lg border border-[#1E1E2A] px-3 py-2.5">
                     {parsed.tattooDescription}
                   </p>
                 )}
 
                 {parsed.preferredDate && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[#9090A8]">
                     Preferred date:{" "}
-                    <span className="font-medium text-gray-700">
+                    <span className="font-medium text-[#F0F0F5]">
                       {formatDate(parsed.preferredDate)}
                     </span>
                   </p>
@@ -419,7 +419,7 @@ export function RequestDetailModal({
                 <img
                   src={request.reference_image_url}
                   alt="Reference"
-                  className="w-full max-h-52 object-cover rounded-xl border border-[#2A2A34]"
+                  className="w-full max-h-52 object-cover rounded-xl border border-[#2E2E3D]"
                 />
               </div>
             )}
@@ -432,7 +432,7 @@ export function RequestDetailModal({
             )}
 
             {/* Action footer */}
-            <div className="border-t border-[#2A2A34] pt-4">
+            <div className="border-t border-[#2E2E3D] pt-4">
 
               {request.status === "new request" && (
                 <div className="flex items-center justify-between gap-2">
@@ -498,15 +498,15 @@ export function RequestDetailModal({
           <div className="space-y-4 pt-1">
             <button
               onClick={backToDetail}
-              className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors -ml-0.5"
+              className="inline-flex items-center gap-1 text-sm text-[#9090A8] hover:text-[#F0F0F5] transition-colors -ml-0.5"
             >
               <ChevronLeft size={14} />
               Back to details
             </button>
 
-            <p className="text-sm text-gray-500 leading-relaxed">
+            <p className="text-sm text-[#9090A8] leading-relaxed">
               Set a quote for{" "}
-              <span className="font-medium text-gray-700">{request.client_name}</span>.
+              <span className="font-medium text-[#F0F0F5]">{request.client_name}</span>.
               A contact record will be created automatically.
             </p>
 
@@ -545,7 +545,7 @@ export function RequestDetailModal({
               </p>
             )}
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#2A2A34]">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#2E2E3D]">
               <Button variant="outline" onClick={backToDetail} disabled={busy}>
                 Cancel
               </Button>
@@ -568,15 +568,15 @@ export function RequestDetailModal({
           <div className="space-y-4 pt-1">
             <button
               onClick={backToDetail}
-              className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors -ml-0.5"
+              className="inline-flex items-center gap-1 text-sm text-[#9090A8] hover:text-[#F0F0F5] transition-colors -ml-0.5"
             >
               <ChevronLeft size={14} />
               Back to details
             </button>
 
-            <p className="text-sm text-gray-500 leading-relaxed">
+            <p className="text-sm text-[#9090A8] leading-relaxed">
               Record the deposit from{" "}
-              <span className="font-medium text-gray-700">{request.client_name}</span>.
+              <span className="font-medium text-[#F0F0F5]">{request.client_name}</span>.
               A deposit invoice will be created automatically.
             </p>
 
@@ -595,7 +595,7 @@ export function RequestDetailModal({
                 autoFocus
               />
               {request.quote_amount != null && (
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-[#9090A8]">
                   Full quote was ${request.quote_amount.toLocaleString()}
                 </p>
               )}
@@ -607,7 +607,7 @@ export function RequestDetailModal({
               </p>
             )}
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#2A2A34]">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#2E2E3D]">
               <Button variant="outline" onClick={backToDetail} disabled={busy}>
                 Cancel
               </Button>
@@ -630,15 +630,15 @@ export function RequestDetailModal({
           <div className="space-y-4 pt-1">
             <button
               onClick={backToDetail}
-              className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors -ml-0.5"
+              className="inline-flex items-center gap-1 text-sm text-[#9090A8] hover:text-[#F0F0F5] transition-colors -ml-0.5"
             >
               <ChevronLeft size={14} />
               Back to details
             </button>
 
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-[#9090A8]">
               Scheduling for{" "}
-              <span className="font-medium text-gray-700">
+              <span className="font-medium text-[#F0F0F5]">
                 {request.client_name}
               </span>
             </p>
@@ -700,7 +700,7 @@ export function RequestDetailModal({
               </p>
             )}
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#2A2A34]">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#2E2E3D]">
               <Button variant="outline" onClick={backToDetail} disabled={busy}>
                 Cancel
               </Button>

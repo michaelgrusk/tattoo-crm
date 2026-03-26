@@ -73,10 +73,10 @@ function ClientSearch({
 
   if (selected) {
     return (
-      <div className="flex items-center justify-between rounded-lg border border-[#2A2A34] bg-[#1A1425] px-3 py-2.5">
+      <div className="flex items-center justify-between rounded-lg border border-[#2E2E3D] bg-[#2A1F3D] px-3 py-2.5">
         <div>
-          <p className="text-sm font-medium text-gray-900">{selected.name}</p>
-          <p className="text-xs text-gray-500">{selected.email}</p>
+          <p className="text-sm font-medium text-[#F0F0F5]">{selected.name}</p>
+          <p className="text-xs text-[#9090A8]">{selected.email}</p>
         </div>
         <button
           type="button"
@@ -97,7 +97,7 @@ function ClientSearch({
       <div className="relative">
         <Search
           size={14}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9090A8] pointer-events-none"
         />
         <input
           type="text"
@@ -108,12 +108,12 @@ function ClientSearch({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          className="w-full pl-9 pr-3 py-2 text-sm bg-[#0F0F13] border border-[#2A2A34] rounded-lg outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors placeholder:text-gray-400"
+          className="w-full pl-9 pr-3 py-2 text-sm bg-[#13131A] border border-[#2E2E3D] rounded-lg outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors placeholder:text-[#9090A8]"
         />
       </div>
 
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-[#2A2A34] bg-[#1C1C24] shadow-lg">
+        <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-[#2E2E3D] bg-[#1E1E2A] shadow-lg">
           {filtered.map((c) => (
             <button
               key={String(c.id)}
@@ -123,9 +123,9 @@ function ClientSearch({
                 setQuery("");
                 setOpen(false);
               }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-[#0F0F13] transition-colors first:rounded-t-xl last:rounded-b-xl"
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-[#13131A] transition-colors first:rounded-t-xl last:rounded-b-xl"
             >
-              <div className="size-8 rounded-full bg-[#1A1425] flex items-center justify-center text-xs font-semibold text-[#7C3AED] shrink-0">
+              <div className="size-8 rounded-full bg-[#2A1F3D] flex items-center justify-center text-xs font-semibold text-[#7C3AED] shrink-0">
                 {c.name
                   .trim()
                   .split(/\s+/)
@@ -135,10 +135,10 @@ function ClientSearch({
                   .toUpperCase()}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-[#F0F0F5] truncate">
                   {c.name}
                 </p>
-                <p className="text-xs text-gray-400 truncate">{c.email}</p>
+                <p className="text-xs text-[#9090A8] truncate">{c.email}</p>
               </div>
             </button>
           ))}
@@ -146,7 +146,7 @@ function ClientSearch({
       )}
 
       {open && query.trim() && filtered.length === 0 && (
-        <div className="absolute z-50 mt-1 w-full rounded-xl border border-[#2A2A34] bg-[#1C1C24] shadow-lg px-3 py-4 text-sm text-gray-400 text-center">
+        <div className="absolute z-50 mt-1 w-full rounded-xl border border-[#2E2E3D] bg-[#1E1E2A] shadow-lg px-3 py-4 text-sm text-[#9090A8] text-center">
           No clients found
         </div>
       )}
@@ -276,7 +276,7 @@ export function BookAppointmentDialog({
           className="space-y-4 pt-1"
         >
           {/* Mode toggle */}
-          <div className="flex rounded-lg border border-[#2A2A34] p-0.5 bg-[#0F0F13] gap-0.5">
+          <div className="flex rounded-lg border border-[#2E2E3D] p-0.5 bg-[#13131A] gap-0.5">
             {(["existing", "general"] as BookingMode[]).map((mode) => (
               <button
                 key={mode}
@@ -284,8 +284,8 @@ export function BookAppointmentDialog({
                 onClick={() => setField("mode", mode)}
                 className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors ${
                   form.mode === mode
-                    ? "bg-[#1C1C24] text-[#7C3AED] shadow-sm border border-[#2A2A34]"
-                    : "text-gray-500 hover:text-gray-700"
+                    ? "bg-[#1E1E2A] text-[#7C3AED] shadow-sm border border-[#2E2E3D]"
+                    : "text-[#9090A8] hover:text-[#F0F0F5]"
                 }`}
               >
                 {mode === "existing" ? "Existing Client" : "General Booking"}

@@ -167,49 +167,49 @@ export function InvoiceDetailDialog({
 
         <div className="space-y-5 pt-1">
           {/* Invoice meta */}
-          <div className="rounded-xl border border-[#2A2A34] bg-[#1C1C24] px-4 py-4 space-y-3">
+          <div className="rounded-xl border border-[#2E2E3D] bg-[#1E1E2A] px-4 py-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">
+                <p className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide mb-0.5">
                   Invoice
                 </p>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-[#F0F0F5]">
                   {invoiceNumber(invoice.id)}
                 </p>
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">
+                <p className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide mb-0.5">
                   Date
                 </p>
-                <p className="text-sm text-gray-900">{formatDate(invoice.date)}</p>
+                <p className="text-sm text-[#F0F0F5]">{formatDate(invoice.date)}</p>
               </div>
             </div>
 
             <div>
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">
+              <p className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide mb-0.5">
                 Client
               </p>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-[#F0F0F5]">
                 {invoice.clients?.name ?? "—"}
               </p>
               {invoice.clients?.email && (
-                <p className="text-xs text-gray-400 mt-0.5">{invoice.clients.email}</p>
+                <p className="text-xs text-[#9090A8] mt-0.5">{invoice.clients.email}</p>
               )}
             </div>
 
             <div>
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">
+              <p className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide mb-0.5">
                 Description
               </p>
-              <p className="text-sm text-gray-700">{invoice.type || "—"}</p>
+              <p className="text-sm text-[#F0F0F5]">{invoice.type || "—"}</p>
             </div>
 
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">
+                <p className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide mb-0.5">
                   Amount
                 </p>
-                <p className="text-2xl font-semibold text-gray-900 leading-none">
+                <p className="text-2xl font-semibold text-[#F0F0F5] leading-none">
                   {formatCurrency(invoice.amount)}
                 </p>
               </div>
@@ -226,7 +226,7 @@ export function InvoiceDetailDialog({
 
           {/* Change status */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            <p className="text-xs font-semibold text-[#9090A8] uppercase tracking-wide mb-2">
               Change Status
             </p>
             <div className="grid grid-cols-4 gap-2">
@@ -242,10 +242,10 @@ export function InvoiceDetailDialog({
                     className={`flex flex-col items-center gap-1.5 rounded-xl border px-2 py-2.5 text-xs font-medium transition-all disabled:opacity-50 ${
                       isActive
                         ? `${scfg.bg} ${scfg.text} border-current ring-2 ring-current/20`
-                        : "bg-[#1C1C24] text-gray-500 border-[#2A2A34] hover:bg-[#0F0F13] hover:text-gray-700"
+                        : "bg-[#1E1E2A] text-[#9090A8] border-[#2E2E3D] hover:bg-[#13131A] hover:text-[#F0F0F5]"
                     }`}
                   >
-                    <span className={`size-2 rounded-full ${isActive ? scfg.dot : "bg-gray-200"}`} />
+                    <span className={`size-2 rounded-full ${isActive ? scfg.dot : "bg-[#2E2E3D]"}`} />
                     {label}
                   </button>
                 );
@@ -254,7 +254,7 @@ export function InvoiceDetailDialog({
           </div>
 
           {updating && (
-            <div className="flex items-center gap-2 text-xs text-gray-400">
+            <div className="flex items-center gap-2 text-xs text-[#9090A8]">
               <Loader2 size={12} className="animate-spin" />
               Updating…
             </div>
@@ -275,7 +275,7 @@ export function InvoiceDetailDialog({
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
               deleteConfirm
                 ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
-                : "bg-[#1C1C24] text-gray-400 border-[#2A2A34] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                : "bg-[#1E1E2A] text-[#9090A8] border-[#2E2E3D] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
             }`}
           >
             {deleting && <Loader2 size={12} className="animate-spin" />}

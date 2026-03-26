@@ -143,8 +143,8 @@ function DayColumn({
 
   return (
     <div
-      className={`flex-1 relative border-l border-[#1C1C24] ${
-        isToday ? "bg-[#FAFEFF]" : "bg-[#1C1C24]"
+      className={`flex-1 relative border-l border-[#1E1E2A] ${
+        isToday ? "bg-[#FAFEFF]" : "bg-[#1E1E2A]"
       }`}
       style={{ height: totalHeight }}
     >
@@ -152,13 +152,13 @@ function DayColumn({
       {HOURS.map((_, i) => (
         <div
           key={i}
-          className="absolute inset-x-0 border-t border-[#1C1C24]"
+          className="absolute inset-x-0 border-t border-[#1E1E2A]"
           style={{ top: i * HOUR_HEIGHT }}
         />
       ))}
       {/* Bottom border */}
       <div
-        className="absolute inset-x-0 border-t border-[#1C1C24]"
+        className="absolute inset-x-0 border-t border-[#1E1E2A]"
         style={{ top: totalHeight }}
       />
       {/* Appointments */}
@@ -313,34 +313,34 @@ export function CalendarView() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#1C1C24]">
+    <div className="flex flex-col h-full overflow-hidden bg-[#1E1E2A]">
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#2A2A34] shrink-0">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#2E2E3D] shrink-0">
         <div className="flex items-center gap-2">
           <button
             onClick={() => shiftWeek(-1)}
-            className="size-8 flex items-center justify-center rounded-lg border border-[#2A2A34] hover:bg-[#0F0F13] transition-colors"
+            className="size-8 flex items-center justify-center rounded-lg border border-[#2E2E3D] hover:bg-[#13131A] transition-colors"
           >
-            <ChevronLeft size={16} className="text-gray-500" />
+            <ChevronLeft size={16} className="text-[#9090A8]" />
           </button>
           <button
             onClick={() => shiftWeek(1)}
-            className="size-8 flex items-center justify-center rounded-lg border border-[#2A2A34] hover:bg-[#0F0F13] transition-colors"
+            className="size-8 flex items-center justify-center rounded-lg border border-[#2E2E3D] hover:bg-[#13131A] transition-colors"
           >
-            <ChevronRight size={16} className="text-gray-500" />
+            <ChevronRight size={16} className="text-[#9090A8]" />
           </button>
-          <h2 className="text-base font-semibold text-gray-900 ml-1 min-w-48">
+          <h2 className="text-base font-semibold text-[#F0F0F5] ml-1 min-w-48">
             {formatWeekRange(weekDays)}
           </h2>
           {loading && (
-            <Loader2 size={14} className="animate-spin text-gray-400" />
+            <Loader2 size={14} className="animate-spin text-[#9090A8]" />
           )}
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={goToToday}
-            className="px-3 py-1.5 text-sm font-medium text-gray-600 rounded-lg border border-[#2A2A34] hover:bg-[#0F0F13] transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-[#9090A8] rounded-lg border border-[#2E2E3D] hover:bg-[#13131A] transition-colors"
           >
             Today
           </button>
@@ -355,7 +355,7 @@ export function CalendarView() {
       </div>
 
       {/* ── Day header row ───────────────────────────────────────────────── */}
-      <div className="flex border-b border-[#2A2A34] shrink-0 bg-[#1C1C24]">
+      <div className="flex border-b border-[#2E2E3D] shrink-0 bg-[#1E1E2A]">
         {/* Time gutter spacer */}
         <div className="w-16 shrink-0" />
         {weekDays.map((day, i) => {
@@ -363,16 +363,16 @@ export function CalendarView() {
           return (
             <div
               key={i}
-              className="flex-1 flex flex-col items-center py-3 border-l border-[#2A2A34] select-none"
+              className="flex-1 flex flex-col items-center py-3 border-l border-[#2E2E3D] select-none"
             >
-              <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
+              <span className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-widest">
                 {DAY_LABELS[i]}
               </span>
               <div
                 className={`mt-1.5 size-8 flex items-center justify-center rounded-full text-sm font-semibold transition-colors ${
                   isToday
                     ? "bg-[#7C3AED] text-white"
-                    : "text-gray-800 hover:bg-[#0F0F13]"
+                    : "text-[#F0F0F5] hover:bg-[#13131A]"
                 }`}
               >
                 {day.getDate()}
@@ -386,21 +386,21 @@ export function CalendarView() {
       <div ref={gridRef} className="flex-1 overflow-y-auto">
         <div className="flex">
           {/* Time labels */}
-          <div className="w-16 shrink-0 select-none bg-[#1C1C24] z-10">
+          <div className="w-16 shrink-0 select-none bg-[#1E1E2A] z-10">
             {HOURS.map((hour) => (
               <div
                 key={hour}
                 className="flex items-start justify-end pr-3"
                 style={{ height: HOUR_HEIGHT }}
               >
-                <span className="text-[11px] text-gray-400 pt-1.5 leading-none">
+                <span className="text-[11px] text-[#9090A8] pt-1.5 leading-none">
                   {formatHour(hour)}
                 </span>
               </div>
             ))}
             {/* Final label at 6 PM */}
             <div className="flex items-start justify-end pr-3 h-0 overflow-visible">
-              <span className="text-[11px] text-gray-400 -mt-1.5 leading-none">
+              <span className="text-[11px] text-[#9090A8] -mt-1.5 leading-none">
                 {formatHour(END_HOUR)}
               </span>
             </div>
@@ -429,17 +429,17 @@ export function CalendarView() {
           onClick={closeAppt}
         >
           <div
-            className="bg-[#1C1C24] rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
+            className="bg-[#1E1E2A] rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#2A2A34]">
-              <h3 className="text-base font-semibold text-gray-900">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#2E2E3D]">
+              <h3 className="text-base font-semibold text-[#F0F0F5]">
                 {editMode ? "Edit Appointment" : "Appointment Details"}
               </h3>
               <button
                 onClick={closeAppt}
-                className="size-7 flex items-center justify-center rounded-lg hover:bg-[#0F0F13] transition-colors text-gray-400 hover:text-gray-600"
+                className="size-7 flex items-center justify-center rounded-lg hover:bg-[#13131A] transition-colors text-[#9090A8] hover:text-[#9090A8]"
               >
                 <X size={16} />
               </button>
@@ -450,23 +450,23 @@ export function CalendarView() {
                 {/* Body — detail view */}
                 <div className="px-5 py-4 space-y-3">
                   <div>
-                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Client</p>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide mb-0.5">Client</p>
+                    <p className="text-sm font-medium text-[#F0F0F5]">
                       {selectedAppt.clients?.name ?? selectedAppt.artist_name ?? "—"}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Date</p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide mb-0.5">Date</p>
+                      <p className="text-sm text-[#F0F0F5]">
                         {new Date(selectedAppt.date + "T00:00:00").toLocaleDateString("en-US", {
                           weekday: "short", month: "short", day: "numeric",
                         })}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Time</p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide mb-0.5">Time</p>
+                      <p className="text-sm text-[#F0F0F5]">
                         {(() => {
                           const [h, m] = selectedAppt.time.split(":").map(Number);
                           const ampm = h >= 12 ? "PM" : "AM";
@@ -477,11 +477,11 @@ export function CalendarView() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Type</p>
-                    <p className="text-sm text-gray-900">{selectedAppt.type}</p>
+                    <p className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide mb-0.5">Type</p>
+                    <p className="text-sm text-[#F0F0F5]">{selectedAppt.type}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Status</p>
+                    <p className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide mb-0.5">Status</p>
                     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
                       selectedAppt.status === "confirmed"
                         ? "bg-emerald-50 text-emerald-700"
@@ -501,14 +501,14 @@ export function CalendarView() {
                   </div>
                 </div>
                 {/* Footer — detail */}
-                <div className="px-5 py-3 border-t border-[#2A2A34] flex items-center justify-between">
+                <div className="px-5 py-3 border-t border-[#2E2E3D] flex items-center justify-between">
                   <button
                     onClick={handleDeleteAppointment}
                     disabled={deleting}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
                       deleteConfirm
                         ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
-                        : "bg-[#1C1C24] text-gray-400 border-[#2A2A34] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                        : "bg-[#1E1E2A] text-[#9090A8] border-[#2E2E3D] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
                     }`}
                   >
                     {deleting && <Loader2 size={12} className="animate-spin" />}
@@ -517,13 +517,13 @@ export function CalendarView() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={openEditMode}
-                      className="px-3 py-1.5 text-xs font-medium text-[#7C3AED] rounded-lg border border-[#2A2A34] hover:bg-[#0F0F13] transition-colors"
+                      className="px-3 py-1.5 text-xs font-medium text-[#7C3AED] rounded-lg border border-[#2E2E3D] hover:bg-[#13131A] transition-colors"
                     >
                       Edit
                     </button>
                     <button
                       onClick={closeAppt}
-                      className="px-4 py-1.5 text-sm font-medium text-gray-600 rounded-lg border border-[#2A2A34] hover:bg-[#0F0F13] transition-colors"
+                      className="px-4 py-1.5 text-sm font-medium text-[#9090A8] rounded-lg border border-[#2E2E3D] hover:bg-[#13131A] transition-colors"
                     >
                       Close
                     </button>
@@ -536,7 +536,7 @@ export function CalendarView() {
                 <div className="px-5 py-4 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Date</label>
+                      <label className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide">Date</label>
                       <input
                         type="date"
                         value={editDate}
@@ -545,7 +545,7 @@ export function CalendarView() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Time</label>
+                      <label className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide">Time</label>
                       <input
                         type="time"
                         value={editTime}
@@ -555,7 +555,7 @@ export function CalendarView() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Type</label>
+                    <label className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide">Type</label>
                     <input
                       type="text"
                       value={editType}
@@ -564,7 +564,7 @@ export function CalendarView() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Status</label>
+                    <label className="text-[11px] font-semibold text-[#9090A8] uppercase tracking-wide">Status</label>
                     <select
                       value={editStatus}
                       onChange={(e) => setEditStatus(e.target.value)}
@@ -578,11 +578,11 @@ export function CalendarView() {
                   </div>
                 </div>
                 {/* Footer — edit */}
-                <div className="px-5 py-3 border-t border-[#2A2A34] flex items-center justify-end gap-2">
+                <div className="px-5 py-3 border-t border-[#2E2E3D] flex items-center justify-end gap-2">
                   <button
                     onClick={() => setEditMode(false)}
                     disabled={saving}
-                    className="px-4 py-1.5 text-sm font-medium text-gray-600 rounded-lg border border-[#2A2A34] hover:bg-[#0F0F13] transition-colors disabled:opacity-50"
+                    className="px-4 py-1.5 text-sm font-medium text-[#9090A8] rounded-lg border border-[#2E2E3D] hover:bg-[#13131A] transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>

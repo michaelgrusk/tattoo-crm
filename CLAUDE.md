@@ -14,8 +14,8 @@ A CRM SaaS for tattoo artists and small studios. Helps manage new client intake,
 - Light cyan/blue color palette
 - Clean, minimal UI
 - Primary color: #7C3AED
-- Background: #0F0F13
-- Sidebar: white with #2A2A34 borders
+- Background: #13131A
+- Sidebar: white with #2E2E3D borders
 
 ## Pages
 1. **Board** — intake queue (new requests, quote sent, deposit paid) + upcoming appointments list

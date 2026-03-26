@@ -30,9 +30,9 @@ const STATUS_CONFIG: Record<
 function getStatusConfig(status: string) {
   return (
     STATUS_CONFIG[status.toLowerCase()] ?? {
-      dot: "bg-gray-300",
-      text: "text-gray-600",
-      bg: "bg-gray-50",
+      dot: "bg-[#2E2E3D]",
+      text: "text-[#9090A8]",
+      bg: "bg-[#2A1F3D]",
     }
   );
 }
@@ -62,63 +62,63 @@ export function UpcomingAppointments({
   return (
     <section>
       <div className="flex items-center gap-2.5 mb-4">
-        <h2 className="text-base font-semibold text-gray-800">
+        <h2 className="text-base font-semibold text-[#F0F0F5]">
           Upcoming Appointments
         </h2>
-        <span className="text-xs font-medium text-gray-400 bg-gray-100 rounded-full px-2.5 py-0.5">
+        <span className="text-xs font-medium text-[#9090A8] bg-[#2E2E3D] rounded-full px-2.5 py-0.5">
           {appointments.length}
         </span>
       </div>
-      <div className="bg-[#1C1C24] rounded-xl border border-[#2A2A34] overflow-hidden shadow-sm">
+      <div className="bg-[#1E1E2A] rounded-xl border border-[#2E2E3D] overflow-hidden shadow-sm">
         {appointments.length === 0 ? (
           <div className="py-12 flex flex-col items-center text-center">
-            <CalendarX2 size={32} className="text-[#2A2A34] mb-3" />
-            <p className="text-sm font-medium text-gray-500">No upcoming appointments</p>
-            <p className="text-xs text-gray-400 mt-1">Booked appointments will appear here</p>
+            <CalendarX2 size={32} className="text-[#2E2E3D] mb-3" />
+            <p className="text-sm font-medium text-[#9090A8]">No upcoming appointments</p>
+            <p className="text-xs text-[#9090A8] mt-1">Booked appointments will appear here</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#2A2A34] bg-[#1C1C24]">
-                <th className="text-left px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">
+              <tr className="border-b border-[#2E2E3D] bg-[#1E1E2A]">
+                <th className="text-left px-5 py-3 font-medium text-[#9090A8] text-xs uppercase tracking-wide">
                   Client
                 </th>
-                <th className="text-left px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">
+                <th className="text-left px-5 py-3 font-medium text-[#9090A8] text-xs uppercase tracking-wide">
                   Type
                 </th>
-                <th className="text-left px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">
+                <th className="text-left px-5 py-3 font-medium text-[#9090A8] text-xs uppercase tracking-wide">
                   Date
                 </th>
-                <th className="text-left px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">
+                <th className="text-left px-5 py-3 font-medium text-[#9090A8] text-xs uppercase tracking-wide">
                   Time
                 </th>
-                <th className="text-left px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">
+                <th className="text-left px-5 py-3 font-medium text-[#9090A8] text-xs uppercase tracking-wide">
                   Artist
                 </th>
-                <th className="text-left px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">
+                <th className="text-left px-5 py-3 font-medium text-[#9090A8] text-xs uppercase tracking-wide">
                   Status
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1C1C24]">
+            <tbody className="divide-y divide-[#1E1E2A]">
               {appointments.map((appt) => {
                 const cfg = getStatusConfig(appt.status);
                 return (
                   <tr
                     key={appt.id}
-                    className="hover:bg-[#1C1C24] transition-colors"
+                    className="hover:bg-[#1E1E2A] transition-colors"
                   >
-                    <td className="px-5 py-3.5 font-medium text-gray-900">
+                    <td className="px-5 py-3.5 font-medium text-[#F0F0F5]">
                       {appt.clients?.name ?? "—"}
                     </td>
-                    <td className="px-5 py-3.5 text-gray-600">{appt.type}</td>
-                    <td className="px-5 py-3.5 text-gray-600">
+                    <td className="px-5 py-3.5 text-[#9090A8]">{appt.type}</td>
+                    <td className="px-5 py-3.5 text-[#9090A8]">
                       {formatDate(appt.date)}
                     </td>
-                    <td className="px-5 py-3.5 text-gray-600">
+                    <td className="px-5 py-3.5 text-[#9090A8]">
                       {formatTime(appt.time)}
                     </td>
-                    <td className="px-5 py-3.5 text-gray-600">
+                    <td className="px-5 py-3.5 text-[#9090A8]">
                       {appt.artist_name}
                     </td>
                     <td className="px-5 py-3.5">

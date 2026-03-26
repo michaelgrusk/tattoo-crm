@@ -52,8 +52,8 @@ export default async function BoardPage() {
   return (
     <div className="p-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Board</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-semibold text-[#F0F0F5]">Board</h1>
+        <p className="mt-1 text-sm text-[#9090A8]">
           Manage incoming requests and upcoming appointments
         </p>
       </div>

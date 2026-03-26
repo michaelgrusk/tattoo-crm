@@ -62,8 +62,8 @@ export function Sidebar() {
   const intakeUrl = slug ? `/intake/${slug}` : null;
 
   return (
-    <aside className="w-60 shrink-0 flex flex-col h-full bg-[#1C1C24] border-r border-[#2A2A34]">
-      <div className="h-16 flex items-center px-6 border-b border-[#2A2A34]">
+    <aside className="w-60 shrink-0 flex flex-col h-full bg-[#1E1E2A] border-r border-[#2E2E3D]">
+      <div className="h-16 flex items-center px-6 border-b border-[#2E2E3D]">
         <span className="text-lg font-semibold tracking-tight text-[#7C3AED]">
           Needlebook
         </span>
@@ -78,13 +78,13 @@ export function Sidebar() {
               href={href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
-                  ? "bg-[#1A1425] text-[#7C3AED]"
-                  : "text-gray-600 hover:bg-[#0F0F13] hover:text-gray-900"
+                  ? "bg-[#2A1F3D] text-[#C4B5FD]"
+                  : "text-[#9090A8] hover:bg-[#13131A] hover:text-[#F0F0F5]"
               }`}
             >
               <Icon
                 size={18}
-                className={isActive ? "text-[#7C3AED]" : "text-gray-400"}
+                className={isActive ? "text-[#C4B5FD]" : "text-[#9090A8]"}
               />
               {label}
             </Link>
@@ -94,10 +94,10 @@ export function Sidebar() {
 
       {/* Intake link */}
       {intakeUrl && (
-        <div className="mx-3 mb-3 rounded-xl border border-[#2A2A34] bg-[#1C1C24] px-3 py-2.5">
+        <div className="mx-3 mb-3 rounded-xl border border-[#2E2E3D] bg-[#1E1E2A] px-3 py-2.5">
           <div className="flex items-center gap-1.5 mb-1.5">
             <LinkIcon size={11} className="text-[#7C3AED] shrink-0" />
-            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+            <span className="text-[10px] font-semibold text-[#9090A8] uppercase tracking-wide">
               Your intake link
             </span>
           </div>
@@ -115,7 +115,7 @@ export function Sidebar() {
               className={`shrink-0 size-6 flex items-center justify-center rounded-md transition-colors ${
                 copied
                   ? "bg-emerald-50 text-emerald-600"
-                  : "hover:bg-[#1A1425] text-gray-400 hover:text-[#7C3AED]"
+                  : "hover:bg-[#2A1F3D] text-[#9090A8] hover:text-[#7C3AED]"
               }`}
             >
               {copied ? <Check size={12} /> : <Copy size={12} />}
@@ -125,21 +125,21 @@ export function Sidebar() {
       )}
 
       {/* Studio identity + sign out */}
-      <div className="border-t border-[#2A2A34]">
+      <div className="border-t border-[#2E2E3D]">
         <div className="flex items-center gap-2.5 px-4 py-3">
-          <div className="size-8 rounded-full bg-[#1A1425] flex items-center justify-center text-sm font-semibold text-[#7C3AED] shrink-0">
+          <div className="size-8 rounded-full bg-[#2A1F3D] flex items-center justify-center text-sm font-semibold text-[#7C3AED] shrink-0">
             {initial}
           </div>
-          <p className="text-sm font-medium text-gray-800 truncate flex-1">
+          <p className="text-sm font-medium text-[#F0F0F5] truncate flex-1">
             {studioName ?? "My Studio"}
           </p>
         </div>
         <div className="px-3 pb-3">
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-[#0F0F13] hover:text-gray-700 transition-colors"
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-[#9090A8] hover:bg-[#13131A] hover:text-[#F0F0F5] transition-colors"
           >
-            <LogOut size={16} className="text-gray-400" />
+            <LogOut size={16} className="text-[#9090A8]" />
             Sign Out
           </button>
         </div>
