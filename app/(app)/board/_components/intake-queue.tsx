@@ -81,7 +81,7 @@ function RequestCard({
   return (
     <button
       onClick={onClick}
-      className="w-full text-left bg-white rounded-xl border border-[#D6EAF0] p-4 shadow-sm hover:shadow-md hover:border-[#1A8FAF]/40 transition-all"
+      className="w-full text-left bg-[#1C1C24] rounded-xl border border-[#2A2A34] p-4 shadow-sm hover:shadow-md hover:border-[#7C3AED]/40 transition-all"
     >
       {/* Header: name + style badge */}
       <div className="flex items-start justify-between gap-2 mb-3">
@@ -91,13 +91,13 @@ function RequestCard({
           </p>
           <p className="text-xs text-gray-400 mt-0.5 truncate">{request.client_email}</p>
         </div>
-        <span className="inline-flex items-center rounded-full bg-[#E8F5FA] px-2 py-0.5 text-xs font-medium text-[#1A8FAF] shrink-0">
+        <span className="inline-flex items-center rounded-full bg-[#1A1425] px-2 py-0.5 text-xs font-medium text-[#7C3AED] shrink-0">
           {request.style}
         </span>
       </div>
 
       {/* Labeled detail rows */}
-      <div className="space-y-1.5 bg-[#F8FCFE] rounded-lg border border-[#EEF5F8] px-3 py-2.5">
+      <div className="space-y-1.5 bg-[#1C1C24] rounded-lg border border-[#1C1C24] px-3 py-2.5">
         {parsed.tattooDescription && (
           <FieldRow label="Description" value={parsed.tattooDescription} />
         )}
@@ -119,7 +119,7 @@ function RequestCard({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-[#EEF5F8]">
+      <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-[#1C1C24]">
         <span className="text-xs text-gray-400">
           {formatDistanceToNow(request.created_at)}
         </span>
@@ -128,7 +128,7 @@ function RequestCard({
             ${request.quote_amount.toLocaleString()} quoted
           </span>
         )}
-        <span className="text-xs text-[#1A8FAF] font-medium">View →</span>
+        <span className="text-xs text-[#7C3AED] font-medium">View →</span>
       </div>
     </button>
   );
@@ -180,7 +180,7 @@ export function IntakeQueue({ requests }: { requests: TattooRequest[] }) {
               </div>
               <div className="space-y-3">
                 {cards.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-[#D6EAF0] p-6 text-center text-sm text-gray-400">
+                  <div className="rounded-xl border border-dashed border-[#2A2A34] p-6 text-center text-sm text-gray-400">
                     No requests
                   </div>
                 ) : (

@@ -167,7 +167,7 @@ export function InvoiceDetailDialog({
 
         <div className="space-y-5 pt-1">
           {/* Invoice meta */}
-          <div className="rounded-xl border border-[#D6EAF0] bg-[#F8FCFE] px-4 py-4 space-y-3">
+          <div className="rounded-xl border border-[#2A2A34] bg-[#1C1C24] px-4 py-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">
@@ -242,7 +242,7 @@ export function InvoiceDetailDialog({
                     className={`flex flex-col items-center gap-1.5 rounded-xl border px-2 py-2.5 text-xs font-medium transition-all disabled:opacity-50 ${
                       isActive
                         ? `${scfg.bg} ${scfg.text} border-current ring-2 ring-current/20`
-                        : "bg-white text-gray-500 border-[#D6EAF0] hover:bg-[#F0F7FA] hover:text-gray-700"
+                        : "bg-[#1C1C24] text-gray-500 border-[#2A2A34] hover:bg-[#0F0F13] hover:text-gray-700"
                     }`}
                   >
                     <span className={`size-2 rounded-full ${isActive ? scfg.dot : "bg-gray-200"}`} />
@@ -275,7 +275,7 @@ export function InvoiceDetailDialog({
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
               deleteConfirm
                 ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
-                : "bg-white text-gray-400 border-[#D6EAF0] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                : "bg-[#1C1C24] text-gray-400 border-[#2A2A34] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
             }`}
           >
             {deleting && <Loader2 size={12} className="animate-spin" />}

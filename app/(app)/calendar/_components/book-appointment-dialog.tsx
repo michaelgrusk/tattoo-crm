@@ -73,7 +73,7 @@ function ClientSearch({
 
   if (selected) {
     return (
-      <div className="flex items-center justify-between rounded-lg border border-[#B8DDE8] bg-[#E8F5FA] px-3 py-2.5">
+      <div className="flex items-center justify-between rounded-lg border border-[#2A2A34] bg-[#1A1425] px-3 py-2.5">
         <div>
           <p className="text-sm font-medium text-gray-900">{selected.name}</p>
           <p className="text-xs text-gray-500">{selected.email}</p>
@@ -84,7 +84,7 @@ function ClientSearch({
             onSelect(null);
             setQuery("");
           }}
-          className="text-xs text-[#1A8FAF] hover:underline shrink-0 ml-3"
+          className="text-xs text-[#7C3AED] hover:underline shrink-0 ml-3"
         >
           Change
         </button>
@@ -108,12 +108,12 @@ function ClientSearch({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          className="w-full pl-9 pr-3 py-2 text-sm bg-[#F0F7FA] border border-[#D6EAF0] rounded-lg outline-none focus:border-[#1A8FAF] focus:ring-2 focus:ring-[#1A8FAF]/20 transition-colors placeholder:text-gray-400"
+          className="w-full pl-9 pr-3 py-2 text-sm bg-[#0F0F13] border border-[#2A2A34] rounded-lg outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors placeholder:text-gray-400"
         />
       </div>
 
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-[#D6EAF0] bg-white shadow-lg">
+        <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-[#2A2A34] bg-[#1C1C24] shadow-lg">
           {filtered.map((c) => (
             <button
               key={String(c.id)}
@@ -123,9 +123,9 @@ function ClientSearch({
                 setQuery("");
                 setOpen(false);
               }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-[#F0F7FA] transition-colors first:rounded-t-xl last:rounded-b-xl"
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-[#0F0F13] transition-colors first:rounded-t-xl last:rounded-b-xl"
             >
-              <div className="size-8 rounded-full bg-[#E8F5FA] flex items-center justify-center text-xs font-semibold text-[#1A8FAF] shrink-0">
+              <div className="size-8 rounded-full bg-[#1A1425] flex items-center justify-center text-xs font-semibold text-[#7C3AED] shrink-0">
                 {c.name
                   .trim()
                   .split(/\s+/)
@@ -146,7 +146,7 @@ function ClientSearch({
       )}
 
       {open && query.trim() && filtered.length === 0 && (
-        <div className="absolute z-50 mt-1 w-full rounded-xl border border-[#D6EAF0] bg-white shadow-lg px-3 py-4 text-sm text-gray-400 text-center">
+        <div className="absolute z-50 mt-1 w-full rounded-xl border border-[#2A2A34] bg-[#1C1C24] shadow-lg px-3 py-4 text-sm text-gray-400 text-center">
           No clients found
         </div>
       )}
@@ -276,7 +276,7 @@ export function BookAppointmentDialog({
           className="space-y-4 pt-1"
         >
           {/* Mode toggle */}
-          <div className="flex rounded-lg border border-[#D6EAF0] p-0.5 bg-[#F0F7FA] gap-0.5">
+          <div className="flex rounded-lg border border-[#2A2A34] p-0.5 bg-[#0F0F13] gap-0.5">
             {(["existing", "general"] as BookingMode[]).map((mode) => (
               <button
                 key={mode}
@@ -284,7 +284,7 @@ export function BookAppointmentDialog({
                 onClick={() => setField("mode", mode)}
                 className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors ${
                   form.mode === mode
-                    ? "bg-white text-[#1A8FAF] shadow-sm border border-[#D6EAF0]"
+                    ? "bg-[#1C1C24] text-[#7C3AED] shadow-sm border border-[#2A2A34]"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
@@ -421,7 +421,7 @@ export function BookAppointmentDialog({
             type="submit"
             form="book-appt-form"
             disabled={submitting}
-            className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5"
+            className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
           >
             {submitting && <Loader2 size={13} className="animate-spin" />}
             {submitting ? "Booking…" : "Book Appointment"}

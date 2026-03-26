@@ -53,7 +53,7 @@ const EMPTY: FormData = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const inputCls =
-  "w-full rounded-xl border border-[#D6EAF0] bg-white px-4 py-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#1A8FAF] focus:ring-2 focus:ring-[#1A8FAF]/20 transition-colors";
+  "w-full rounded-xl border border-[#2A2A34] bg-[#1C1C24] px-4 py-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors";
 
 const labelCls = "block text-sm font-medium text-gray-700 mb-1.5";
 
@@ -72,7 +72,7 @@ function Field({
     <div>
       <label className={labelCls}>
         {label}
-        {required && <span className="text-[#1A8FAF] ml-0.5">*</span>}
+        {required && <span className="text-[#7C3AED] ml-0.5">*</span>}
       </label>
       {children}
       {error && <p className="mt-1.5 text-xs text-red-500">{error}</p>}
@@ -94,10 +94,10 @@ function ProgressBar({ step }: { step: number }) {
               <div
                 className={`size-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 shrink-0 transition-all ${
                   done
-                    ? "bg-[#1A8FAF] border-[#1A8FAF] text-white"
+                    ? "bg-[#7C3AED] border-[#7C3AED] text-white"
                     : active
-                    ? "bg-white border-[#1A8FAF] text-[#1A8FAF]"
-                    : "bg-white border-[#D6EAF0] text-gray-400"
+                    ? "bg-[#1C1C24] border-[#7C3AED] text-[#7C3AED]"
+                    : "bg-[#1C1C24] border-[#2A2A34] text-gray-400"
                 }`}
               >
                 {done ? (
@@ -109,9 +109,9 @@ function ProgressBar({ step }: { step: number }) {
                 )}
               </div>
               {i < STEPS.length - 1 && (
-                <div className="flex-1 h-0.5 mx-1 bg-[#D6EAF0] overflow-hidden">
+                <div className="flex-1 h-0.5 mx-1 bg-[#2A2A34] overflow-hidden">
                   <div
-                    className="h-full bg-[#1A8FAF] transition-all duration-300"
+                    className="h-full bg-[#7C3AED] transition-all duration-300"
                     style={{ width: i < step ? "100%" : "0%" }}
                   />
                 </div>
@@ -128,7 +128,7 @@ function ProgressBar({ step }: { step: number }) {
             <div
               key={i}
               className={`flex-1 text-center text-[11px] font-medium last:flex-none ${
-                active ? "text-[#1A8FAF]" : done ? "text-gray-500" : "text-gray-400"
+                active ? "text-[#7C3AED]" : done ? "text-gray-500" : "text-gray-400"
               }`}
               style={i === STEPS.length - 1 ? { flexGrow: 0, width: 32 } : undefined}
             >
@@ -262,10 +262,10 @@ export function SlugIntakeForm({
   }
 
   return (
-    <div className="min-h-screen bg-[#F0F7FA] flex flex-col items-center justify-start px-4 py-10">
+    <div className="min-h-screen bg-[#0F0F13] flex flex-col items-center justify-start px-4 py-10">
       {/* Studio branding */}
       <div className="mb-8 flex flex-col items-center text-center">
-        <div className="size-12 rounded-2xl bg-[#1A8FAF] flex items-center justify-center mb-3 shadow-lg shadow-[#1A8FAF]/20">
+        <div className="size-12 rounded-2xl bg-[#7C3AED] flex items-center justify-center mb-3 shadow-lg shadow-[#7C3AED]/20">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 20h9" />
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
@@ -280,7 +280,7 @@ export function SlugIntakeForm({
       </div>
 
       {/* Card */}
-      <div className="w-full max-w-lg bg-white rounded-2xl border border-[#D6EAF0] shadow-sm px-8 py-8">
+      <div className="w-full max-w-lg bg-[#1C1C24] rounded-2xl border border-[#2A2A34] shadow-sm px-8 py-8">
         <ProgressBar step={step} />
 
         {/* Step 1: About You */}
@@ -349,7 +349,7 @@ export function SlugIntakeForm({
             </div>
 
             {form.imagePreview ? (
-              <div className="relative rounded-xl overflow-hidden border border-[#D6EAF0] bg-[#F0F7FA]">
+              <div className="relative rounded-xl overflow-hidden border border-[#2A2A34] bg-[#0F0F13]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={form.imagePreview} alt="Reference preview" className="w-full max-h-64 object-contain" />
                 <button type="button" onClick={removeImage}
@@ -359,15 +359,15 @@ export function SlugIntakeForm({
               </div>
             ) : (
               <button type="button" onClick={() => fileRef.current?.click()}
-                className="w-full flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[#D6EAF0] bg-[#F8FCFE] hover:bg-[#F0F7FA] hover:border-[#1A8FAF]/40 py-10 text-sm text-gray-400 transition-colors group">
-                <div className="size-12 rounded-full bg-[#E8F5FA] flex items-center justify-center group-hover:bg-[#D6EAF0] transition-colors">
-                  <ImageIcon size={20} className="text-[#1A8FAF]" />
+                className="w-full flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[#2A2A34] bg-[#1C1C24] hover:bg-[#0F0F13] hover:border-[#7C3AED]/40 py-10 text-sm text-gray-400 transition-colors group">
+                <div className="size-12 rounded-full bg-[#1A1425] flex items-center justify-center group-hover:bg-[#2A2A34] transition-colors">
+                  <ImageIcon size={20} className="text-[#7C3AED]" />
                 </div>
                 <div className="text-center">
                   <p className="font-medium text-gray-600">Click to upload a reference image</p>
                   <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, WEBP · up to 10 MB</p>
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1A8FAF] text-white text-xs font-medium">
+                <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#7C3AED] text-white text-xs font-medium">
                   <Upload size={13} />
                   Choose file
                 </div>
@@ -376,7 +376,7 @@ export function SlugIntakeForm({
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
 
             {/* Summary */}
-            <div className="rounded-xl border border-[#D6EAF0] bg-[#F8FCFE] px-4 py-4 space-y-2">
+            <div className="rounded-xl border border-[#2A2A34] bg-[#1C1C24] px-4 py-4 space-y-2">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Summary</p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
                 <span className="text-gray-400">Name</span>
@@ -410,20 +410,20 @@ export function SlugIntakeForm({
         <div className={`flex mt-8 ${step > 0 ? "justify-between" : "justify-end"}`}>
           {step > 0 && (
             <button type="button" onClick={handleBack} disabled={submitting}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-[#D6EAF0] text-sm font-medium text-gray-600 bg-white hover:bg-[#F0F7FA] transition-colors disabled:opacity-50">
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-[#2A2A34] text-sm font-medium text-gray-600 bg-[#1C1C24] hover:bg-[#0F0F13] transition-colors disabled:opacity-50">
               <ChevronLeft size={16} />
               Back
             </button>
           )}
           {step < STEPS.length - 1 ? (
             <button type="button" onClick={handleNext}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#1A8FAF] hover:bg-[#157a97] text-white text-sm font-medium transition-colors shadow-sm shadow-[#1A8FAF]/20">
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-medium transition-colors shadow-sm shadow-[#7C3AED]/20">
               Next
               <ChevronRight size={16} />
             </button>
           ) : (
             <button type="button" onClick={handleSubmit} disabled={submitting}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#1A8FAF] hover:bg-[#157a97] text-white text-sm font-medium transition-colors shadow-sm shadow-[#1A8FAF]/20 disabled:opacity-60">
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-medium transition-colors shadow-sm shadow-[#7C3AED]/20 disabled:opacity-60">
               {submitting && <Loader2 size={14} className="animate-spin" />}
               {submitting ? "Submitting…" : "Submit Request"}
             </button>
@@ -432,7 +432,7 @@ export function SlugIntakeForm({
       </div>
 
       <p className="mt-6 text-xs text-gray-400 text-center">
-        Powered by <span className="font-medium text-[#1A8FAF]">InkDesk</span>
+        Powered by <span className="font-medium text-[#7C3AED]">Needlebook</span>
       </p>
     </div>
   );

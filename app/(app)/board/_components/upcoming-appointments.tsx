@@ -69,17 +69,17 @@ export function UpcomingAppointments({
           {appointments.length}
         </span>
       </div>
-      <div className="bg-white rounded-xl border border-[#D6EAF0] overflow-hidden shadow-sm">
+      <div className="bg-[#1C1C24] rounded-xl border border-[#2A2A34] overflow-hidden shadow-sm">
         {appointments.length === 0 ? (
           <div className="py-12 flex flex-col items-center text-center">
-            <CalendarX2 size={32} className="text-[#D6EAF0] mb-3" />
+            <CalendarX2 size={32} className="text-[#2A2A34] mb-3" />
             <p className="text-sm font-medium text-gray-500">No upcoming appointments</p>
             <p className="text-xs text-gray-400 mt-1">Booked appointments will appear here</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#D6EAF0] bg-[#F8FCFE]">
+              <tr className="border-b border-[#2A2A34] bg-[#1C1C24]">
                 <th className="text-left px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide">
                   Client
                 </th>
@@ -100,13 +100,13 @@ export function UpcomingAppointments({
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#EEF5F8]">
+            <tbody className="divide-y divide-[#1C1C24]">
               {appointments.map((appt) => {
                 const cfg = getStatusConfig(appt.status);
                 return (
                   <tr
                     key={appt.id}
-                    className="hover:bg-[#F8FCFE] transition-colors"
+                    className="hover:bg-[#1C1C24] transition-colors"
                   >
                     <td className="px-5 py-3.5 font-medium text-gray-900">
                       {appt.clients?.name ?? "—"}

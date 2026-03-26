@@ -143,8 +143,8 @@ function DayColumn({
 
   return (
     <div
-      className={`flex-1 relative border-l border-[#EEF5F8] ${
-        isToday ? "bg-[#FAFEFF]" : "bg-white"
+      className={`flex-1 relative border-l border-[#1C1C24] ${
+        isToday ? "bg-[#FAFEFF]" : "bg-[#1C1C24]"
       }`}
       style={{ height: totalHeight }}
     >
@@ -152,13 +152,13 @@ function DayColumn({
       {HOURS.map((_, i) => (
         <div
           key={i}
-          className="absolute inset-x-0 border-t border-[#EEF5F8]"
+          className="absolute inset-x-0 border-t border-[#1C1C24]"
           style={{ top: i * HOUR_HEIGHT }}
         />
       ))}
       {/* Bottom border */}
       <div
-        className="absolute inset-x-0 border-t border-[#EEF5F8]"
+        className="absolute inset-x-0 border-t border-[#1C1C24]"
         style={{ top: totalHeight }}
       />
       {/* Appointments */}
@@ -313,19 +313,19 @@ export function CalendarView() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-white">
+    <div className="flex flex-col h-full overflow-hidden bg-[#1C1C24]">
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#D6EAF0] shrink-0">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#2A2A34] shrink-0">
         <div className="flex items-center gap-2">
           <button
             onClick={() => shiftWeek(-1)}
-            className="size-8 flex items-center justify-center rounded-lg border border-[#D6EAF0] hover:bg-[#F0F7FA] transition-colors"
+            className="size-8 flex items-center justify-center rounded-lg border border-[#2A2A34] hover:bg-[#0F0F13] transition-colors"
           >
             <ChevronLeft size={16} className="text-gray-500" />
           </button>
           <button
             onClick={() => shiftWeek(1)}
-            className="size-8 flex items-center justify-center rounded-lg border border-[#D6EAF0] hover:bg-[#F0F7FA] transition-colors"
+            className="size-8 flex items-center justify-center rounded-lg border border-[#2A2A34] hover:bg-[#0F0F13] transition-colors"
           >
             <ChevronRight size={16} className="text-gray-500" />
           </button>
@@ -340,13 +340,13 @@ export function CalendarView() {
         <div className="flex items-center gap-2">
           <button
             onClick={goToToday}
-            className="px-3 py-1.5 text-sm font-medium text-gray-600 rounded-lg border border-[#D6EAF0] hover:bg-[#F0F7FA] transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-gray-600 rounded-lg border border-[#2A2A34] hover:bg-[#0F0F13] transition-colors"
           >
             Today
           </button>
           <Button
             onClick={() => setDialogOpen(true)}
-            className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5"
+            className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
           >
             <Plus size={15} />
             Book Appointment
@@ -355,7 +355,7 @@ export function CalendarView() {
       </div>
 
       {/* ── Day header row ───────────────────────────────────────────────── */}
-      <div className="flex border-b border-[#D6EAF0] shrink-0 bg-white">
+      <div className="flex border-b border-[#2A2A34] shrink-0 bg-[#1C1C24]">
         {/* Time gutter spacer */}
         <div className="w-16 shrink-0" />
         {weekDays.map((day, i) => {
@@ -363,7 +363,7 @@ export function CalendarView() {
           return (
             <div
               key={i}
-              className="flex-1 flex flex-col items-center py-3 border-l border-[#D6EAF0] select-none"
+              className="flex-1 flex flex-col items-center py-3 border-l border-[#2A2A34] select-none"
             >
               <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
                 {DAY_LABELS[i]}
@@ -371,8 +371,8 @@ export function CalendarView() {
               <div
                 className={`mt-1.5 size-8 flex items-center justify-center rounded-full text-sm font-semibold transition-colors ${
                   isToday
-                    ? "bg-[#1A8FAF] text-white"
-                    : "text-gray-800 hover:bg-[#F0F7FA]"
+                    ? "bg-[#7C3AED] text-white"
+                    : "text-gray-800 hover:bg-[#0F0F13]"
                 }`}
               >
                 {day.getDate()}
@@ -386,7 +386,7 @@ export function CalendarView() {
       <div ref={gridRef} className="flex-1 overflow-y-auto">
         <div className="flex">
           {/* Time labels */}
-          <div className="w-16 shrink-0 select-none bg-white z-10">
+          <div className="w-16 shrink-0 select-none bg-[#1C1C24] z-10">
             {HOURS.map((hour) => (
               <div
                 key={hour}
@@ -429,17 +429,17 @@ export function CalendarView() {
           onClick={closeAppt}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
+            className="bg-[#1C1C24] rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#D6EAF0]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#2A2A34]">
               <h3 className="text-base font-semibold text-gray-900">
                 {editMode ? "Edit Appointment" : "Appointment Details"}
               </h3>
               <button
                 onClick={closeAppt}
-                className="size-7 flex items-center justify-center rounded-lg hover:bg-[#F0F7FA] transition-colors text-gray-400 hover:text-gray-600"
+                className="size-7 flex items-center justify-center rounded-lg hover:bg-[#0F0F13] transition-colors text-gray-400 hover:text-gray-600"
               >
                 <X size={16} />
               </button>
@@ -501,14 +501,14 @@ export function CalendarView() {
                   </div>
                 </div>
                 {/* Footer — detail */}
-                <div className="px-5 py-3 border-t border-[#D6EAF0] flex items-center justify-between">
+                <div className="px-5 py-3 border-t border-[#2A2A34] flex items-center justify-between">
                   <button
                     onClick={handleDeleteAppointment}
                     disabled={deleting}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
                       deleteConfirm
                         ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
-                        : "bg-white text-gray-400 border-[#D6EAF0] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                        : "bg-[#1C1C24] text-gray-400 border-[#2A2A34] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
                     }`}
                   >
                     {deleting && <Loader2 size={12} className="animate-spin" />}
@@ -517,13 +517,13 @@ export function CalendarView() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={openEditMode}
-                      className="px-3 py-1.5 text-xs font-medium text-[#1A8FAF] rounded-lg border border-[#D6EAF0] hover:bg-[#F0F7FA] transition-colors"
+                      className="px-3 py-1.5 text-xs font-medium text-[#7C3AED] rounded-lg border border-[#2A2A34] hover:bg-[#0F0F13] transition-colors"
                     >
                       Edit
                     </button>
                     <button
                       onClick={closeAppt}
-                      className="px-4 py-1.5 text-sm font-medium text-gray-600 rounded-lg border border-[#D6EAF0] hover:bg-[#F0F7FA] transition-colors"
+                      className="px-4 py-1.5 text-sm font-medium text-gray-600 rounded-lg border border-[#2A2A34] hover:bg-[#0F0F13] transition-colors"
                     >
                       Close
                     </button>
@@ -541,7 +541,7 @@ export function CalendarView() {
                         type="date"
                         value={editDate}
                         onChange={(e) => setEditDate(e.target.value)}
-                        className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-[#1A8FAF] transition-colors"
+                        className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-[#7C3AED] transition-colors"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -550,7 +550,7 @@ export function CalendarView() {
                         type="time"
                         value={editTime}
                         onChange={(e) => setEditTime(e.target.value)}
-                        className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-[#1A8FAF] transition-colors"
+                        className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-[#7C3AED] transition-colors"
                       />
                     </div>
                   </div>
@@ -560,7 +560,7 @@ export function CalendarView() {
                       type="text"
                       value={editType}
                       onChange={(e) => setEditType(e.target.value)}
-                      className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-[#1A8FAF] transition-colors"
+                      className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-[#7C3AED] transition-colors"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -568,7 +568,7 @@ export function CalendarView() {
                     <select
                       value={editStatus}
                       onChange={(e) => setEditStatus(e.target.value)}
-                      className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-[#1A8FAF] transition-colors"
+                      className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-[#7C3AED] transition-colors"
                     >
                       <option value="confirmed">Confirmed</option>
                       <option value="pending">Pending</option>
@@ -578,18 +578,18 @@ export function CalendarView() {
                   </div>
                 </div>
                 {/* Footer — edit */}
-                <div className="px-5 py-3 border-t border-[#D6EAF0] flex items-center justify-end gap-2">
+                <div className="px-5 py-3 border-t border-[#2A2A34] flex items-center justify-end gap-2">
                   <button
                     onClick={() => setEditMode(false)}
                     disabled={saving}
-                    className="px-4 py-1.5 text-sm font-medium text-gray-600 rounded-lg border border-[#D6EAF0] hover:bg-[#F0F7FA] transition-colors disabled:opacity-50"
+                    className="px-4 py-1.5 text-sm font-medium text-gray-600 rounded-lg border border-[#2A2A34] hover:bg-[#0F0F13] transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveEdit}
                     disabled={saving || !editDate}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-[#1A8FAF] hover:bg-[#157a97] text-white rounded-lg transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg transition-colors disabled:opacity-50"
                   >
                     {saving && <Loader2 size={12} className="animate-spin" />}
                     {saving ? "Saving…" : "Save Changes"}

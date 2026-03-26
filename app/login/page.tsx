@@ -72,15 +72,15 @@ export default function LoginPage() {
   }
 
   const inputCls =
-    "w-full h-10 rounded-lg border border-[#D6EAF0] bg-white px-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#1A8FAF] focus:ring-2 focus:ring-[#1A8FAF]/20 transition-colors";
+    "w-full h-10 rounded-lg border border-[#2A2A34] bg-[#1C1C24] px-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors";
 
   return (
-    <div className="min-h-screen bg-[#F0F7FA] flex flex-col items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-[#0F0F13] flex flex-col items-center justify-center px-4 py-10">
       {/* Card */}
-      <div className="w-full max-w-sm bg-white rounded-2xl border border-[#D6EAF0] shadow-sm px-8 py-8">
+      <div className="w-full max-w-sm bg-[#1C1C24] rounded-2xl border border-[#2A2A34] shadow-sm px-8 py-8">
         {/* Branding */}
         <div className="flex flex-col items-center mb-7">
-          <div className="size-10 rounded-xl bg-[#1A8FAF] flex items-center justify-center mb-3">
+          <div className="size-10 rounded-xl bg-[#7C3AED] flex items-center justify-center mb-3">
             <svg
               width="20"
               height="20"
@@ -95,12 +95,12 @@ export default function LoginPage() {
               <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-gray-900">InkDesk</h1>
+          <h1 className="text-xl font-semibold text-gray-900">Needlebook</h1>
           <p className="text-xs text-gray-400 mt-0.5">Tattoo artist CRM</p>
         </div>
 
         {/* Mode toggle */}
-        <div className="flex rounded-lg border border-[#D6EAF0] bg-[#F0F7FA] p-1 mb-6">
+        <div className="flex rounded-lg border border-[#2A2A34] bg-[#0F0F13] p-1 mb-6">
           {(["signin", "signup"] as const).map((m) => (
             <button
               key={m}
@@ -108,7 +108,7 @@ export default function LoginPage() {
               onClick={() => switchMode(m)}
               className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 mode === m
-                  ? "bg-white text-gray-900 shadow-sm"
+                  ? "bg-[#1C1C24] text-gray-900 shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -206,7 +206,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-10 rounded-lg bg-[#1A8FAF] hover:bg-[#157a97] text-white text-sm font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            className="w-full h-10 rounded-lg bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {loading && <Loader2 size={15} className="animate-spin" />}
             {loading
@@ -221,7 +221,7 @@ export default function LoginPage() {
       </div>
 
       <p className="mt-6 text-xs text-gray-400">
-        © {new Date().getFullYear()} InkDesk
+        © {new Date().getFullYear()} Needlebook
       </p>
     </div>
   );

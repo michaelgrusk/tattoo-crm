@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "InkDesk",
+  title: "Needlebook",
   description: "CRM for tattoo artists and studios",
 };
 

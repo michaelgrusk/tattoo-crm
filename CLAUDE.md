@@ -1,4 +1,4 @@
-# InkDesk — Tattoo Artist CRM
+# Needlebook — Tattoo Artist CRM
 
 ## Project overview
 A CRM SaaS for tattoo artists and small studios. Helps manage new client intake, appointments, invoices, and analytics.
@@ -13,9 +13,9 @@ A CRM SaaS for tattoo artists and small studios. Helps manage new client intake,
 ## Design
 - Light cyan/blue color palette
 - Clean, minimal UI
-- Primary color: #1A8FAF
-- Background: #F0F7FA
-- Sidebar: white with #D6EAF0 borders
+- Primary color: #7C3AED
+- Background: #0F0F13
+- Sidebar: white with #2A2A34 borders
 
 ## Pages
 1. **Board** — intake queue (new requests, quote sent, deposit paid) + upcoming appointments list

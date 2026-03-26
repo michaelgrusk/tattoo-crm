@@ -139,7 +139,7 @@ function StatBox({
   sub?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-[#D6EAF0] px-5 py-4">
+    <div className="bg-[#1C1C24] rounded-xl border border-[#2A2A34] px-5 py-4">
       <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">
         {label}
       </p>
@@ -386,7 +386,7 @@ function AddRequestDialog({
           <div className="space-y-1.5">
             <Label>Reference Image</Label>
             {imagePreview ? (
-              <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-[#D6EAF0] bg-[#F0F7FA]">
+              <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-[#2A2A34] bg-[#0F0F13]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={imagePreview}
@@ -408,7 +408,7 @@ function AddRequestDialog({
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="w-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#D6EAF0] bg-[#F8FCFE] hover:bg-[#F0F7FA] py-6 text-sm text-gray-400 transition-colors"
+                className="w-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#2A2A34] bg-[#1C1C24] hover:bg-[#0F0F13] py-6 text-sm text-gray-400 transition-colors"
               >
                 <ImageIcon size={20} className="text-gray-300" />
                 <span>Click to attach a reference image</span>
@@ -441,7 +441,7 @@ function AddRequestDialog({
             type="submit"
             form="add-request-form"
             disabled={submitting}
-            className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5"
+            className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
           >
             {submitting && <Loader2 size={13} className="animate-spin" />}
             {submitting ? "Saving…" : "Add Request"}
@@ -633,7 +633,7 @@ function EditClientDialog({
             type="submit"
             form="edit-client-form"
             disabled={submitting}
-            className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5"
+            className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
           >
             {submitting && <Loader2 size={13} className="animate-spin" />}
             {submitting ? "Saving…" : "Save Changes"}
@@ -890,7 +890,7 @@ export function ClientDetailPanel({
         {/* Client header */}
         <div className="flex items-start justify-between gap-4 mb-8">
           <div className="flex items-start gap-4">
-            <div className="size-14 rounded-full bg-[#E8F5FA] flex items-center justify-center text-lg font-semibold text-[#1A8FAF] shrink-0">
+            <div className="size-14 rounded-full bg-[#1A1425] flex items-center justify-center text-lg font-semibold text-[#7C3AED] shrink-0">
               {client.name
                 .trim()
                 .split(/\s+/)
@@ -928,7 +928,7 @@ export function ClientDetailPanel({
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setEditOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#D6EAF0] bg-white text-[#1A8FAF] hover:bg-[#F0F7FA] transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#2A2A34] bg-[#1C1C24] text-[#7C3AED] hover:bg-[#0F0F13] transition-colors"
             >
               Edit
             </button>
@@ -938,7 +938,7 @@ export function ClientDetailPanel({
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
                 deleteConfirm
                   ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
-                  : "bg-white text-gray-400 border-[#D6EAF0] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                  : "bg-[#1C1C24] text-gray-400 border-[#2A2A34] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
               }`}
             >
               {deleting && <Loader2 size={12} className="animate-spin" />}
@@ -996,7 +996,7 @@ export function ClientDetailPanel({
                 <button
                   onClick={() => newImageInputRef.current?.click()}
                   disabled={uploadingNew}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#1A8FAF] bg-[#E8F5FA] hover:bg-[#D6EAF0] border border-[#C8DFE8] transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#7C3AED] bg-[#1A1425] hover:bg-[#2A2A34] border border-[#C8DFE8] transition-colors disabled:opacity-50"
                 >
                   {uploadingNew ? (
                     <Loader2 size={12} className="animate-spin" />
@@ -1015,7 +1015,7 @@ export function ClientDetailPanel({
               </div>
 
               {referenceImages.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[#D6EAF0] bg-white p-6 flex flex-col items-center gap-2 text-center">
+                <div className="rounded-xl border border-dashed border-[#2A2A34] bg-[#1C1C24] p-6 flex flex-col items-center gap-2 text-center">
                   <ImageIcon size={24} className="text-gray-300" />
                   <p className="text-sm text-gray-400">No reference images yet</p>
                   <p className="text-xs text-gray-300">
@@ -1030,7 +1030,7 @@ export function ClientDetailPanel({
                       onClick={() =>
                         setLightboxUrl(req.reference_image_url!)
                       }
-                      className="group relative aspect-square rounded-xl overflow-hidden border border-[#D6EAF0] bg-[#F0F7FA] hover:border-[#1A8FAF] transition-colors"
+                      className="group relative aspect-square rounded-xl overflow-hidden border border-[#2A2A34] bg-[#0F0F13] hover:border-[#7C3AED] transition-colors"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -1067,7 +1067,7 @@ export function ClientDetailPanel({
                 </h3>
                 <div className="space-y-3">
                   {client.skin_notes && (
-                    <div className="bg-white rounded-xl border border-[#D6EAF0] px-5 py-4">
+                    <div className="bg-[#1C1C24] rounded-xl border border-[#2A2A34] px-5 py-4">
                       <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">
                         Skin Notes
                       </p>
@@ -1077,7 +1077,7 @@ export function ClientDetailPanel({
                     </div>
                   )}
                   {client.notes && (
-                    <div className="bg-white rounded-xl border border-[#D6EAF0] px-5 py-4">
+                    <div className="bg-[#1C1C24] rounded-xl border border-[#2A2A34] px-5 py-4">
                       <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">
                         General Notes
                       </p>
@@ -1104,7 +1104,7 @@ export function ClientDetailPanel({
                 <Button
                   size="sm"
                   onClick={() => setAddRequestOpen(true)}
-                  className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5"
+                  className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
                 >
                   <Plus size={13} />
                   Add Request
@@ -1112,7 +1112,7 @@ export function ClientDetailPanel({
               </div>
 
               {requests.length === 0 ? (
-                <div className="bg-white rounded-xl border border-dashed border-[#D6EAF0] p-8 text-center text-sm text-gray-400">
+                <div className="bg-[#1C1C24] rounded-xl border border-dashed border-[#2A2A34] p-8 text-center text-sm text-gray-400">
                   No tattoo requests yet
                 </div>
               ) : (
@@ -1124,7 +1124,7 @@ export function ClientDetailPanel({
                     return (
                       <div
                         key={req.id}
-                        className="bg-white rounded-xl border border-[#D6EAF0] overflow-hidden"
+                        className="bg-[#1C1C24] rounded-xl border border-[#2A2A34] overflow-hidden"
                       >
                         {/* Reference image strip */}
                         {req.reference_image_url ? (
@@ -1132,7 +1132,7 @@ export function ClientDetailPanel({
                             onClick={() =>
                               setLightboxUrl(req.reference_image_url!)
                             }
-                            className="group relative w-full h-36 overflow-hidden block border-b border-[#D6EAF0]"
+                            className="group relative w-full h-36 overflow-hidden block border-b border-[#2A2A34]"
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
@@ -1148,13 +1148,13 @@ export function ClientDetailPanel({
                             </div>
                           </button>
                         ) : (
-                          <div className="border-b border-[#D6EAF0] border-dashed">
+                          <div className="border-b border-[#2A2A34] border-dashed">
                             <button
                               onClick={() =>
                                 cardImageInputRefs.current[req.id]?.click()
                               }
                               disabled={isUploadingCard}
-                              className="w-full flex items-center justify-center gap-2 py-3 text-xs text-gray-400 hover:text-[#1A8FAF] hover:bg-[#F8FCFE] transition-colors disabled:opacity-50"
+                              className="w-full flex items-center justify-center gap-2 py-3 text-xs text-gray-400 hover:text-[#7C3AED] hover:bg-[#1C1C24] transition-colors disabled:opacity-50"
                             >
                               {isUploadingCard ? (
                                 <Loader2 size={13} className="animate-spin" />
@@ -1182,7 +1182,7 @@ export function ClientDetailPanel({
                         {/* Card body */}
                         <div className="px-5 py-4">
                           <div className="flex items-start justify-between gap-3 mb-2">
-                            <span className="inline-flex items-center rounded-full bg-[#E8F5FA] px-2.5 py-0.5 text-xs font-medium text-[#1A8FAF]">
+                            <span className="inline-flex items-center rounded-full bg-[#1A1425] px-2.5 py-0.5 text-xs font-medium text-[#7C3AED]">
                               {req.style}
                             </span>
                             <div className="flex items-center gap-2 shrink-0">

@@ -219,7 +219,7 @@ export function AddClientDialog({
             type="submit"
             form="add-client-form"
             disabled={submitting}
-            className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5"
+            className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
           >
             {submitting && <Loader2 size={13} className="animate-spin" />}
             {submitting ? "Adding…" : "Add Client"}

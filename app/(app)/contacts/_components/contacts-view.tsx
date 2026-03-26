@@ -49,8 +49,8 @@ function ClientRow({
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-4 text-left transition-all rounded-lg ${
         isSelected
-          ? "bg-[#E8F5FA] shadow-[inset_3px_0_0_0_#1A8FAF]"
-          : "hover:bg-[#F8FCFE]"
+          ? "bg-[#1A1425] shadow-[inset_3px_0_0_0_#7C3AED]"
+          : "hover:bg-[#1C1C24]"
       }`}
     >
       <div
@@ -61,7 +61,7 @@ function ClientRow({
       <div className="flex-1 min-w-0">
         <p
           className={`text-sm font-medium truncate ${
-            isSelected ? "text-[#1A8FAF]" : "text-gray-900"
+            isSelected ? "text-[#7C3AED]" : "text-gray-900"
           }`}
         >
           {client.name}
@@ -124,9 +124,9 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
   return (
     <div className="flex h-full">
       {/* Left panel */}
-      <div className="w-80 shrink-0 flex flex-col border-r border-[#D6EAF0] bg-white">
+      <div className="w-80 shrink-0 flex flex-col border-r border-[#2A2A34] bg-[#1C1C24]">
         {/* Header */}
-        <div className="px-5 pt-6 pb-4 border-b border-[#D6EAF0]">
+        <div className="px-5 pt-6 pb-4 border-b border-[#2A2A34]">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-xl font-semibold text-gray-900">Contacts</h1>
@@ -137,7 +137,7 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
             <Button
               size="sm"
               onClick={() => setDialogOpen(true)}
-              className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5 shrink-0"
+              className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5 shrink-0"
             >
               <UserPlus size={14} />
               Add Client
@@ -153,7 +153,7 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
               placeholder="Search clients…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-[#F0F7FA] border border-[#D6EAF0] rounded-lg outline-none focus:border-[#1A8FAF] focus:ring-2 focus:ring-[#1A8FAF]/20 transition-colors placeholder:text-gray-400"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-[#0F0F13] border border-[#2A2A34] rounded-lg outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors placeholder:text-gray-400"
             />
           </div>
         </div>
@@ -162,7 +162,7 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
         <div className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center py-12 px-4 text-center">
-              <Users size={28} className="text-[#D6EAF0] mb-3" />
+              <Users size={28} className="text-[#2A2A34] mb-3" />
               <p className="text-sm font-medium text-gray-500">No clients found</p>
               <p className="text-xs text-gray-400 mt-1">
                 {search ? "Try a different search term" : "Add your first client above"}
@@ -182,7 +182,7 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 overflow-y-auto bg-[#F0F7FA]">
+      <div className="flex-1 overflow-y-auto bg-[#0F0F13]">
         {selectedClient ? (
           <ClientDetailPanel
             client={selectedClient}

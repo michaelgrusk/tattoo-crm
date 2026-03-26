@@ -102,7 +102,7 @@ function DeclineButton({
       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
         confirm
           ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
-          : "bg-white text-gray-400 border-[#D6EAF0] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+          : "bg-[#1C1C24] text-gray-400 border-[#2A2A34] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
       }`}
     >
       {working === "decline" && <Loader2 size={12} className="animate-spin" />}
@@ -338,7 +338,7 @@ export function RequestDetailModal({
           <div className="space-y-5 pt-1">
 
             {/* Client card */}
-            <div className="rounded-xl border border-[#D6EAF0] bg-[#F8FCFE] px-4 py-4">
+            <div className="rounded-xl border border-[#2A2A34] bg-[#1C1C24] px-4 py-4">
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="min-w-0">
                   <p className="text-base font-semibold text-gray-900 truncate">
@@ -379,7 +379,7 @@ export function RequestDetailModal({
               <SectionLabel>Tattoo Details</SectionLabel>
               <div className="space-y-2.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center rounded-full bg-[#E8F5FA] px-2.5 py-0.5 text-xs font-medium text-[#1A8FAF]">
+                  <span className="inline-flex items-center rounded-full bg-[#1A1425] px-2.5 py-0.5 text-xs font-medium text-[#7C3AED]">
                     {request.style}
                   </span>
                   {parsed.placement && (
@@ -395,7 +395,7 @@ export function RequestDetailModal({
                 </div>
 
                 {parsed.tattooDescription && (
-                  <p className="text-sm text-gray-700 leading-relaxed bg-white rounded-lg border border-[#EEF5F8] px-3 py-2.5">
+                  <p className="text-sm text-gray-700 leading-relaxed bg-[#1C1C24] rounded-lg border border-[#1C1C24] px-3 py-2.5">
                     {parsed.tattooDescription}
                   </p>
                 )}
@@ -419,7 +419,7 @@ export function RequestDetailModal({
                 <img
                   src={request.reference_image_url}
                   alt="Reference"
-                  className="w-full max-h-52 object-cover rounded-xl border border-[#D6EAF0]"
+                  className="w-full max-h-52 object-cover rounded-xl border border-[#2A2A34]"
                 />
               </div>
             )}
@@ -432,14 +432,14 @@ export function RequestDetailModal({
             )}
 
             {/* Action footer */}
-            <div className="border-t border-[#D6EAF0] pt-4">
+            <div className="border-t border-[#2A2A34] pt-4">
 
               {request.status === "new request" && (
                 <div className="flex items-center justify-between gap-2">
                   <Button
                     onClick={() => setView("send-quote")}
                     disabled={busy}
-                    className="bg-[#1A8FAF] hover:bg-[#157a97] text-white"
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
                   >
                     Send Quote
                   </Button>
@@ -457,7 +457,7 @@ export function RequestDetailModal({
                   <Button
                     onClick={() => setView("deposit")}
                     disabled={busy}
-                    className="bg-[#1A8FAF] hover:bg-[#157a97] text-white"
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
                   >
                     Mark Deposit Paid
                   </Button>
@@ -475,7 +475,7 @@ export function RequestDetailModal({
                   <Button
                     onClick={() => setView("schedule")}
                     disabled={busy}
-                    className="bg-[#1A8FAF] hover:bg-[#157a97] text-white"
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
                   >
                     Schedule Appointment
                   </Button>
@@ -513,7 +513,7 @@ export function RequestDetailModal({
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="sq-amount">
-                  Quote amount ($) <span className="text-[#1A8FAF]">*</span>
+                  Quote amount ($) <span className="text-[#7C3AED]">*</span>
                 </Label>
                 <Input
                   id="sq-amount"
@@ -545,14 +545,14 @@ export function RequestDetailModal({
               </p>
             )}
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#D6EAF0]">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#2A2A34]">
               <Button variant="outline" onClick={backToDetail} disabled={busy}>
                 Cancel
               </Button>
               <Button
                 onClick={handleSendQuote}
                 disabled={busy}
-                className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5"
+                className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
               >
                 {working === "quote" && <Loader2 size={13} className="animate-spin" />}
                 {working === "quote" ? "Sending…" : "Confirm & Send Quote"}
@@ -582,7 +582,7 @@ export function RequestDetailModal({
 
             <div className="space-y-1.5">
               <Label htmlFor="dp-amount">
-                Deposit amount ($) <span className="text-[#1A8FAF]">*</span>
+                Deposit amount ($) <span className="text-[#7C3AED]">*</span>
               </Label>
               <Input
                 id="dp-amount"
@@ -607,14 +607,14 @@ export function RequestDetailModal({
               </p>
             )}
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#D6EAF0]">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#2A2A34]">
               <Button variant="outline" onClick={backToDetail} disabled={busy}>
                 Cancel
               </Button>
               <Button
                 onClick={handleConfirmDeposit}
                 disabled={busy}
-                className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5"
+                className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
               >
                 {working === "deposit" && <Loader2 size={13} className="animate-spin" />}
                 {working === "deposit" ? "Recording…" : "Confirm Deposit"}
@@ -646,7 +646,7 @@ export function RequestDetailModal({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="sc-date">
-                  Date <span className="text-[#1A8FAF]">*</span>
+                  Date <span className="text-[#7C3AED]">*</span>
                 </Label>
                 <Input
                   id="sc-date"
@@ -700,14 +700,14 @@ export function RequestDetailModal({
               </p>
             )}
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#D6EAF0]">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#2A2A34]">
               <Button variant="outline" onClick={backToDetail} disabled={busy}>
                 Cancel
               </Button>
               <Button
                 onClick={handleSchedule}
                 disabled={busy}
-                className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5"
+                className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
               >
                 {working === "schedule" && <Loader2 size={13} className="animate-spin" />}
                 {working === "schedule" ? "Booking…" : "Book Appointment"}

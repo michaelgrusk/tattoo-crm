@@ -102,7 +102,7 @@ function SummaryCard({
   iconColor: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-[#D6EAF0] px-6 py-5 flex items-center gap-4 shadow-sm">
+    <div className="bg-[#1C1C24] rounded-xl border border-[#2A2A34] px-6 py-5 flex items-center gap-4 shadow-sm">
       <div
         className={`size-11 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}
       >
@@ -196,7 +196,7 @@ export function InvoicesView({
         </div>
         <Button
           onClick={() => setDialogOpen(true)}
-          className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5"
+          className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
         >
           <Plus size={15} />
           New Invoice
@@ -232,17 +232,17 @@ export function InvoicesView({
       </div>
 
       {/* Filter + table */}
-      <div className="bg-white rounded-xl border border-[#D6EAF0] shadow-sm overflow-hidden">
+      <div className="bg-[#1C1C24] rounded-xl border border-[#2A2A34] shadow-sm overflow-hidden">
         {/* Filter bar */}
-        <div className="flex items-center gap-1 px-4 py-3 border-b border-[#D6EAF0]">
+        <div className="flex items-center gap-1 px-4 py-3 border-b border-[#2A2A34]">
           {FILTERS.map(({ value, label }) => (
             <button
               key={value}
               onClick={() => setFilter(value)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 filter === value
-                  ? "bg-[#1A8FAF] text-white"
-                  : "text-gray-500 hover:bg-[#F0F7FA] hover:text-gray-900"
+                  ? "bg-[#7C3AED] text-white"
+                  : "text-gray-500 hover:bg-[#0F0F13] hover:text-gray-900"
               }`}
             >
               {label}
@@ -262,7 +262,7 @@ export function InvoicesView({
         {/* Table */}
         {filtered.length === 0 ? (
           <div className="py-16 flex flex-col items-center text-center">
-            <FileX size={32} className="text-[#D6EAF0] mb-3" />
+            <FileX size={32} className="text-[#2A2A34] mb-3" />
             <p className="text-sm font-medium text-gray-500">No invoices found</p>
             <p className="text-xs text-gray-400 mt-1">
               {filter === "all" ? "Create your first invoice above" : `No ${filter} invoices`}
@@ -271,7 +271,7 @@ export function InvoicesView({
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#D6EAF0] bg-[#F8FCFE]">
+              <tr className="border-b border-[#2A2A34] bg-[#1C1C24]">
                 {[
                   "Invoice",
                   "Client",
@@ -294,13 +294,13 @@ export function InvoicesView({
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#EEF5F8]">
+            <tbody className="divide-y divide-[#1C1C24]">
               {filtered.map((inv) => {
                 const cfg = STATUS_CONFIG[inv.status] ?? STATUS_CONFIG.pending;
                 return (
                   <tr
                     key={inv.id}
-                    className="hover:bg-[#F8FCFE] transition-colors group"
+                    className="hover:bg-[#1C1C24] transition-colors group"
                   >
                     {/* Invoice # */}
                     <td className="px-5 py-3.5 text-right">
@@ -354,7 +354,7 @@ export function InvoicesView({
                         )}
                         <button
                           onClick={() => setSelectedInvoice(inv)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-white hover:bg-[#F0F7FA] border border-[#D6EAF0] transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-[#1C1C24] hover:bg-[#0F0F13] border border-[#2A2A34] transition-colors"
                         >
                           <Eye size={12} />
                           View
@@ -370,7 +370,7 @@ export function InvoicesView({
 
         {/* Table footer */}
         {filtered.length > 0 && (
-          <div className="px-5 py-3 border-t border-[#D6EAF0] flex items-center justify-between bg-[#F8FCFE]">
+          <div className="px-5 py-3 border-t border-[#2A2A34] flex items-center justify-between bg-[#1C1C24]">
             <span className="text-xs text-gray-400">
               Showing {filtered.length} of {invoices.length} invoice
               {invoices.length !== 1 ? "s" : ""}

@@ -9,9 +9,9 @@ export default async function ConfirmationPage({
   const { name, style, hasImage } = await searchParams;
 
   return (
-    <div className="min-h-screen bg-[#F0F7FA] flex flex-col items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-[#0F0F13] flex flex-col items-center justify-center px-4 py-10">
       {/* Card */}
-      <div className="w-full max-w-md bg-white rounded-2xl border border-[#D6EAF0] shadow-sm px-8 py-10 flex flex-col items-center text-center">
+      <div className="w-full max-w-md bg-[#1C1C24] rounded-2xl border border-[#2A2A34] shadow-sm px-8 py-10 flex flex-col items-center text-center">
         {/* Success icon */}
         <div className="size-16 rounded-full bg-emerald-50 flex items-center justify-center mb-5">
           <CheckCircle2 size={32} className="text-emerald-500" />
@@ -26,7 +26,7 @@ export default async function ConfirmationPage({
         </p>
 
         {/* Summary card */}
-        <div className="w-full rounded-xl border border-[#D6EAF0] bg-[#F8FCFE] px-5 py-4 text-left space-y-2 mb-8">
+        <div className="w-full rounded-xl border border-[#2A2A34] bg-[#1C1C24] px-5 py-4 text-left space-y-2 mb-8">
           <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-3">
             What you submitted
           </p>
@@ -54,7 +54,7 @@ export default async function ConfirmationPage({
         <div className="flex flex-col items-center gap-2 w-full">
           <Link
             href="/intake"
-            className="w-full py-2.5 rounded-xl border border-[#D6EAF0] text-sm font-medium text-gray-600 bg-white hover:bg-[#F0F7FA] transition-colors text-center"
+            className="w-full py-2.5 rounded-xl border border-[#2A2A34] text-sm font-medium text-gray-600 bg-[#1C1C24] hover:bg-[#0F0F13] transition-colors text-center"
           >
             Submit another request
           </Link>
@@ -62,13 +62,13 @@ export default async function ConfirmationPage({
       </div>
 
       <div className="mt-6 flex items-center gap-2">
-        <div className="size-6 rounded-lg bg-[#1A8FAF] flex items-center justify-center">
+        <div className="size-6 rounded-lg bg-[#7C3AED] flex items-center justify-center">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 20h9" />
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
           </svg>
         </div>
-        <span className="text-xs text-gray-400 font-medium">InkDesk</span>
+        <span className="text-xs text-gray-400 font-medium">Needlebook</span>
       </div>
     </div>
   );

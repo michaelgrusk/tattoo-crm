@@ -114,7 +114,7 @@ function StatCard({
   loading: boolean;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-[#D6EAF0] px-5 py-5 shadow-sm">
+    <div className="bg-[#1C1C24] rounded-xl border border-[#2A2A34] px-5 py-5 shadow-sm">
       <div className="flex items-center gap-3 mb-3">
         <div
           className={`size-9 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}
@@ -173,7 +173,7 @@ function RevenueChart({
         {[0.25, 0.5, 0.75, 1].map((frac) => (
           <div
             key={frac}
-            className="absolute inset-x-0 border-t border-dashed border-[#EEF5F8] flex items-start"
+            className="absolute inset-x-0 border-t border-dashed border-[#1C1C24] flex items-start"
             style={{ top: CHART_H - frac * CHART_H }}
           >
             <span className="text-[10px] text-gray-300 pr-2 -mt-2.5 select-none">
@@ -203,7 +203,7 @@ function RevenueChart({
                 )}
                 <div
                   className={`w-full rounded-t-md transition-all duration-300 ${
-                    total > 0 ? "bg-[#1A8FAF]" : "bg-[#EEF5F8]"
+                    total > 0 ? "bg-[#7C3AED]" : "bg-[#1C1C24]"
                   }`}
                   style={{ height: barH }}
                 />
@@ -267,9 +267,9 @@ function BusiestHours({
             <span className="text-[11px] text-gray-400 w-11 shrink-0 text-right tabular-nums">
               {formatHour(h)}
             </span>
-            <div className="flex-1 h-5 bg-[#F0F7FA] rounded-md overflow-hidden">
+            <div className="flex-1 h-5 bg-[#0F0F13] rounded-md overflow-hidden">
               <div
-                className="h-full bg-[#1A8FAF] rounded-md transition-all duration-500"
+                className="h-full bg-[#7C3AED] rounded-md transition-all duration-500"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -333,9 +333,9 @@ function TopClients({
                 {fmt(total)}
               </span>
             </div>
-            <div className="h-1.5 bg-[#F0F7FA] rounded-full overflow-hidden">
+            <div className="h-1.5 bg-[#0F0F13] rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#1A8FAF] rounded-full transition-all duration-500"
+                className="h-full bg-[#7C3AED] rounded-full transition-all duration-500"
                 style={{ width: `${(total / max) * 100}%` }}
               />
             </div>
@@ -349,7 +349,7 @@ function TopClients({
 // ─── Popular Styles ───────────────────────────────────────────────────────────
 
 const STYLE_COLORS = [
-  "bg-[#1A8FAF]",
+  "bg-[#7C3AED]",
   "bg-violet-400",
   "bg-amber-400",
   "bg-rose-400",
@@ -411,7 +411,7 @@ function PopularStyles({
                   </span>
                 </div>
               </div>
-              <div className="h-1.5 bg-[#F0F7FA] rounded-full overflow-hidden">
+              <div className="h-1.5 bg-[#0F0F13] rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${color}`}
                   style={{ width: `${pct}%` }}
@@ -428,7 +428,7 @@ function PopularStyles({
 // ─── Main view ────────────────────────────────────────────────────────────────
 
 const DATE_INPUT_CLS =
-  "h-9 w-full rounded-lg border border-[#D6EAF0] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#1A8FAF] focus:ring-2 focus:ring-[#1A8FAF]/20 transition-colors";
+  "h-9 w-full rounded-lg border border-[#2A2A34] bg-[#1C1C24] px-3 text-sm text-gray-700 outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors";
 
 export function AnalyticsView() {
   const [period, setPeriod] = useState<Period>("6m");
@@ -591,7 +591,7 @@ export function AnalyticsView() {
                     setCustomTo("");
                   }
                 }}
-                className="appearance-none pl-4 pr-8 py-2 text-sm font-medium bg-white border border-[#D6EAF0] rounded-lg text-gray-700 cursor-pointer focus:outline-none focus:border-[#1A8FAF] focus:ring-2 focus:ring-[#1A8FAF]/20 transition-colors shadow-sm h-9"
+                className="appearance-none pl-4 pr-8 py-2 text-sm font-medium bg-[#1C1C24] border border-[#2A2A34] rounded-lg text-gray-700 cursor-pointer focus:outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors shadow-sm h-9"
               >
                 {PERIOD_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -624,8 +624,8 @@ export function AnalyticsView() {
           value={fmt(avgPerSession)}
           sub={totalSessions > 0 ? `over ${totalSessions} sessions` : "no sessions yet"}
           icon={Clock}
-          iconBg="bg-[#E8F5FA]"
-          iconColor="text-[#1A8FAF]"
+          iconBg="bg-[#1A1425]"
+          iconColor="text-[#7C3AED]"
           loading={loading}
         />
         <StatCard
@@ -650,7 +650,7 @@ export function AnalyticsView() {
 
       {/* Charts row: Revenue (wider) + Busiest hours */}
       <div className="grid grid-cols-5 gap-5">
-        <div className="col-span-3 bg-white rounded-xl border border-[#D6EAF0] p-6 shadow-sm">
+        <div className="col-span-3 bg-[#1C1C24] rounded-xl border border-[#2A2A34] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-semibold text-gray-800">
               Revenue Over Time
@@ -671,7 +671,7 @@ export function AnalyticsView() {
           )}
         </div>
 
-        <div className="col-span-2 bg-white rounded-xl border border-[#D6EAF0] p-6 shadow-sm">
+        <div className="col-span-2 bg-[#1C1C24] rounded-xl border border-[#2A2A34] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-semibold text-gray-800">
               Busiest Hours
@@ -684,7 +684,7 @@ export function AnalyticsView() {
 
       {/* Bottom row: Top clients + Popular styles */}
       <div className="grid grid-cols-2 gap-5">
-        <div className="bg-white rounded-xl border border-[#D6EAF0] p-6 shadow-sm">
+        <div className="bg-[#1C1C24] rounded-xl border border-[#2A2A34] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-semibold text-gray-800">
               Top Clients by Spend
@@ -694,7 +694,7 @@ export function AnalyticsView() {
           <TopClients invoices={invoices} loading={loading} />
         </div>
 
-        <div className="bg-white rounded-xl border border-[#D6EAF0] p-6 shadow-sm">
+        <div className="bg-[#1C1C24] rounded-xl border border-[#2A2A34] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-semibold text-gray-800">
               Most Popular Styles
