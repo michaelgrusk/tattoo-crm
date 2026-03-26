@@ -1,12 +1,12 @@
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { InvoicesView } from "./_components/invoices-view";
 
 export type Invoice = {
-  id: string;
+  id: string | number;
   created_at: string;
   client_id: string;
   amount: number;
-  status: "paid" | "pending" | "deposit";
+  status: "paid" | "pending" | "deposit" | "overdue";
   type: string;
   date: string;
   clients: { name: string; email: string } | null;
@@ -19,9 +19,14 @@ export type InvoiceSummary = {
 };
 
 export default async function InvoicesPage() {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
+
   const { data } = await supabase
     .from("invoices")
     .select("*, clients(name, email)")
+    .eq("user_id", userId)
     .order("date", { ascending: false });
 
   const invoices = (data as Invoice[]) ?? [];

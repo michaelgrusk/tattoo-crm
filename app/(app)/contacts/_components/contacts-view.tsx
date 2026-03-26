@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Search, UserPlus } from "lucide-react";
+import { useState, useRef } from "react";
+import { Search, UserPlus, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ClientListItem } from "../page";
 import { ClientDetailPanel } from "./client-detail-panel";
@@ -82,20 +82,44 @@ function ClientRow({
 
 export function ContactsView({ clients }: { clients: ClientListItem[] }) {
   const router = useRouter();
+  const [localClients, setLocalClients] = useState(clients);
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(
+  const [selectedId, setSelectedId] = useState<string | number | null>(
     clients[0]?.id ?? null
   );
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const filtered = clients.filter(
+  function fireToast(message: string) {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(message);
+    toastTimer.current = setTimeout(() => setToast(null), 3500);
+  }
+
+  function handleClientDeleted(deletedId: string | number) {
+    const idx = localClients.findIndex((c) => c.id === deletedId);
+    const next = localClients[idx + 1] ?? localClients[idx - 1] ?? null;
+    setLocalClients((prev) => prev.filter((c) => c.id !== deletedId));
+    setSelectedId(next?.id ?? null);
+    fireToast("Client deleted");
+    router.refresh();
+  }
+
+  function handleClientUpdated(updated: ClientListItem) {
+    setLocalClients((prev) =>
+      prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c))
+    );
+  }
+
+  const filtered = localClients.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.email.toLowerCase().includes(search.toLowerCase()) ||
       (c.phone ?? "").includes(search)
   );
 
-  const selectedClient = clients.find((c) => c.id === selectedId) ?? null;
+  const selectedClient = localClients.find((c) => c.id === selectedId) ?? null;
 
   return (
     <div className="flex h-full">
@@ -107,7 +131,7 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
             <div>
               <h1 className="text-xl font-semibold text-gray-900">Contacts</h1>
               <p className="text-xs text-gray-400 mt-0.5">
-                {clients.length} client{clients.length !== 1 ? "s" : ""}
+                {localClients.length} client{localClients.length !== 1 ? "s" : ""}
               </p>
             </div>
             <Button
@@ -156,7 +180,11 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
       {/* Right panel */}
       <div className="flex-1 overflow-y-auto bg-[#F0F7FA]">
         {selectedClient ? (
-          <ClientDetailPanel client={selectedClient} />
+          <ClientDetailPanel
+            client={selectedClient}
+            onDeleted={handleClientDeleted}
+            onUpdated={handleClientUpdated}
+          />
         ) : (
           <div className="flex items-center justify-center h-full text-sm text-gray-400">
             Select a client to view details
@@ -169,6 +197,13 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
         onOpenChange={setDialogOpen}
         onSuccess={() => router.refresh()}
       />
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-sm font-medium bg-emerald-600 text-white animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <CheckCircle2 size={16} className="shrink-0" />
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

@@ -60,9 +60,14 @@ export function UpcomingAppointments({
 }) {
   return (
     <section>
-      <h2 className="text-base font-semibold text-gray-800 mb-4">
-        Upcoming Appointments
-      </h2>
+      <div className="flex items-center gap-2.5 mb-4">
+        <h2 className="text-base font-semibold text-gray-800">
+          Upcoming Appointments
+        </h2>
+        <span className="text-xs font-medium text-gray-400 bg-gray-100 rounded-full px-2.5 py-0.5">
+          {appointments.length}
+        </span>
+      </div>
       <div className="bg-white rounded-xl border border-[#D6EAF0] overflow-hidden shadow-sm">
         {appointments.length === 0 ? (
           <div className="p-10 text-center text-sm text-gray-400">

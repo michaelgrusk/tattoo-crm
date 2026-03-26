@@ -1,31 +1,32 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, Plus, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { ChevronLeft, ChevronRight, Plus, Loader2, CheckCircle2, X } from "lucide-react";
+import { supabase, getUserId } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { BookAppointmentDialog } from "./book-appointment-dialog";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const HOUR_HEIGHT = 64; // px per hour
-const START_HOUR = 9;
-const END_HOUR = 18;
+const START_HOUR = 7;
+const END_HOUR = 22;
 const HOURS = Array.from(
   { length: END_HOUR - START_HOUR },
   (_, i) => START_HOUR + i
 );
-const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Appointment = {
   id: string;
-  client_id: string;
+  client_id: string | null;
   date: string;
   time: string;
   type: string;
   status: string;
-  artist_name: string;
+  artist_name: string | null;
   clients: { name: string } | null;
 };
 
@@ -58,9 +59,9 @@ function getMonday(date: Date): Date {
   return d;
 }
 
-/** Mon–Fri array for the week starting at `monday`. */
+/** Mon–Sun array for the week starting at `monday`. */
 function getWeekDays(monday: Date): Date[] {
-  return Array.from({ length: 5 }, (_, i) => {
+  return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     return d;
@@ -82,7 +83,7 @@ function formatHour(hour: number): string {
 
 function formatWeekRange(days: Date[]): string {
   const s = days[0];
-  const e = days[4];
+  const e = days[6];
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
   const sStr = s.toLocaleDateString("en-US", opts);
   if (s.getMonth() === e.getMonth()) {
@@ -99,18 +100,20 @@ function timeToTop(timeStr: string): number {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function AppointmentBlock({ appt }: { appt: Appointment }) {
+function AppointmentBlock({ appt, onClick }: { appt: Appointment; onClick: () => void }) {
   const top = timeToTop(appt.time);
+  console.log("[calendar] AppointmentBlock", appt.date, appt.time, "→ top:", top, "max:", HOURS.length * HOUR_HEIGHT);
   if (top < 0 || top >= HOURS.length * HOUR_HEIGHT) return null;
   const color = getTypeColor(appt.type);
 
   return (
     <div
+      onClick={onClick}
       className={`absolute left-1 right-1 rounded-lg px-2 py-1.5 border overflow-hidden cursor-pointer transition-all hover:brightness-[0.96] hover:shadow-sm ${color.bg} ${color.border}`}
       style={{ top: top + 2, height: HOUR_HEIGHT - 6 }}
     >
       <p className={`text-xs font-semibold leading-tight truncate ${color.text}`}>
-        {appt.clients?.name ?? "Client"}
+        {appt.clients?.name ?? appt.artist_name ?? "Appointment"}
       </p>
       <p className={`text-[11px] mt-0.5 leading-tight truncate opacity-75 ${color.text}`}>
         {appt.type}
@@ -123,10 +126,12 @@ function DayColumn({
   day,
   isToday,
   appointments,
+  onAppointmentClick,
 }: {
   day: Date;
   isToday: boolean;
   appointments: Appointment[];
+  onAppointmentClick: (appt: Appointment) => void;
 }) {
   const totalHeight = HOURS.length * HOUR_HEIGHT;
 
@@ -152,7 +157,7 @@ function DayColumn({
       />
       {/* Appointments */}
       {appointments.map((appt) => (
-        <AppointmentBlock key={appt.id} appt={appt} />
+        <AppointmentBlock key={appt.id} appt={appt} onClick={() => onAppointmentClick(appt)} />
       ))}
     </div>
   );
@@ -166,28 +171,121 @@ export function CalendarView() {
   );
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editType, setEditType] = useState("");
+  const [editStatus, setEditStatus] = useState("");
+  const [saving, setSaving] = useState(false);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
   const weekDays = getWeekDays(weekStart);
   const todayStr = toDateStr(new Date());
 
-  // Fetch appointments whenever the displayed week changes
-  useEffect(() => {
+  // Stable fetch function — useCallback with weekStart dep so it always
+  // fetches the right week and can safely be called from anywhere.
+  const fetchAppointments = useCallback(async () => {
     setLoading(true);
     const days = getWeekDays(weekStart);
     const start = toDateStr(days[0]);
-    const end = toDateStr(days[4]);
+    const end = toDateStr(days[6]);
 
-    supabase
+    const userId = await getUserId();
+    if (!userId) { setLoading(false); return; }
+
+    const { data, error } = await supabase
       .from("appointments")
-      .select("*, clients(name)")
+      .select("id, client_id, date, time, type, status, artist_name, clients(name)")
+      .eq("user_id", userId)
       .gte("date", start)
       .lte("date", end)
-      .then(({ data }) => {
-        setAppointments((data as Appointment[]) ?? []);
-        setLoading(false);
-      });
+      .order("date")
+      .order("time");
+
+    if (error) {
+      console.error("[calendar] fetch error:", error.message, error);
+    }
+
+    setAppointments((data as Appointment[]) ?? []);
+    setLoading(false);
   }, [weekStart]);
+
+  // Run on mount and whenever the week changes
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
+
+  function fireToast(message: string) {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToastMessage(message);
+    setShowToast(true);
+    toastTimer.current = setTimeout(() => setShowToast(false), 3500);
+  }
+
+  function handleBookingSuccess() {
+    fetchAppointments();
+    fireToast("Appointment booked!");
+  }
+
+  function openEditMode() {
+    if (!selectedAppt) return;
+    setEditDate(selectedAppt.date);
+    setEditTime(selectedAppt.time.slice(0, 5)); // HH:MM
+    setEditType(selectedAppt.type);
+    setEditStatus(selectedAppt.status);
+    setEditMode(true);
+  }
+
+  function closeAppt() {
+    setSelectedAppt(null);
+    setDeleteConfirm(false);
+    setEditMode(false);
+  }
+
+  async function handleSaveEdit() {
+    if (!selectedAppt || !editDate) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("appointments")
+      .update({
+        date: editDate,
+        time: editTime + ":00",
+        type: editType,
+        status: editStatus,
+      })
+      .eq("id", selectedAppt.id);
+    setSaving(false);
+    if (error) return;
+    closeAppt();
+    fetchAppointments();
+    fireToast("Appointment updated");
+  }
+
+  async function handleDeleteAppointment() {
+    if (!selectedAppt) return;
+    if (!deleteConfirm) {
+      setDeleteConfirm(true);
+      return;
+    }
+    setDeleting(true);
+    const { error } = await supabase
+      .from("appointments")
+      .delete()
+      .eq("id", selectedAppt.id);
+    setDeleting(false);
+    if (error) return; // keep modal open on error
+    setSelectedAppt(null);
+    setDeleteConfirm(false);
+    fetchAppointments();
+    fireToast("Appointment deleted");
+  }
 
   // Scroll to 9am on first load
   useEffect(() => {
@@ -240,7 +338,10 @@ export function CalendarView() {
           >
             Today
           </button>
-          <Button className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5">
+          <Button
+            onClick={() => setDialogOpen(true)}
+            className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5"
+          >
             <Plus size={15} />
             Book Appointment
           </Button>
@@ -308,11 +409,206 @@ export function CalendarView() {
                 day={day}
                 isToday={dateStr === todayStr}
                 appointments={appointments.filter((a) => a.date === dateStr)}
+                onAppointmentClick={setSelectedAppt}
               />
             );
           })}
         </div>
       </div>
+
+      {/* Appointment detail dialog */}
+      {selectedAppt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+          onClick={closeAppt}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#D6EAF0]">
+              <h3 className="text-base font-semibold text-gray-900">
+                {editMode ? "Edit Appointment" : "Appointment Details"}
+              </h3>
+              <button
+                onClick={closeAppt}
+                className="size-7 flex items-center justify-center rounded-lg hover:bg-[#F0F7FA] transition-colors text-gray-400 hover:text-gray-600"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {!editMode ? (
+              <>
+                {/* Body — detail view */}
+                <div className="px-5 py-4 space-y-3">
+                  <div>
+                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Client</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedAppt.clients?.name ?? selectedAppt.artist_name ?? "—"}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Date</p>
+                      <p className="text-sm text-gray-900">
+                        {new Date(selectedAppt.date + "T00:00:00").toLocaleDateString("en-US", {
+                          weekday: "short", month: "short", day: "numeric",
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Time</p>
+                      <p className="text-sm text-gray-900">
+                        {(() => {
+                          const [h, m] = selectedAppt.time.split(":").map(Number);
+                          const ampm = h >= 12 ? "PM" : "AM";
+                          const hour = h % 12 || 12;
+                          return `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
+                        })()}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Type</p>
+                    <p className="text-sm text-gray-900">{selectedAppt.type}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Status</p>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                      selectedAppt.status === "confirmed"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : selectedAppt.status === "cancelled"
+                        ? "bg-red-50 text-red-700"
+                        : "bg-amber-50 text-amber-700"
+                    }`}>
+                      <span className={`size-1.5 rounded-full ${
+                        selectedAppt.status === "confirmed"
+                          ? "bg-emerald-400"
+                          : selectedAppt.status === "cancelled"
+                          ? "bg-red-400"
+                          : "bg-amber-400"
+                      }`} />
+                      {selectedAppt.status.charAt(0).toUpperCase() + selectedAppt.status.slice(1)}
+                    </span>
+                  </div>
+                </div>
+                {/* Footer — detail */}
+                <div className="px-5 py-3 border-t border-[#D6EAF0] flex items-center justify-between">
+                  <button
+                    onClick={handleDeleteAppointment}
+                    disabled={deleting}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
+                      deleteConfirm
+                        ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                        : "bg-white text-gray-400 border-[#D6EAF0] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                    }`}
+                  >
+                    {deleting && <Loader2 size={12} className="animate-spin" />}
+                    {deleteConfirm ? "Confirm Delete?" : "Delete"}
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={openEditMode}
+                      className="px-3 py-1.5 text-xs font-medium text-[#1A8FAF] rounded-lg border border-[#D6EAF0] hover:bg-[#F0F7FA] transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={closeAppt}
+                      className="px-4 py-1.5 text-sm font-medium text-gray-600 rounded-lg border border-[#D6EAF0] hover:bg-[#F0F7FA] transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Body — edit view */}
+                <div className="px-5 py-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Date</label>
+                      <input
+                        type="date"
+                        value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)}
+                        className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-[#1A8FAF] transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Time</label>
+                      <input
+                        type="time"
+                        value={editTime}
+                        onChange={(e) => setEditTime(e.target.value)}
+                        className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-[#1A8FAF] transition-colors"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Type</label>
+                    <input
+                      type="text"
+                      value={editType}
+                      onChange={(e) => setEditType(e.target.value)}
+                      className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-[#1A8FAF] transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Status</label>
+                    <select
+                      value={editStatus}
+                      onChange={(e) => setEditStatus(e.target.value)}
+                      className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-[#1A8FAF] transition-colors"
+                    >
+                      <option value="confirmed">Confirmed</option>
+                      <option value="pending">Pending</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+                {/* Footer — edit */}
+                <div className="px-5 py-3 border-t border-[#D6EAF0] flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => setEditMode(false)}
+                    disabled={saving}
+                    className="px-4 py-1.5 text-sm font-medium text-gray-600 rounded-lg border border-[#D6EAF0] hover:bg-[#F0F7FA] transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={saving || !editDate}
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-[#1A8FAF] hover:bg-[#157a97] text-white rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {saving && <Loader2 size={12} className="animate-spin" />}
+                    {saving ? "Saving…" : "Save Changes"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Book Appointment dialog */}
+      <BookAppointmentDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={handleBookingSuccess}
+      />
+
+      {/* Success toast */}
+      {showToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-sm font-medium bg-emerald-600 text-white animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <CheckCircle2 size={16} className="shrink-0" />
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }

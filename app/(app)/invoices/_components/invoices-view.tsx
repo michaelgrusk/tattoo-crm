@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   TrendingUp,
@@ -8,13 +9,16 @@ import {
   Landmark,
   Eye,
   BellRing,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Invoice, InvoiceSummary } from "../page";
+import { NewInvoiceDialog } from "./new-invoice-dialog";
+import { InvoiceDetailDialog } from "./invoice-detail-dialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Filter = "all" | "paid" | "pending" | "deposit";
+type Filter = "all" | "paid" | "pending" | "deposit" | "overdue";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -22,6 +26,7 @@ const FILTERS: { value: Filter; label: string; count?: number }[] = [
   { value: "all", label: "All" },
   { value: "paid", label: "Paid" },
   { value: "pending", label: "Pending" },
+  { value: "overdue", label: "Overdue" },
   { value: "deposit", label: "Deposit" },
 ];
 
@@ -47,6 +52,12 @@ const STATUS_CONFIG: Record<
     bg: "bg-sky-50",
     label: "Deposit",
   },
+  overdue: {
+    dot: "bg-red-400",
+    text: "text-red-700",
+    bg: "bg-red-50",
+    label: "Overdue",
+  },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -68,8 +79,8 @@ function formatDate(dateStr: string) {
   });
 }
 
-function invoiceNumber(id: string) {
-  return `#${id.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+function invoiceNumber(id: string | number) {
+  return `#${String(id).padStart(4, "0")}`;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -109,19 +120,11 @@ function SummaryCard({
   );
 }
 
-function ActionButton({ status }: { status: Invoice["status"] }) {
-  if (status === "pending") {
-    return (
-      <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors">
-        <BellRing size={12} />
-        Remind
-      </button>
-    );
-  }
+function RemindButton() {
   return (
-    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-white hover:bg-[#F0F7FA] border border-[#D6EAF0] transition-colors">
-      <Eye size={12} />
-      View
+    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors">
+      <BellRing size={12} />
+      Remind
     </button>
   );
 }
@@ -135,7 +138,12 @@ export function InvoicesView({
   invoices: Invoice[];
   summary: InvoiceSummary;
 }) {
+  const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
 
   const filtered =
     filter === "all" ? invoices : invoices.filter((inv) => inv.status === filter);
@@ -145,13 +153,37 @@ export function InvoicesView({
     all: invoices.length,
     paid: invoices.filter((i) => i.status === "paid").length,
     pending: invoices.filter((i) => i.status === "pending").length,
+    overdue: invoices.filter((i) => i.status === "overdue").length,
     deposit: invoices.filter((i) => i.status === "deposit").length,
   };
+
+  function showSuccessToast(message: string) {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3500);
+  }
+
+  function handleInvoiceCreated() {
+    router.refresh();
+    showSuccessToast("Invoice created!");
+  }
+
+  function handleStatusChanged(message: string) {
+    router.refresh();
+    showSuccessToast(message);
+  }
+
+  function handleInvoiceDeleted() {
+    setSelectedInvoice(null);
+    router.refresh();
+    showSuccessToast("Invoice deleted");
+  }
 
   // Current month name for the summary card subtitle
   const monthName = new Date().toLocaleDateString("en-US", { month: "long" });
 
   return (
+    <>
     <div className="p-8 space-y-7">
       {/* Page header */}
       <div className="flex items-center justify-between">
@@ -161,7 +193,10 @@ export function InvoicesView({
             Track payments and outstanding balances
           </p>
         </div>
-        <Button className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5">
+        <Button
+          onClick={() => setDialogOpen(true)}
+          className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5"
+        >
           <Plus size={15} />
           New Invoice
         </Button>
@@ -308,7 +343,18 @@ export function InvoicesView({
 
                     {/* Action */}
                     <td className="px-5 py-3.5 text-right">
-                      <ActionButton status={inv.status} />
+                      <div className="flex items-center justify-end gap-2">
+                        {(inv.status === "pending" || inv.status === "overdue") && (
+                          <RemindButton />
+                        )}
+                        <button
+                          onClick={() => setSelectedInvoice(inv)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-white hover:bg-[#F0F7FA] border border-[#D6EAF0] transition-colors"
+                        >
+                          <Eye size={12} />
+                          View
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -334,5 +380,26 @@ export function InvoicesView({
         )}
       </div>
     </div>
+
+    <NewInvoiceDialog
+      open={dialogOpen}
+      onOpenChange={setDialogOpen}
+      onSuccess={handleInvoiceCreated}
+    />
+
+    <InvoiceDetailDialog
+      invoice={selectedInvoice}
+      open={!!selectedInvoice}
+      onOpenChange={(v) => { if (!v) setSelectedInvoice(null); }}
+      onStatusChanged={handleStatusChanged}
+    />
+
+    {showToast && (
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-sm font-medium bg-emerald-600 text-white animate-in slide-in-from-bottom-4 fade-in duration-200">
+        <CheckCircle2 size={16} className="shrink-0" />
+        {toastMessage}
+      </div>
+    )}
+    </>
   );
 }

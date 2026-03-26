@@ -14,7 +14,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase, getUserId } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -271,6 +271,9 @@ function AddRequestDialog({
     setSubmitting(true);
     setServerError(null);
 
+    const userId = await getUserId();
+    if (!userId) { setServerError("Not authenticated"); setSubmitting(false); return; }
+
     let imageUrl: string | null = null;
     if (imageFile) {
       const result = await uploadToStorage(imageFile, clientId);
@@ -285,6 +288,7 @@ function AddRequestDialog({
     const { data, error } = await supabase
       .from("tattoo_requests")
       .insert({
+        user_id: userId,
         client_id: clientId,
         client_name: clientName,
         client_email: clientEmail,
@@ -448,6 +452,198 @@ function AddRequestDialog({
   );
 }
 
+// ─── Edit Client Dialog ───────────────────────────────────────────────────────
+
+type EditClientForm = {
+  name: string;
+  email: string;
+  phone: string;
+  notes: string;
+  skin_notes: string;
+};
+
+function EditClientDialog({
+  open,
+  onOpenChange,
+  client,
+  onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  client: ClientListItem;
+  onSuccess: (updated: ClientListItem) => void;
+}) {
+  const [form, setForm] = useState<EditClientForm>({
+    name: client.name,
+    email: client.email,
+    phone: client.phone ?? "",
+    notes: client.notes ?? "",
+    skin_notes: client.skin_notes ?? "",
+  });
+  const [errors, setErrors] = useState<Partial<EditClientForm>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  // Re-sync form when client prop changes (e.g. switching clients)
+  useEffect(() => {
+    if (open) {
+      setForm({
+        name: client.name,
+        email: client.email,
+        phone: client.phone ?? "",
+        notes: client.notes ?? "",
+        skin_notes: client.skin_notes ?? "",
+      });
+      setErrors({});
+      setServerError(null);
+    }
+  }, [open, client.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function setField(key: keyof EditClientForm) {
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setForm((p) => ({ ...p, [key]: e.target.value }));
+      if (errors[key]) setErrors((p) => ({ ...p, [key]: undefined }));
+    };
+  }
+
+  function validate() {
+    const errs: Partial<EditClientForm> = {};
+    if (!form.name.trim()) errs.name = "Name is required";
+    if (!form.email.trim()) errs.email = "Email is required";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!validate()) return;
+    setSubmitting(true);
+    setServerError(null);
+
+    const { error } = await supabase
+      .from("clients")
+      .update({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim() || null,
+        notes: form.notes.trim() || null,
+        skin_notes: form.skin_notes.trim() || null,
+      })
+      .eq("id", client.id);
+
+    setSubmitting(false);
+
+    if (error) {
+      setServerError(error.message);
+      return;
+    }
+
+    onOpenChange(false);
+    onSuccess({
+      ...client,
+      name: form.name.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim() || null,
+      notes: form.notes.trim() || null,
+      skin_notes: form.skin_notes.trim() || null,
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit Client</DialogTitle>
+        </DialogHeader>
+
+        <form id="edit-client-form" onSubmit={handleSubmit} className="space-y-4 pt-1">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="ec-name">
+                Full name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="ec-name"
+                value={form.name}
+                onChange={setField("name")}
+                aria-invalid={!!errors.name}
+              />
+              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ec-email">
+                Email <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="ec-email"
+                type="email"
+                value={form.email}
+                onChange={setField("email")}
+                aria-invalid={!!errors.email}
+              />
+              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="ec-phone">Phone</Label>
+            <Input
+              id="ec-phone"
+              type="tel"
+              value={form.phone}
+              onChange={setField("phone")}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="ec-notes">General Notes</Label>
+            <Textarea
+              id="ec-notes"
+              value={form.notes}
+              onChange={setField("notes")}
+              className="min-h-[72px] resize-none"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="ec-skin">Skin Notes</Label>
+            <Textarea
+              id="ec-skin"
+              value={form.skin_notes}
+              onChange={setField("skin_notes")}
+              placeholder="Skin type, sensitivities, healing notes…"
+              className="min-h-[72px] resize-none"
+            />
+          </div>
+
+          {serverError && (
+            <p className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
+              {serverError}
+            </p>
+          )}
+        </form>
+
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline" disabled={submitting}>
+              Cancel
+            </Button>
+          </DialogClose>
+          <Button
+            type="submit"
+            form="edit-client-form"
+            disabled={submitting}
+            className="bg-[#1A8FAF] hover:bg-[#157a97] text-white gap-1.5"
+          >
+            {submitting && <Loader2 size={13} className="animate-spin" />}
+            {submitting ? "Saving…" : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Toast ────────────────────────────────────────────────────────────────────
 
 type ToastState = { message: string; type: "success" | "error" } | null;
@@ -473,10 +669,21 @@ function Toast({ message, type }: NonNullable<ToastState>) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function ClientDetailPanel({ client }: { client: ClientListItem }) {
+export function ClientDetailPanel({
+  client,
+  onDeleted,
+  onUpdated,
+}: {
+  client: ClientListItem;
+  onDeleted: (id: string | number) => void;
+  onUpdated: (updated: ClientListItem) => void;
+}) {
   const [requests, setRequests] = useState<TattooRequest[]>([]);
   const [nextAppt, setNextAppt] = useState<NextAppointment>(null);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   // Toast
   const [toast, setToast] = useState<ToastState>(null);
@@ -486,6 +693,25 @@ export function ClientDetailPanel({ client }: { client: ClientListItem }) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast({ message, type });
     toastTimer.current = setTimeout(() => setToast(null), 3500);
+  }
+
+  async function handleDeleteClient() {
+    if (!deleteConfirm) {
+      setDeleteConfirm(true);
+      return;
+    }
+    setDeleting(true);
+    const { error } = await supabase
+      .from("clients")
+      .delete()
+      .eq("id", client.id);
+    setDeleting(false);
+    if (error) {
+      showToast(`Failed to delete client: ${error.message}`, "error");
+      setDeleteConfirm(false);
+      return;
+    }
+    onDeleted(client.id);
   }
 
   // Lightbox
@@ -516,6 +742,12 @@ export function ClientDetailPanel({ client }: { client: ClientListItem }) {
       .order("created_at", { ascending: false });
     setRequests((data as TattooRequest[]) ?? []);
   }
+
+  // Reset confirmation state when switching clients
+  useEffect(() => {
+    setDeleteConfirm(false);
+    setDeleting(false);
+  }, [client.id]);
 
   useEffect(() => {
     setLoading(true);
@@ -563,9 +795,17 @@ export function ClientDetailPanel({ client }: { client: ClientListItem }) {
       return;
     }
 
+    const userId = await getUserId();
+    if (!userId) {
+      showToast("Not authenticated", "error");
+      setUploadingNew(false);
+      return;
+    }
+
     const { data, error: insertError } = await supabase
       .from("tattoo_requests")
       .insert({
+        user_id: userId,
         client_id: clientId,
         client_name: client.name,
         client_email: client.email,
@@ -648,40 +888,62 @@ export function ClientDetailPanel({ client }: { client: ClientListItem }) {
     <>
       <div className="p-8 max-w-3xl">
         {/* Client header */}
-        <div className="flex items-start gap-4 mb-8">
-          <div className="size-14 rounded-full bg-[#E8F5FA] flex items-center justify-center text-lg font-semibold text-[#1A8FAF] shrink-0">
-            {client.name
-              .trim()
-              .split(/\s+/)
-              .map((p) => p[0])
-              .slice(0, 2)
-              .join("")
-              .toUpperCase()}
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">
-              {client.name}
-            </h2>
-            <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
-              <span className="flex items-center gap-1.5 text-sm text-gray-500">
-                <Mail size={13} className="text-gray-400" />
-                {client.email}
-              </span>
-              {client.phone && (
-                <span className="flex items-center gap-1.5 text-sm text-gray-500">
-                  <Phone size={13} className="text-gray-400" />
-                  {client.phone}
-                </span>
-              )}
-              <span className="flex items-center gap-1.5 text-sm text-gray-500">
-                <Calendar size={13} className="text-gray-400" />
-                Client since{" "}
-                {formatDate(client.created_at, {
-                  year: "numeric",
-                  month: "short",
-                })}
-              </span>
+        <div className="flex items-start justify-between gap-4 mb-8">
+          <div className="flex items-start gap-4">
+            <div className="size-14 rounded-full bg-[#E8F5FA] flex items-center justify-center text-lg font-semibold text-[#1A8FAF] shrink-0">
+              {client.name
+                .trim()
+                .split(/\s+/)
+                .map((p) => p[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
             </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {client.name}
+              </h2>
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+                <span className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <Mail size={13} className="text-gray-400" />
+                  {client.email}
+                </span>
+                {client.phone && (
+                  <span className="flex items-center gap-1.5 text-sm text-gray-500">
+                    <Phone size={13} className="text-gray-400" />
+                    {client.phone}
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <Calendar size={13} className="text-gray-400" />
+                  Client since{" "}
+                  {formatDate(client.created_at, {
+                    year: "numeric",
+                    month: "short",
+                  })}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setEditOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#D6EAF0] bg-white text-[#1A8FAF] hover:bg-[#F0F7FA] transition-colors"
+            >
+              Edit
+            </button>
+            <button
+              onClick={handleDeleteClient}
+              disabled={deleting}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
+                deleteConfirm
+                  ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                  : "bg-white text-gray-400 border-[#D6EAF0] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+              }`}
+            >
+              {deleting && <Loader2 size={12} className="animate-spin" />}
+              {deleteConfirm ? "Confirm Delete?" : "Delete"}
+            </button>
           </div>
         </div>
 
@@ -967,6 +1229,17 @@ export function ClientDetailPanel({ client }: { client: ClientListItem }) {
           setRequests((prev) => [req, ...prev]);
           setAddRequestOpen(false);
           showToast("Tattoo request added!", "success");
+        }}
+      />
+
+      {/* Edit Client dialog */}
+      <EditClientDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        client={client}
+        onSuccess={(updated) => {
+          onUpdated(updated);
+          showToast("Client updated!", "success");
         }}
       />
 

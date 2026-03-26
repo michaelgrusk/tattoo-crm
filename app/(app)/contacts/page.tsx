@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ContactsView } from "./_components/contacts-view";
 
 export type ClientListItem = {
@@ -14,14 +14,18 @@ export type ClientListItem = {
 };
 
 export default async function ContactsPage() {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
+
   const [
     { data: clients },
     { data: appts },
     { data: invoices },
   ] = await Promise.all([
-    supabase.from("clients").select("*").order("name"),
-    supabase.from("appointments").select("client_id"),
-    supabase.from("invoices").select("client_id, amount"),
+    supabase.from("clients").select("*").eq("user_id", userId).order("name"),
+    supabase.from("appointments").select("client_id").eq("user_id", userId),
+    supabase.from("invoices").select("client_id, amount").eq("user_id", userId),
   ]);
 
   // Aggregate sessions count per client

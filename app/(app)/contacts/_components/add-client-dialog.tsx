@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase, getUserId } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,7 +86,11 @@ export function AddClientDialog({
     setSubmitting(true);
     setServerError(null);
 
+    const userId = await getUserId();
+    if (!userId) { setServerError("Not authenticated"); setSubmitting(false); return; }
+
     const { error } = await supabase.from("clients").insert({
+      user_id: userId,
       name: form.name.trim(),
       email: form.email.trim(),
       phone: form.phone.trim() || null,

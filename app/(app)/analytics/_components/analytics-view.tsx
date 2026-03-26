@@ -8,7 +8,7 @@ import {
   UserPlus,
   ChevronDown,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase, getUserId } from "@/lib/supabase/client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -364,6 +364,8 @@ const STYLE_COLORS = [
   "bg-indigo-400",
 ];
 
+const EXCLUDED_STYLES = new Set(["reference", "null", "n/a", "other", ""]);
+
 function PopularStyles({
   requests,
   loading,
@@ -373,7 +375,10 @@ function PopularStyles({
 }) {
   const counts: Record<string, number> = {};
   for (const r of requests) {
-    if (r.style) counts[r.style] = (counts[r.style] ?? 0) + 1;
+    const style = r.style?.trim() ?? "";
+    if (style && !EXCLUDED_STYLES.has(style.toLowerCase())) {
+      counts[style] = (counts[style] ?? 0) + 1;
+    }
   }
 
   const total = Object.values(counts).reduce((s, n) => s + n, 0) || 1;
@@ -433,6 +438,7 @@ export function AnalyticsView() {
   const [period, setPeriod] = useState<Period>("6m");
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
+  const [allAppointments, setAllAppointments] = useState<AppointmentRow[]>([]);
   const [newClientCount, setNewClientCount] = useState(0);
   const [requests, setRequests] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -441,38 +447,54 @@ export function AnalyticsView() {
     setLoading(true);
     const start = getStartDate(period);
 
-    Promise.all([
-      supabase
-        .from("invoices")
-        .select("id, amount, date, client_id, clients(name)")
-        .eq("status", "paid")
-        .gte("date", start),
-      supabase
-        .from("appointments")
-        .select("time, date")
-        .gte("date", start),
-      supabase
-        .from("clients")
-        .select("id")
-        .gte("created_at", start),
-      supabase
-        .from("tattoo_requests")
-        .select("style")
-        .gte("created_at", start),
-    ]).then(
-      ([
+    async function load() {
+      const userId = await getUserId();
+      if (!userId) { setLoading(false); return; }
+
+      const [
         { data: inv },
         { data: appts },
         { data: clients },
         { data: reqs },
-      ]) => {
-        setInvoices((inv as Invoice[]) ?? []);
-        setAppointments((appts as AppointmentRow[]) ?? []);
-        setNewClientCount((clients ?? []).length);
-        setRequests((reqs as RequestRow[]) ?? []);
-        setLoading(false);
-      }
-    );
+        { data: allAppts },
+      ] = await Promise.all([
+        supabase
+          .from("invoices")
+          .select("id, amount, date, client_id, clients(name)")
+          .eq("user_id", userId)
+          .eq("status", "paid")
+          .gte("date", start),
+        supabase
+          .from("appointments")
+          .select("time, date")
+          .eq("user_id", userId)
+          .gte("date", start),
+        supabase
+          .from("clients")
+          .select("id")
+          .eq("user_id", userId)
+          .gte("created_at", start),
+        supabase
+          .from("tattoo_requests")
+          .select("style")
+          .eq("user_id", userId)
+          .gte("created_at", start),
+        // All-time appointments for busiest hours (not period-filtered)
+        supabase
+          .from("appointments")
+          .select("time, date")
+          .eq("user_id", userId),
+      ]);
+
+      setInvoices((inv as Invoice[]) ?? []);
+      setAppointments((appts as AppointmentRow[]) ?? []);
+      setAllAppointments((allAppts as AppointmentRow[]) ?? []);
+      setNewClientCount((clients ?? []).length);
+      setRequests((reqs as RequestRow[]) ?? []);
+      setLoading(false);
+    }
+
+    load();
   }, [period]);
 
   const totalRevenue = invoices.reduce((sum, inv) => sum + inv.amount, 0);
@@ -572,7 +594,7 @@ export function AnalyticsView() {
             </h2>
             <span className="text-xs text-gray-400">by appointment count</span>
           </div>
-          <BusiestHours appointments={appointments} loading={loading} />
+          <BusiestHours appointments={allAppointments} loading={loading} />
         </div>
       </div>
 

@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx shadcn@latest add dialog input label textarea --yes)"
+      "Bash(npx shadcn@latest add dialog input label textarea --yes)",
+      "Bash(cd:*)",
+      "Bash(grep -v \"^\\\\-\\\\-$\")",
+      "Bash(npx next:*)",
+      "Bash(node -e \"const n = require\\(''./node_modules/next/package.json''\\); console.log\\(n.version\\)\")",
+      "Bash(xargs grep:*)",
+      "Bash(node -e \"const c = require\\(''./node_modules/next/dist/lib/constants.js''\\); console.log\\(''MIDDLEWARE_FILENAME:'', c.MIDDLEWARE_FILENAME\\); console.log\\(''PROXY_FILENAME:'', c.PROXY_FILENAME\\);\")"
     ]
   }
 }
