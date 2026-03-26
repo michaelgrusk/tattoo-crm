@@ -242,21 +242,43 @@ export function BookAppointmentDialog({
     // form.time is "HH:MM" from the native time input
     const time = form.time + ":00";
 
-    const { error } = await supabase.from("appointments").insert({
-      user_id: userId,
-      client_id: form.mode === "existing" ? form.selectedClient!.id : null,
-      artist_name: form.mode === "general" ? form.bookingLabel.trim() : null,
-      date: form.date,
-      time,
-      type: form.apptType,
-      status: form.status,
-    });
+    const { data: inserted, error } = await supabase
+      .from("appointments")
+      .insert({
+        user_id: userId,
+        client_id: form.mode === "existing" ? form.selectedClient!.id : null,
+        artist_name: form.mode === "general" ? form.bookingLabel.trim() : null,
+        date: form.date,
+        time,
+        type: form.apptType,
+        status: form.status,
+      })
+      .select("id")
+      .single();
 
     setSubmitting(false);
 
     if (error) {
       setServerError(error.message);
       return;
+    }
+
+    // Fire-and-forget: schedule reminder emails if we have a client with an email
+    if (inserted && form.mode === "existing" && form.selectedClient?.email) {
+      fetch("/api/appointments/schedule-reminders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          appointment_id: inserted.id,
+          client_name: form.selectedClient.name,
+          client_email: form.selectedClient.email,
+          appointment_date: form.date,
+          appointment_time: time,
+          appointment_type: form.apptType,
+        }),
+      }).catch(() => {
+        // Reminders are non-critical — don't block the UI
+      });
     }
 
     onOpenChange(false);

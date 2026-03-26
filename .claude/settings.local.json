@@ -21,7 +21,9 @@
       "Bash(find C:UsersfxckcOneDriveDocumentsProjectstattoo-crmnode_modules@paddlepaddle-node-sdkdisttypes -name *transaction*)",
       "Bash(find C:UsersfxckcOneDriveDocumentsProjectstattoo-crmnode_modules@paddlepaddle-node-sdkdisttypes -path */resources/transactions*)",
       "Bash(find C:UsersfxckcOneDriveDocumentsProjectstattoo-crmnode_modules@paddlepaddle-node-sdkdisttypesnotificationsentities -name *transaction*)",
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "Bash(head -5 grep \"INNGEST_EVENT_KEY\\\\|INNGEST_SIGNING_KEY\\\\|env_key\\\\|envKey\" C:/Users/fxckc/OneDrive/Documents/Projects/tattoo-crm/node_modules/inngest/dist/cjs/components/Inngest.js)",
+      "Bash(head -5 grep -A 30 \"declare type ClientOptions\\\\|interface ClientOptions\" C:/Users/fxckc/OneDrive/Documents/Projects/tattoo-crm/node_modules/inngest/components/InngestCommHandler.d.ts)"
     ]
   }
 }
