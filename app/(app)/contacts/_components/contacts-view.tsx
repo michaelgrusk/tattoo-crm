@@ -49,8 +49,8 @@ function ClientRow({
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-4 text-left transition-all rounded-lg ${
         isSelected
-          ? "bg-[#2A1F3D] shadow-[inset_3px_0_0_0_#7C3AED]"
-          : "hover:bg-[#1E1E2A]"
+          ? "bg-[var(--nb-active-bg)] shadow-[inset_3px_0_0_0_#7C3AED]"
+          : "hover:bg-[var(--nb-card)]"
       }`}
     >
       <div
@@ -61,18 +61,18 @@ function ClientRow({
       <div className="flex-1 min-w-0">
         <p
           className={`text-sm font-medium truncate ${
-            isSelected ? "text-[#7C3AED]" : "text-[#F0F0F5]"
+            isSelected ? "text-[#7C3AED]" : "text-[var(--nb-text)]"
           }`}
         >
           {client.name}
         </p>
-        <p className="text-xs text-[#9090A8] truncate">{client.email}</p>
+        <p className="text-xs text-[var(--nb-text-2)] truncate">{client.email}</p>
       </div>
       <div className="text-right shrink-0">
-        <p className="text-sm font-medium text-[#F0F0F5]">
+        <p className="text-sm font-medium text-[var(--nb-text)]">
           ${client.totalSpent.toLocaleString()}
         </p>
-        <p className="text-xs text-[#9090A8]">
+        <p className="text-xs text-[var(--nb-text-2)]">
           {client.sessions} session{client.sessions !== 1 ? "s" : ""}
         </p>
       </div>
@@ -124,13 +124,13 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
   return (
     <div className="flex h-full">
       {/* Left panel */}
-      <div className="w-80 shrink-0 flex flex-col border-r border-[#2E2E3D] bg-[#1E1E2A]">
+      <div className="w-80 shrink-0 flex flex-col border-r border-[var(--nb-border)] bg-[var(--nb-card)]">
         {/* Header */}
-        <div className="px-5 pt-6 pb-4 border-b border-[#2E2E3D]">
+        <div className="px-5 pt-6 pb-4 border-b border-[var(--nb-border)]">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h1 className="text-xl font-semibold text-[#F0F0F5]">Contacts</h1>
-              <p className="text-xs text-[#9090A8] mt-0.5">
+              <h1 className="text-xl font-semibold text-[var(--nb-text)]">Contacts</h1>
+              <p className="text-xs text-[var(--nb-text-2)] mt-0.5">
                 {localClients.length} client{localClients.length !== 1 ? "s" : ""}
               </p>
             </div>
@@ -146,14 +146,14 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
           <div className="relative">
             <Search
               size={15}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9090A8]"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--nb-text-2)]"
             />
             <input
               type="text"
               placeholder="Search clients…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-[#13131A] border border-[#2E2E3D] rounded-lg outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors placeholder:text-[#9090A8]"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-[var(--nb-bg)] border border-[var(--nb-border)] rounded-lg outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors placeholder:text-[var(--nb-text-2)]"
             />
           </div>
         </div>
@@ -162,9 +162,9 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
         <div className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center py-12 px-4 text-center">
-              <Users size={28} className="text-[#2E2E3D] mb-3" />
-              <p className="text-sm font-medium text-[#9090A8]">No clients found</p>
-              <p className="text-xs text-[#9090A8] mt-1">
+              <Users size={28} className="text-[var(--nb-border)] mb-3" />
+              <p className="text-sm font-medium text-[var(--nb-text-2)]">No clients found</p>
+              <p className="text-xs text-[var(--nb-text-2)] mt-1">
                 {search ? "Try a different search term" : "Add your first client above"}
               </p>
             </div>
@@ -182,7 +182,7 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 overflow-y-auto bg-[#13131A]">
+      <div className="flex-1 overflow-y-auto bg-[var(--nb-bg)]">
         {selectedClient ? (
           <ClientDetailPanel
             client={selectedClient}
@@ -190,7 +190,7 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
             onUpdated={handleClientUpdated}
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-sm text-[#9090A8]">
+          <div className="flex items-center justify-center h-full text-sm text-[var(--nb-text-2)]">
             Select a client to view details
           </div>
         )}

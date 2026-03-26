@@ -56,9 +56,9 @@ const EMPTY: FormData = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const inputCls =
-  "w-full rounded-xl border border-[#2E2E3D] bg-[#1E1E2A] px-4 py-3 text-sm text-[#F0F0F5] outline-none placeholder:text-[#9090A8] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors";
+  "w-full rounded-xl border border-[var(--nb-border)] bg-[var(--nb-card)] px-4 py-3 text-sm text-[var(--nb-text)] outline-none placeholder:text-[var(--nb-text-2)] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors";
 
-const labelCls = "block text-sm font-medium text-[#F0F0F5] mb-1.5";
+const labelCls = "block text-sm font-medium text-[var(--nb-text)] mb-1.5";
 
 function Field({
   label,
@@ -100,8 +100,8 @@ function ProgressBar({ step }: { step: number }) {
                   done
                     ? "bg-[#7C3AED] border-[#7C3AED] text-white"
                     : active
-                    ? "bg-[#1E1E2A] border-[#7C3AED] text-[#7C3AED]"
-                    : "bg-[#1E1E2A] border-[#2E2E3D] text-[#9090A8]"
+                    ? "bg-[var(--nb-card)] border-[#7C3AED] text-[#7C3AED]"
+                    : "bg-[var(--nb-card)] border-[var(--nb-border)] text-[var(--nb-text-2)]"
                 }`}
               >
                 {done ? (
@@ -114,7 +114,7 @@ function ProgressBar({ step }: { step: number }) {
               </div>
               {/* Connector (not after last) */}
               {i < STEPS.length - 1 && (
-                <div className="flex-1 h-0.5 mx-1 bg-[#2E2E3D] overflow-hidden">
+                <div className="flex-1 h-0.5 mx-1 bg-[var(--nb-border)] overflow-hidden">
                   <div
                     className="h-full bg-[#7C3AED] transition-all duration-300"
                     style={{ width: i < step ? "100%" : "0%" }}
@@ -134,7 +134,7 @@ function ProgressBar({ step }: { step: number }) {
             <div
               key={i}
               className={`flex-1 text-center text-[11px] font-medium last:flex-none ${
-                active ? "text-[#7C3AED]" : done ? "text-[#9090A8]" : "text-[#9090A8]"
+                active ? "text-[#7C3AED]" : done ? "text-[var(--nb-text-2)]" : "text-[var(--nb-text-2)]"
               }`}
               style={i === STEPS.length - 1 ? { flexGrow: 0, width: 32 } : undefined}
             >
@@ -143,7 +143,7 @@ function ProgressBar({ step }: { step: number }) {
           );
         })}
       </div>
-      <p className="text-center text-xs text-[#9090A8] mt-3">
+      <p className="text-center text-xs text-[var(--nb-text-2)] mt-3">
         Step {step + 1} of {STEPS.length}
       </p>
     </div>
@@ -272,7 +272,7 @@ export default function IntakePage() {
   // ── Render steps ────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#13131A] flex flex-col items-center justify-start px-4 py-10">
+    <div className="min-h-screen bg-[var(--nb-bg)] flex flex-col items-center justify-start px-4 py-10">
       {/* Logo / brand */}
       <div className="mb-8 flex flex-col items-center">
         <div className="size-12 rounded-2xl bg-[#7C3AED] flex items-center justify-center mb-3 shadow-lg shadow-[#7C3AED]/20">
@@ -281,19 +281,19 @@ export default function IntakePage() {
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
           </svg>
         </div>
-        <h1 className="text-xl font-semibold text-[#F0F0F5]">Needlebook</h1>
-        <p className="text-sm text-[#9090A8] mt-0.5">Tattoo request form</p>
+        <h1 className="text-xl font-semibold text-[var(--nb-text)]">Needlebook</h1>
+        <p className="text-sm text-[var(--nb-text-2)] mt-0.5">Tattoo request form</p>
       </div>
 
       {/* Card */}
-      <div className="w-full max-w-lg bg-[#1E1E2A] rounded-2xl border border-[#2E2E3D] shadow-sm px-8 py-8">
+      <div className="w-full max-w-lg bg-[var(--nb-card)] rounded-2xl border border-[var(--nb-border)] shadow-sm px-8 py-8">
         <ProgressBar step={step} />
 
         {/* ── Step 1: About You ─────────────────────────────────────────── */}
         {step === 0 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-[#F0F0F5] mb-1">About you</h2>
-            <p className="text-sm text-[#9090A8] mb-5">Tell us a bit about yourself so we can get in touch.</p>
+            <h2 className="text-lg font-semibold text-[var(--nb-text)] mb-1">About you</h2>
+            <p className="text-sm text-[var(--nb-text-2)] mb-5">Tell us a bit about yourself so we can get in touch.</p>
 
             <Field label="Full name" required error={errors.name}>
               <input
@@ -333,8 +333,8 @@ export default function IntakePage() {
         {/* ── Step 2: Your Tattoo ───────────────────────────────────────── */}
         {step === 1 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-[#F0F0F5] mb-1">Your tattoo</h2>
-            <p className="text-sm text-[#9090A8] mb-5">Share your vision — the more detail, the better.</p>
+            <h2 className="text-lg font-semibold text-[var(--nb-text)] mb-1">Your tattoo</h2>
+            <p className="text-sm text-[var(--nb-text-2)] mb-5">Share your vision — the more detail, the better.</p>
 
             <Field label="Tattoo description" required error={errors.description}>
               <textarea
@@ -395,12 +395,12 @@ export default function IntakePage() {
         {step === 2 && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-[#F0F0F5] mb-1">Reference image</h2>
-              <p className="text-sm text-[#9090A8]">Optional — upload a photo that captures the vibe or style you're going for.</p>
+              <h2 className="text-lg font-semibold text-[var(--nb-text)] mb-1">Reference image</h2>
+              <p className="text-sm text-[var(--nb-text-2)]">Optional — upload a photo that captures the vibe or style you're going for.</p>
             </div>
 
             {form.imagePreview ? (
-              <div className="relative rounded-xl overflow-hidden border border-[#2E2E3D] bg-[#13131A]">
+              <div className="relative rounded-xl overflow-hidden border border-[var(--nb-border)] bg-[var(--nb-bg)]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={form.imagePreview}
@@ -419,14 +419,14 @@ export default function IntakePage() {
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="w-full flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[#2E2E3D] bg-[#1E1E2A] hover:bg-[#13131A] hover:border-[#7C3AED]/40 py-10 text-sm text-[#9090A8] transition-colors group"
+                className="w-full flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[var(--nb-border)] bg-[var(--nb-card)] hover:bg-[var(--nb-bg)] hover:border-[#7C3AED]/40 py-10 text-sm text-[var(--nb-text-2)] transition-colors group"
               >
-                <div className="size-12 rounded-full bg-[#2A1F3D] flex items-center justify-center group-hover:bg-[#2E2E3D] transition-colors">
+                <div className="size-12 rounded-full bg-[var(--nb-active-bg)] flex items-center justify-center group-hover:bg-[var(--nb-border)] transition-colors">
                   <ImageIcon size={20} className="text-[#7C3AED]" />
                 </div>
                 <div className="text-center">
-                  <p className="font-medium text-[#9090A8]">Click to upload a reference image</p>
-                  <p className="text-xs text-[#9090A8] mt-0.5">PNG, JPG, WEBP · up to 10 MB</p>
+                  <p className="font-medium text-[var(--nb-text-2)]">Click to upload a reference image</p>
+                  <p className="text-xs text-[var(--nb-text-2)] mt-0.5">PNG, JPG, WEBP · up to 10 MB</p>
                 </div>
                 <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#7C3AED] text-white text-xs font-medium">
                   <Upload size={13} />
@@ -443,19 +443,19 @@ export default function IntakePage() {
             />
 
             {/* Submission summary */}
-            <div className="rounded-xl border border-[#2E2E3D] bg-[#1E1E2A] px-4 py-4 space-y-2">
-              <p className="text-xs font-semibold text-[#9090A8] uppercase tracking-wide mb-2">Summary</p>
+            <div className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-card)] px-4 py-4 space-y-2">
+              <p className="text-xs font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-2">Summary</p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                <span className="text-[#9090A8]">Name</span>
-                <span className="text-[#F0F0F5] font-medium truncate">{form.name || "—"}</span>
-                <span className="text-[#9090A8]">Style</span>
-                <span className="text-[#F0F0F5] font-medium">{form.style}</span>
-                <span className="text-[#9090A8]">Placement</span>
-                <span className="text-[#F0F0F5] font-medium">{form.placement || "—"}</span>
+                <span className="text-[var(--nb-text-2)]">Name</span>
+                <span className="text-[var(--nb-text)] font-medium truncate">{form.name || "—"}</span>
+                <span className="text-[var(--nb-text-2)]">Style</span>
+                <span className="text-[var(--nb-text)] font-medium">{form.style}</span>
+                <span className="text-[var(--nb-text-2)]">Placement</span>
+                <span className="text-[var(--nb-text)] font-medium">{form.placement || "—"}</span>
                 {form.preferredDate && (
                   <>
-                    <span className="text-[#9090A8]">Preferred date</span>
-                    <span className="text-[#F0F0F5] font-medium">
+                    <span className="text-[var(--nb-text-2)]">Preferred date</span>
+                    <span className="text-[var(--nb-text)] font-medium">
                       {new Date(form.preferredDate + "T00:00:00").toLocaleDateString("en-US", {
                         month: "short", day: "numeric", year: "numeric",
                       })}
@@ -480,7 +480,7 @@ export default function IntakePage() {
               type="button"
               onClick={handleBack}
               disabled={submitting}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-[#2E2E3D] text-sm font-medium text-[#9090A8] bg-[#1E1E2A] hover:bg-[#13131A] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-[var(--nb-border)] text-sm font-medium text-[var(--nb-text-2)] bg-[var(--nb-card)] hover:bg-[var(--nb-bg)] transition-colors disabled:opacity-50"
             >
               <ChevronLeft size={16} />
               Back
@@ -510,7 +510,7 @@ export default function IntakePage() {
         </div>
       </div>
 
-      <p className="mt-6 text-xs text-[#9090A8] text-center">
+      <p className="mt-6 text-xs text-[var(--nb-text-2)] text-center">
         Needlebook · Your request will be reviewed and we&apos;ll be in touch soon.
       </p>
     </div>

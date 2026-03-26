@@ -63,8 +63,8 @@ function formatPreferredDate(dateStr: string) {
 function FieldRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-2 text-xs">
-      <span className="font-medium text-[#9090A8] w-[68px] shrink-0 pt-px">{label}</span>
-      <span className="text-[#F0F0F5] min-w-0 break-words">{value}</span>
+      <span className="font-medium text-[var(--nb-text-2)] w-[68px] shrink-0 pt-px">{label}</span>
+      <span className="text-[var(--nb-text)] min-w-0 break-words">{value}</span>
     </div>
   );
 }
@@ -81,23 +81,23 @@ function RequestCard({
   return (
     <button
       onClick={onClick}
-      className="w-full text-left bg-[#1E1E2A] rounded-xl border border-[#2E2E3D] p-4 shadow-sm hover:shadow-md hover:border-[#7C3AED]/40 transition-all"
+      className="w-full text-left bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] p-4 shadow-sm hover:shadow-md hover:border-[#7C3AED]/40 transition-all"
     >
       {/* Header: name + style badge */}
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="min-w-0">
-          <p className="font-semibold text-sm text-[#F0F0F5] truncate">
+          <p className="font-semibold text-sm text-[var(--nb-text)] truncate">
             {request.client_name}
           </p>
-          <p className="text-xs text-[#9090A8] mt-0.5 truncate">{request.client_email}</p>
+          <p className="text-xs text-[var(--nb-text-2)] mt-0.5 truncate">{request.client_email}</p>
         </div>
-        <span className="inline-flex items-center rounded-full bg-[#2A1F3D] px-2 py-0.5 text-xs font-medium text-[#7C3AED] shrink-0">
+        <span className="inline-flex items-center rounded-full bg-[var(--nb-active-bg)] px-2 py-0.5 text-xs font-medium text-[#7C3AED] shrink-0">
           {request.style}
         </span>
       </div>
 
       {/* Labeled detail rows */}
-      <div className="space-y-1.5 bg-[#1E1E2A] rounded-lg border border-[#1E1E2A] px-3 py-2.5">
+      <div className="space-y-1.5 bg-[var(--nb-card)] rounded-lg border border-[var(--nb-card)] px-3 py-2.5">
         {parsed.tattooDescription && (
           <FieldRow label="Description" value={parsed.tattooDescription} />
         )}
@@ -114,13 +114,13 @@ function RequestCard({
           <FieldRow label="Phone" value={parsed.phone} />
         )}
         {!parsed.tattooDescription && !parsed.placement && !parsed.size && !parsed.preferredDate && !parsed.phone && (
-          <p className="text-xs text-[#9090A8] italic">No details provided</p>
+          <p className="text-xs text-[var(--nb-text-2)] italic">No details provided</p>
         )}
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-[#1E1E2A]">
-        <span className="text-xs text-[#9090A8]">
+      <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-[var(--nb-card)]">
+        <span className="text-xs text-[var(--nb-text-2)]">
           {formatDistanceToNow(request.created_at)}
         </span>
         {request.quote_amount != null && (
@@ -159,8 +159,8 @@ export function IntakeQueue({ requests }: { requests: TattooRequest[] }) {
   return (
     <section>
       <div className="flex items-center gap-2.5 mb-4">
-        <h2 className="text-base font-semibold text-[#F0F0F5]">Intake Queue</h2>
-        <span className="text-xs font-medium text-[#9090A8] bg-[#2E2E3D] rounded-full px-2.5 py-0.5">
+        <h2 className="text-base font-semibold text-[var(--nb-text)]">Intake Queue</h2>
+        <span className="text-xs font-medium text-[var(--nb-text-2)] bg-[var(--nb-border)] rounded-full px-2.5 py-0.5">
           {totalActive}
         </span>
       </div>
@@ -171,16 +171,16 @@ export function IntakeQueue({ requests }: { requests: TattooRequest[] }) {
             <div key={status}>
               <div className="flex items-center gap-2 mb-3">
                 <span className={`size-2 rounded-full ${dotColor}`} />
-                <span className="text-sm font-medium text-[#F0F0F5]">
+                <span className="text-sm font-medium text-[var(--nb-text)]">
                   {label}
                 </span>
-                <span className="ml-auto text-xs font-medium text-[#9090A8] bg-[#2E2E3D] rounded-full px-2 py-0.5">
+                <span className="ml-auto text-xs font-medium text-[var(--nb-text-2)] bg-[var(--nb-border)] rounded-full px-2 py-0.5">
                   {cards.length}
                 </span>
               </div>
               <div className="space-y-3">
                 {cards.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-[#2E2E3D] p-6 text-center text-sm text-[#9090A8]">
+                  <div className="rounded-xl border border-dashed border-[var(--nb-border)] p-6 text-center text-sm text-[var(--nb-text-2)]">
                     No requests
                   </div>
                 ) : (

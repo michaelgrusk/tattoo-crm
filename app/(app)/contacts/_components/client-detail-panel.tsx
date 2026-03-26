@@ -67,8 +67,8 @@ const STATUS_OPTIONS = [
 function getStatusStyle(status: string) {
   return (
     REQUEST_STATUS_STYLES[status.toLowerCase()] ?? {
-      text: "text-[#9090A8]",
-      bg: "bg-[#2E2E3D]",
+      text: "text-[var(--nb-text-2)]",
+      bg: "bg-[var(--nb-border)]",
     }
   );
 }
@@ -139,12 +139,12 @@ function StatBox({
   sub?: string;
 }) {
   return (
-    <div className="bg-[#1E1E2A] rounded-xl border border-[#2E2E3D] px-5 py-4">
-      <p className="text-xs font-medium text-[#9090A8] uppercase tracking-wide mb-1">
+    <div className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-5 py-4">
+      <p className="text-xs font-medium text-[var(--nb-text-2)] uppercase tracking-wide mb-1">
         {label}
       </p>
-      <p className="text-xl font-semibold text-[#F0F0F5]">{value}</p>
-      {sub && <p className="text-xs text-[#9090A8] mt-0.5">{sub}</p>}
+      <p className="text-xl font-semibold text-[var(--nb-text)]">{value}</p>
+      {sub && <p className="text-xs text-[var(--nb-text-2)] mt-0.5">{sub}</p>}
     </div>
   );
 }
@@ -386,7 +386,7 @@ function AddRequestDialog({
           <div className="space-y-1.5">
             <Label>Reference Image</Label>
             {imagePreview ? (
-              <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-[#2E2E3D] bg-[#13131A]">
+              <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-[var(--nb-border)] bg-[var(--nb-bg)]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={imagePreview}
@@ -408,9 +408,9 @@ function AddRequestDialog({
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="w-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#2E2E3D] bg-[#1E1E2A] hover:bg-[#13131A] py-6 text-sm text-[#9090A8] transition-colors"
+                className="w-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--nb-border)] bg-[var(--nb-card)] hover:bg-[var(--nb-bg)] py-6 text-sm text-[var(--nb-text-2)] transition-colors"
               >
-                <ImageIcon size={20} className="text-[#9090A8]" />
+                <ImageIcon size={20} className="text-[var(--nb-text-2)]" />
                 <span>Click to attach a reference image</span>
                 <span className="text-xs">PNG, JPG, WEBP up to 10 MB</span>
               </button>
@@ -890,7 +890,7 @@ export function ClientDetailPanel({
         {/* Client header */}
         <div className="flex items-start justify-between gap-4 mb-8">
           <div className="flex items-start gap-4">
-            <div className="size-14 rounded-full bg-[#2A1F3D] flex items-center justify-center text-lg font-semibold text-[#7C3AED] shrink-0">
+            <div className="size-14 rounded-full bg-[var(--nb-active-bg)] flex items-center justify-center text-lg font-semibold text-[#7C3AED] shrink-0">
               {client.name
                 .trim()
                 .split(/\s+/)
@@ -900,22 +900,22 @@ export function ClientDetailPanel({
                 .toUpperCase()}
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-[#F0F0F5]">
+              <h2 className="text-xl font-semibold text-[var(--nb-text)]">
                 {client.name}
               </h2>
               <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
-                <span className="flex items-center gap-1.5 text-sm text-[#9090A8]">
-                  <Mail size={13} className="text-[#9090A8]" />
+                <span className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)]">
+                  <Mail size={13} className="text-[var(--nb-text-2)]" />
                   {client.email}
                 </span>
                 {client.phone && (
-                  <span className="flex items-center gap-1.5 text-sm text-[#9090A8]">
-                    <Phone size={13} className="text-[#9090A8]" />
+                  <span className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)]">
+                    <Phone size={13} className="text-[var(--nb-text-2)]" />
                     {client.phone}
                   </span>
                 )}
-                <span className="flex items-center gap-1.5 text-sm text-[#9090A8]">
-                  <Calendar size={13} className="text-[#9090A8]" />
+                <span className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)]">
+                  <Calendar size={13} className="text-[var(--nb-text-2)]" />
                   Client since{" "}
                   {formatDate(client.created_at, {
                     year: "numeric",
@@ -928,7 +928,7 @@ export function ClientDetailPanel({
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setEditOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#2E2E3D] bg-[#1E1E2A] text-[#7C3AED] hover:bg-[#13131A] transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[#7C3AED] hover:bg-[var(--nb-bg)] transition-colors"
             >
               Edit
             </button>
@@ -938,7 +938,7 @@ export function ClientDetailPanel({
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
                 deleteConfirm
                   ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
-                  : "bg-[#1E1E2A] text-[#9090A8] border-[#2E2E3D] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                  : "bg-[var(--nb-card)] text-[var(--nb-text-2)] border-[var(--nb-border)] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
               }`}
             >
               {deleting && <Loader2 size={12} className="animate-spin" />}
@@ -976,7 +976,7 @@ export function ClientDetailPanel({
         </div>
 
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-[#9090A8] py-8">
+          <div className="flex items-center gap-2 text-sm text-[var(--nb-text-2)] py-8">
             <Loader2 size={16} className="animate-spin" />
             Loading client details…
           </div>
@@ -985,10 +985,10 @@ export function ClientDetailPanel({
             {/* ── Reference Images ─────────────────────────────────────── */}
             <section className="mb-8">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-[#F0F0F5]">
+                <h3 className="text-sm font-semibold text-[var(--nb-text)]">
                   Reference Images
                   {referenceImages.length > 0 && (
-                    <span className="ml-2 text-xs font-medium text-[#9090A8]">
+                    <span className="ml-2 text-xs font-medium text-[var(--nb-text-2)]">
                       {referenceImages.length}
                     </span>
                   )}
@@ -996,7 +996,7 @@ export function ClientDetailPanel({
                 <button
                   onClick={() => newImageInputRef.current?.click()}
                   disabled={uploadingNew}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#7C3AED] bg-[#2A1F3D] hover:bg-[#2E2E3D] border border-[#C8DFE8] transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#7C3AED] bg-[var(--nb-active-bg)] hover:bg-[var(--nb-border)] border border-[#C8DFE8] transition-colors disabled:opacity-50"
                 >
                   {uploadingNew ? (
                     <Loader2 size={12} className="animate-spin" />
@@ -1015,10 +1015,10 @@ export function ClientDetailPanel({
               </div>
 
               {referenceImages.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[#2E2E3D] bg-[#1E1E2A] p-6 flex flex-col items-center gap-2 text-center">
-                  <ImageIcon size={24} className="text-[#9090A8]" />
-                  <p className="text-sm text-[#9090A8]">No reference images yet</p>
-                  <p className="text-xs text-[#9090A8]">
+                <div className="rounded-xl border border-dashed border-[var(--nb-border)] bg-[var(--nb-card)] p-6 flex flex-col items-center gap-2 text-center">
+                  <ImageIcon size={24} className="text-[var(--nb-text-2)]" />
+                  <p className="text-sm text-[var(--nb-text-2)]">No reference images yet</p>
+                  <p className="text-xs text-[var(--nb-text-2)]">
                     Upload an image or add a tattoo request with a reference
                   </p>
                 </div>
@@ -1030,7 +1030,7 @@ export function ClientDetailPanel({
                       onClick={() =>
                         setLightboxUrl(req.reference_image_url!)
                       }
-                      className="group relative aspect-square rounded-xl overflow-hidden border border-[#2E2E3D] bg-[#13131A] hover:border-[#7C3AED] transition-colors"
+                      className="group relative aspect-square rounded-xl overflow-hidden border border-[var(--nb-border)] bg-[var(--nb-bg)] hover:border-[#7C3AED] transition-colors"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -1062,26 +1062,26 @@ export function ClientDetailPanel({
             {/* ── Notes ────────────────────────────────────────────────── */}
             {(client.notes || client.skin_notes) && (
               <section className="mb-8">
-                <h3 className="text-sm font-semibold text-[#F0F0F5] mb-3">
+                <h3 className="text-sm font-semibold text-[var(--nb-text)] mb-3">
                   Notes
                 </h3>
                 <div className="space-y-3">
                   {client.skin_notes && (
-                    <div className="bg-[#1E1E2A] rounded-xl border border-[#2E2E3D] px-5 py-4">
-                      <p className="text-xs font-medium text-[#9090A8] uppercase tracking-wide mb-1.5">
+                    <div className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-5 py-4">
+                      <p className="text-xs font-medium text-[var(--nb-text-2)] uppercase tracking-wide mb-1.5">
                         Skin Notes
                       </p>
-                      <p className="text-sm text-[#F0F0F5] leading-relaxed">
+                      <p className="text-sm text-[var(--nb-text)] leading-relaxed">
                         {client.skin_notes}
                       </p>
                     </div>
                   )}
                   {client.notes && (
-                    <div className="bg-[#1E1E2A] rounded-xl border border-[#2E2E3D] px-5 py-4">
-                      <p className="text-xs font-medium text-[#9090A8] uppercase tracking-wide mb-1.5">
+                    <div className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-5 py-4">
+                      <p className="text-xs font-medium text-[var(--nb-text-2)] uppercase tracking-wide mb-1.5">
                         General Notes
                       </p>
-                      <p className="text-sm text-[#F0F0F5] leading-relaxed">
+                      <p className="text-sm text-[var(--nb-text)] leading-relaxed">
                         {client.notes}
                       </p>
                     </div>
@@ -1093,10 +1093,10 @@ export function ClientDetailPanel({
             {/* ── Tattoo History ────────────────────────────────────────── */}
             <section>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-[#F0F0F5]">
+                <h3 className="text-sm font-semibold text-[var(--nb-text)]">
                   Tattoo History
                   {requests.length > 0 && (
-                    <span className="ml-2 text-xs font-medium text-[#9090A8]">
+                    <span className="ml-2 text-xs font-medium text-[var(--nb-text-2)]">
                       {requests.length}
                     </span>
                   )}
@@ -1112,7 +1112,7 @@ export function ClientDetailPanel({
               </div>
 
               {requests.length === 0 ? (
-                <div className="bg-[#1E1E2A] rounded-xl border border-dashed border-[#2E2E3D] p-8 text-center text-sm text-[#9090A8]">
+                <div className="bg-[var(--nb-card)] rounded-xl border border-dashed border-[var(--nb-border)] p-8 text-center text-sm text-[var(--nb-text-2)]">
                   No tattoo requests yet
                 </div>
               ) : (
@@ -1124,7 +1124,7 @@ export function ClientDetailPanel({
                     return (
                       <div
                         key={req.id}
-                        className="bg-[#1E1E2A] rounded-xl border border-[#2E2E3D] overflow-hidden"
+                        className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] overflow-hidden"
                       >
                         {/* Reference image strip */}
                         {req.reference_image_url ? (
@@ -1132,7 +1132,7 @@ export function ClientDetailPanel({
                             onClick={() =>
                               setLightboxUrl(req.reference_image_url!)
                             }
-                            className="group relative w-full h-36 overflow-hidden block border-b border-[#2E2E3D]"
+                            className="group relative w-full h-36 overflow-hidden block border-b border-[var(--nb-border)]"
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
@@ -1148,13 +1148,13 @@ export function ClientDetailPanel({
                             </div>
                           </button>
                         ) : (
-                          <div className="border-b border-[#2E2E3D] border-dashed">
+                          <div className="border-b border-[var(--nb-border)] border-dashed">
                             <button
                               onClick={() =>
                                 cardImageInputRefs.current[req.id]?.click()
                               }
                               disabled={isUploadingCard}
-                              className="w-full flex items-center justify-center gap-2 py-3 text-xs text-[#9090A8] hover:text-[#7C3AED] hover:bg-[#1E1E2A] transition-colors disabled:opacity-50"
+                              className="w-full flex items-center justify-center gap-2 py-3 text-xs text-[var(--nb-text-2)] hover:text-[#7C3AED] hover:bg-[var(--nb-card)] transition-colors disabled:opacity-50"
                             >
                               {isUploadingCard ? (
                                 <Loader2 size={13} className="animate-spin" />
@@ -1182,7 +1182,7 @@ export function ClientDetailPanel({
                         {/* Card body */}
                         <div className="px-5 py-4">
                           <div className="flex items-start justify-between gap-3 mb-2">
-                            <span className="inline-flex items-center rounded-full bg-[#2A1F3D] px-2.5 py-0.5 text-xs font-medium text-[#7C3AED]">
+                            <span className="inline-flex items-center rounded-full bg-[var(--nb-active-bg)] px-2.5 py-0.5 text-xs font-medium text-[#7C3AED]">
                               {req.style}
                             </span>
                             <div className="flex items-center gap-2 shrink-0">
@@ -1192,13 +1192,13 @@ export function ClientDetailPanel({
                                 {req.status.charAt(0).toUpperCase() +
                                   req.status.slice(1)}
                               </span>
-                              <span className="text-xs text-[#9090A8]">
+                              <span className="text-xs text-[var(--nb-text-2)]">
                                 {formatDate(req.created_at)}
                               </span>
                             </div>
                           </div>
                           {req.description && (
-                            <p className="text-sm text-[#F0F0F5] leading-relaxed">
+                            <p className="text-sm text-[var(--nb-text)] leading-relaxed">
                               {req.description}
                             </p>
                           )}

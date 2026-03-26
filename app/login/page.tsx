@@ -72,12 +72,12 @@ export default function LoginPage() {
   }
 
   const inputCls =
-    "w-full h-10 rounded-lg border border-[#2E2E3D] bg-[#1E1E2A] px-3 text-sm text-[#F0F0F5] outline-none placeholder:text-[#9090A8] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors";
+    "w-full h-10 rounded-lg border border-[var(--nb-border)] bg-[var(--nb-card)] px-3 text-sm text-[var(--nb-text)] outline-none placeholder:text-[var(--nb-text-2)] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors";
 
   return (
-    <div className="min-h-screen bg-[#13131A] flex flex-col items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-[var(--nb-bg)] flex flex-col items-center justify-center px-4 py-10">
       {/* Card */}
-      <div className="w-full max-w-sm bg-[#1E1E2A] rounded-2xl border border-[#2E2E3D] shadow-sm px-8 py-8">
+      <div className="w-full max-w-sm bg-[var(--nb-card)] rounded-2xl border border-[var(--nb-border)] shadow-sm px-8 py-8">
         {/* Branding */}
         <div className="flex flex-col items-center mb-7">
           <div className="size-10 rounded-xl bg-[#7C3AED] flex items-center justify-center mb-3">
@@ -95,12 +95,12 @@ export default function LoginPage() {
               <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-[#F0F0F5]">Needlebook</h1>
-          <p className="text-xs text-[#9090A8] mt-0.5">Tattoo artist CRM</p>
+          <h1 className="text-xl font-semibold text-[var(--nb-text)]">Needlebook</h1>
+          <p className="text-xs text-[var(--nb-text-2)] mt-0.5">Tattoo artist CRM</p>
         </div>
 
         {/* Mode toggle */}
-        <div className="flex rounded-lg border border-[#2E2E3D] bg-[#13131A] p-1 mb-6">
+        <div className="flex rounded-lg border border-[var(--nb-border)] bg-[var(--nb-bg)] p-1 mb-6">
           {(["signin", "signup"] as const).map((m) => (
             <button
               key={m}
@@ -108,8 +108,8 @@ export default function LoginPage() {
               onClick={() => switchMode(m)}
               className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 mode === m
-                  ? "bg-[#1E1E2A] text-[#F0F0F5] shadow-sm"
-                  : "text-[#9090A8] hover:text-[#F0F0F5]"
+                  ? "bg-[var(--nb-card)] text-[var(--nb-text)] shadow-sm"
+                  : "text-[var(--nb-text-2)] hover:text-[var(--nb-text)]"
               }`}
             >
               {m === "signin" ? "Sign In" : "Sign Up"}
@@ -121,7 +121,7 @@ export default function LoginPage() {
           {/* Studio name — sign up only */}
           {mode === "signup" && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#F0F0F5]">
+              <label className="text-xs font-medium text-[var(--nb-text)]">
                 Studio name
               </label>
               <input
@@ -137,7 +137,7 @@ export default function LoginPage() {
 
           {/* Email */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[#F0F0F5]">
+            <label className="text-xs font-medium text-[var(--nb-text)]">
               Email address
             </label>
             <input
@@ -153,7 +153,7 @@ export default function LoginPage() {
 
           {/* Password */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[#F0F0F5]">
+            <label className="text-xs font-medium text-[var(--nb-text)]">
               Password
             </label>
             <div className="relative">
@@ -169,7 +169,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9090A8] hover:text-[#9090A8] transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--nb-text-2)] hover:text-[var(--nb-text-2)] transition-colors"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -180,7 +180,7 @@ export default function LoginPage() {
           {/* Confirm password — sign up only */}
           {mode === "signup" && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#F0F0F5]">
+              <label className="text-xs font-medium text-[var(--nb-text)]">
                 Confirm password
               </label>
               <input
@@ -220,7 +220,7 @@ export default function LoginPage() {
         </form>
       </div>
 
-      <p className="mt-6 text-xs text-[#9090A8]">
+      <p className="mt-6 text-xs text-[var(--nb-text-2)]">
         © {new Date().getFullYear()} Needlebook
       </p>
     </div>

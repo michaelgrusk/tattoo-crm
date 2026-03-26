@@ -13,8 +13,11 @@ import {
   Copy,
   Check,
   LinkIcon,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { useTheme } from "@/components/theme-provider";
 
 const navItems = [
   { href: "/board", label: "Board", icon: LayoutDashboard },
@@ -27,9 +30,13 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { theme, toggle } = useTheme();
   const [studioName, setStudioName] = useState<string | null>(null);
   const [slug, setSlug] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -62,8 +69,8 @@ export function Sidebar() {
   const intakeUrl = slug ? `/intake/${slug}` : null;
 
   return (
-    <aside className="w-60 shrink-0 flex flex-col h-full bg-[#1E1E2A] border-r border-[#2E2E3D]">
-      <div className="h-16 flex items-center px-6 border-b border-[#2E2E3D]">
+    <aside className="w-60 shrink-0 flex flex-col h-full bg-[var(--nb-card)] border-r border-[var(--nb-border)]">
+      <div className="h-16 flex items-center px-6 border-b border-[var(--nb-border)]">
         <span className="text-lg font-semibold tracking-tight text-[#7C3AED]">
           Needlebook
         </span>
@@ -78,13 +85,13 @@ export function Sidebar() {
               href={href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
-                  ? "bg-[#2A1F3D] text-[#C4B5FD]"
-                  : "text-[#9090A8] hover:bg-[#13131A] hover:text-[#F0F0F5]"
+                  ? "bg-[var(--nb-active-bg)] text-[var(--nb-active-text)]"
+                  : "text-[var(--nb-text-2)] hover:bg-[var(--nb-bg)] hover:text-[var(--nb-text)]"
               }`}
             >
               <Icon
                 size={18}
-                className={isActive ? "text-[#C4B5FD]" : "text-[#9090A8]"}
+                className={isActive ? "text-[var(--nb-active-text)]" : "text-[var(--nb-text-2)]"}
               />
               {label}
             </Link>
@@ -92,12 +99,28 @@ export function Sidebar() {
         })}
       </nav>
 
+      {/* Theme toggle */}
+      <div className="px-3 mb-2">
+        <button
+          onClick={toggle}
+          title={mounted && theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--nb-text-2)] hover:bg-[var(--nb-bg)] hover:text-[var(--nb-text)] transition-colors"
+        >
+          {mounted && theme === "dark" ? (
+            <Sun size={18} className="text-[var(--nb-text-2)]" />
+          ) : (
+            <Moon size={18} className="text-[var(--nb-text-2)]" />
+          )}
+          {mounted && theme === "dark" ? "Light mode" : "Dark mode"}
+        </button>
+      </div>
+
       {/* Intake link */}
       {intakeUrl && (
-        <div className="mx-3 mb-3 rounded-xl border border-[#2E2E3D] bg-[#1E1E2A] px-3 py-2.5">
+        <div className="mx-3 mb-3 rounded-xl border border-[var(--nb-border)] bg-[var(--nb-card)] px-3 py-2.5">
           <div className="flex items-center gap-1.5 mb-1.5">
             <LinkIcon size={11} className="text-[#7C3AED] shrink-0" />
-            <span className="text-[10px] font-semibold text-[#9090A8] uppercase tracking-wide">
+            <span className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide">
               Your intake link
             </span>
           </div>
@@ -115,7 +138,7 @@ export function Sidebar() {
               className={`shrink-0 size-6 flex items-center justify-center rounded-md transition-colors ${
                 copied
                   ? "bg-emerald-50 text-emerald-600"
-                  : "hover:bg-[#2A1F3D] text-[#9090A8] hover:text-[#7C3AED]"
+                  : "hover:bg-[var(--nb-active-bg)] text-[var(--nb-text-2)] hover:text-[#7C3AED]"
               }`}
             >
               {copied ? <Check size={12} /> : <Copy size={12} />}
@@ -125,21 +148,21 @@ export function Sidebar() {
       )}
 
       {/* Studio identity + sign out */}
-      <div className="border-t border-[#2E2E3D]">
+      <div className="border-t border-[var(--nb-border)]">
         <div className="flex items-center gap-2.5 px-4 py-3">
-          <div className="size-8 rounded-full bg-[#2A1F3D] flex items-center justify-center text-sm font-semibold text-[#7C3AED] shrink-0">
+          <div className="size-8 rounded-full bg-[var(--nb-active-bg)] flex items-center justify-center text-sm font-semibold text-[#7C3AED] shrink-0">
             {initial}
           </div>
-          <p className="text-sm font-medium text-[#F0F0F5] truncate flex-1">
+          <p className="text-sm font-medium text-[var(--nb-text)] truncate flex-1">
             {studioName ?? "My Studio"}
           </p>
         </div>
         <div className="px-3 pb-3">
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-[#9090A8] hover:bg-[#13131A] hover:text-[#F0F0F5] transition-colors"
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-[var(--nb-text-2)] hover:bg-[var(--nb-bg)] hover:text-[var(--nb-text)] transition-colors"
           >
-            <LogOut size={16} className="text-[#9090A8]" />
+            <LogOut size={16} className="text-[var(--nb-text-2)]" />
             Sign Out
           </button>
         </div>

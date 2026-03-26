@@ -114,23 +114,23 @@ function StatCard({
   loading: boolean;
 }) {
   return (
-    <div className="bg-[#1E1E2A] rounded-xl border border-[#2E2E3D] px-5 py-5 shadow-sm">
+    <div className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-5 py-5 shadow-sm">
       <div className="flex items-center gap-3 mb-3">
         <div
           className={`size-9 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}
         >
           <Icon size={17} className={iconColor} />
         </div>
-        <p className="text-xs font-semibold text-[#9090A8] uppercase tracking-wide">
+        <p className="text-xs font-semibold text-[var(--nb-text-2)] uppercase tracking-wide">
           {label}
         </p>
       </div>
       <p
-        className={`text-2xl font-semibold text-[#F0F0F5] transition-opacity ${loading ? "opacity-30" : ""}`}
+        className={`text-2xl font-semibold text-[var(--nb-text)] transition-opacity ${loading ? "opacity-30" : ""}`}
       >
         {value}
       </p>
-      {sub && <p className="text-xs text-[#9090A8] mt-1">{sub}</p>}
+      {sub && <p className="text-xs text-[var(--nb-text-2)] mt-1">{sub}</p>}
     </div>
   );
 }
@@ -173,10 +173,10 @@ function RevenueChart({
         {[0.25, 0.5, 0.75, 1].map((frac) => (
           <div
             key={frac}
-            className="absolute inset-x-0 border-t border-dashed border-[#1E1E2A] flex items-start"
+            className="absolute inset-x-0 border-t border-dashed border-[var(--nb-card)] flex items-start"
             style={{ top: CHART_H - frac * CHART_H }}
           >
-            <span className="text-[10px] text-[#9090A8] pr-2 -mt-2.5 select-none">
+            <span className="text-[10px] text-[var(--nb-text-2)] pr-2 -mt-2.5 select-none">
               {fmtShort(max * frac)}
             </span>
           </div>
@@ -196,14 +196,14 @@ function RevenueChart({
               >
                 {/* Tooltip */}
                 {total > 0 && (
-                  <div className="absolute bottom-full mb-2 bg-[#13131A] text-white text-[10px] font-medium px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg">
+                  <div className="absolute bottom-full mb-2 bg-[var(--nb-bg)] text-white text-[10px] font-medium px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg">
                     {fmt(total)}
                     <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
                   </div>
                 )}
                 <div
                   className={`w-full rounded-t-md transition-all duration-300 ${
-                    total > 0 ? "bg-[#7C3AED]" : "bg-[#1E1E2A]"
+                    total > 0 ? "bg-[#7C3AED]" : "bg-[var(--nb-card)]"
                   }`}
                   style={{ height: barH }}
                 />
@@ -216,7 +216,7 @@ function RevenueChart({
         <div className="absolute bottom-0 inset-x-0 flex gap-2">
           {data.map(({ label }, i) => (
             <div key={i} className="flex-1 text-center">
-              <span className="text-[11px] text-[#9090A8] select-none">
+              <span className="text-[11px] text-[var(--nb-text-2)] select-none">
                 {label}
               </span>
             </div>
@@ -251,7 +251,7 @@ function BusiestHours({
 
   if (!loading && !hasData) {
     return (
-      <p className="text-sm text-[#9090A8] py-6 text-center">No appointments yet</p>
+      <p className="text-sm text-[var(--nb-text-2)] py-6 text-center">No appointments yet</p>
     );
   }
 
@@ -264,16 +264,16 @@ function BusiestHours({
         const pct = (count / max) * 100;
         return (
           <div key={h} className="flex items-center gap-2.5">
-            <span className="text-[11px] text-[#9090A8] w-11 shrink-0 text-right tabular-nums">
+            <span className="text-[11px] text-[var(--nb-text-2)] w-11 shrink-0 text-right tabular-nums">
               {formatHour(h)}
             </span>
-            <div className="flex-1 h-5 bg-[#13131A] rounded-md overflow-hidden">
+            <div className="flex-1 h-5 bg-[var(--nb-bg)] rounded-md overflow-hidden">
               <div
                 className="h-full bg-[#7C3AED] rounded-md transition-all duration-500"
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className="text-[11px] font-medium text-[#9090A8] w-4 shrink-0 tabular-nums">
+            <span className="text-[11px] font-medium text-[var(--nb-text-2)] w-4 shrink-0 tabular-nums">
               {count}
             </span>
           </div>
@@ -311,7 +311,7 @@ function TopClients({
 
   if (!loading && sorted.length === 0) {
     return (
-      <p className="text-sm text-[#9090A8] py-6 text-center">No data yet</p>
+      <p className="text-sm text-[var(--nb-text-2)] py-6 text-center">No data yet</p>
     );
   }
 
@@ -321,19 +321,19 @@ function TopClients({
     >
       {sorted.map(({ name, total }, i) => (
         <div key={i} className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-[#9090A8] w-4 shrink-0 tabular-nums">
+          <span className="text-xs font-semibold text-[var(--nb-text-2)] w-4 shrink-0 tabular-nums">
             {i + 1}
           </span>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-sm font-medium text-[#F0F0F5] truncate">
+              <span className="text-sm font-medium text-[var(--nb-text)] truncate">
                 {name}
               </span>
-              <span className="text-sm font-semibold text-[#F0F0F5] ml-3 shrink-0 tabular-nums">
+              <span className="text-sm font-semibold text-[var(--nb-text)] ml-3 shrink-0 tabular-nums">
                 {fmt(total)}
               </span>
             </div>
-            <div className="h-1.5 bg-[#13131A] rounded-full overflow-hidden">
+            <div className="h-1.5 bg-[var(--nb-bg)] rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#7C3AED] rounded-full transition-all duration-500"
                 style={{ width: `${(total / max) * 100}%` }}
@@ -381,7 +381,7 @@ function PopularStyles({
 
   if (!loading && sorted.length === 0) {
     return (
-      <p className="text-sm text-[#9090A8] py-6 text-center">No data yet</p>
+      <p className="text-sm text-[var(--nb-text-2)] py-6 text-center">No data yet</p>
     );
   }
 
@@ -399,19 +399,19 @@ function PopularStyles({
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-sm font-medium text-[#F0F0F5] truncate">
+                <span className="text-sm font-medium text-[var(--nb-text)] truncate">
                   {style}
                 </span>
                 <div className="flex items-center gap-2 ml-3 shrink-0">
-                  <span className="text-xs font-semibold text-[#9090A8] tabular-nums">
+                  <span className="text-xs font-semibold text-[var(--nb-text-2)] tabular-nums">
                     {pct}%
                   </span>
-                  <span className="text-xs text-[#9090A8] tabular-nums">
+                  <span className="text-xs text-[var(--nb-text-2)] tabular-nums">
                     ({count})
                   </span>
                 </div>
               </div>
-              <div className="h-1.5 bg-[#13131A] rounded-full overflow-hidden">
+              <div className="h-1.5 bg-[var(--nb-bg)] rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${color}`}
                   style={{ width: `${pct}%` }}
@@ -428,7 +428,7 @@ function PopularStyles({
 // ─── Main view ────────────────────────────────────────────────────────────────
 
 const DATE_INPUT_CLS =
-  "h-9 w-full rounded-lg border border-[#2E2E3D] bg-[#1E1E2A] px-3 text-sm text-[#F0F0F5] outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors";
+  "h-9 w-full rounded-lg border border-[var(--nb-border)] bg-[var(--nb-card)] px-3 text-sm text-[var(--nb-text)] outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors";
 
 export function AnalyticsView() {
   const [period, setPeriod] = useState<Period>("6m");
@@ -537,8 +537,8 @@ export function AnalyticsView() {
       {/* Header */}
       <div className="flex items-start justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-semibold text-[#F0F0F5]">Analytics</h1>
-          <p className="mt-1 text-sm text-[#9090A8]">
+          <h1 className="text-2xl font-semibold text-[var(--nb-text)]">Analytics</h1>
+          <p className="mt-1 text-sm text-[var(--nb-text-2)]">
             Track revenue, sessions, and client trends
           </p>
         </div>
@@ -549,7 +549,7 @@ export function AnalyticsView() {
           {period === "custom" && (
             <div className="flex items-center gap-2">
               <div className="space-y-1">
-                <label className="block text-[10px] font-semibold text-[#9090A8] uppercase tracking-wide">
+                <label className="block text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide">
                   From
                 </label>
                 <input
@@ -561,7 +561,7 @@ export function AnalyticsView() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-[10px] font-semibold text-[#9090A8] uppercase tracking-wide">
+                <label className="block text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide">
                   To
                 </label>
                 <input
@@ -591,7 +591,7 @@ export function AnalyticsView() {
                     setCustomTo("");
                   }
                 }}
-                className="appearance-none pl-4 pr-8 py-2 text-sm font-medium bg-[#1E1E2A] border border-[#2E2E3D] rounded-lg text-[#F0F0F5] cursor-pointer focus:outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors shadow-sm h-9"
+                className="appearance-none pl-4 pr-8 py-2 text-sm font-medium bg-[var(--nb-card)] border border-[var(--nb-border)] rounded-lg text-[var(--nb-text)] cursor-pointer focus:outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors shadow-sm h-9"
               >
                 {PERIOD_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -601,7 +601,7 @@ export function AnalyticsView() {
               </select>
               <ChevronDown
                 size={13}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9090A8] pointer-events-none"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--nb-text-2)] pointer-events-none"
               />
             </div>
           </div>
@@ -624,7 +624,7 @@ export function AnalyticsView() {
           value={fmt(avgPerSession)}
           sub={totalSessions > 0 ? `over ${totalSessions} sessions` : "no sessions yet"}
           icon={Clock}
-          iconBg="bg-[#2A1F3D]"
+          iconBg="bg-[var(--nb-active-bg)]"
           iconColor="text-[#7C3AED]"
           loading={loading}
         />
@@ -650,12 +650,12 @@ export function AnalyticsView() {
 
       {/* Charts row: Revenue (wider) + Busiest hours */}
       <div className="grid grid-cols-5 gap-5">
-        <div className="col-span-3 bg-[#1E1E2A] rounded-xl border border-[#2E2E3D] p-6 shadow-sm">
+        <div className="col-span-3 bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-sm font-semibold text-[#F0F0F5]">
+            <h2 className="text-sm font-semibold text-[var(--nb-text)]">
               Revenue Over Time
             </h2>
-            <span className="text-xs text-[#9090A8]">{periodLabel}</span>
+            <span className="text-xs text-[var(--nb-text-2)]">{periodLabel}</span>
           </div>
           {isCustomReady ? (
             <RevenueChart
@@ -665,18 +665,18 @@ export function AnalyticsView() {
               loading={loading}
             />
           ) : (
-            <p className="text-sm text-[#9090A8] py-10 text-center">
+            <p className="text-sm text-[var(--nb-text-2)] py-10 text-center">
               Select a date range to view revenue
             </p>
           )}
         </div>
 
-        <div className="col-span-2 bg-[#1E1E2A] rounded-xl border border-[#2E2E3D] p-6 shadow-sm">
+        <div className="col-span-2 bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-sm font-semibold text-[#F0F0F5]">
+            <h2 className="text-sm font-semibold text-[var(--nb-text)]">
               Busiest Hours
             </h2>
-            <span className="text-xs text-[#9090A8]">all time</span>
+            <span className="text-xs text-[var(--nb-text-2)]">all time</span>
           </div>
           <BusiestHours appointments={allAppointments} loading={loading} />
         </div>
@@ -684,22 +684,22 @@ export function AnalyticsView() {
 
       {/* Bottom row: Top clients + Popular styles */}
       <div className="grid grid-cols-2 gap-5">
-        <div className="bg-[#1E1E2A] rounded-xl border border-[#2E2E3D] p-6 shadow-sm">
+        <div className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-sm font-semibold text-[#F0F0F5]">
+            <h2 className="text-sm font-semibold text-[var(--nb-text)]">
               Top Clients by Spend
             </h2>
-            <span className="text-xs text-[#9090A8]">paid invoices</span>
+            <span className="text-xs text-[var(--nb-text-2)]">paid invoices</span>
           </div>
           <TopClients invoices={invoices} loading={loading} />
         </div>
 
-        <div className="bg-[#1E1E2A] rounded-xl border border-[#2E2E3D] p-6 shadow-sm">
+        <div className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-sm font-semibold text-[#F0F0F5]">
+            <h2 className="text-sm font-semibold text-[var(--nb-text)]">
               Most Popular Styles
             </h2>
-            <span className="text-xs text-[#9090A8]">
+            <span className="text-xs text-[var(--nb-text-2)]">
               {requests.length} requests
             </span>
           </div>

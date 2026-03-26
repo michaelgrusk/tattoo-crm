@@ -30,9 +30,9 @@ const STATUS_CONFIG: Record<
 function getStatusConfig(status: string) {
   return (
     STATUS_CONFIG[status.toLowerCase()] ?? {
-      dot: "bg-[#2E2E3D]",
-      text: "text-[#9090A8]",
-      bg: "bg-[#2A1F3D]",
+      dot: "bg-[var(--nb-border)]",
+      text: "text-[var(--nb-text-2)]",
+      bg: "bg-[var(--nb-active-bg)]",
     }
   );
 }
@@ -62,63 +62,63 @@ export function UpcomingAppointments({
   return (
     <section>
       <div className="flex items-center gap-2.5 mb-4">
-        <h2 className="text-base font-semibold text-[#F0F0F5]">
+        <h2 className="text-base font-semibold text-[var(--nb-text)]">
           Upcoming Appointments
         </h2>
-        <span className="text-xs font-medium text-[#9090A8] bg-[#2E2E3D] rounded-full px-2.5 py-0.5">
+        <span className="text-xs font-medium text-[var(--nb-text-2)] bg-[var(--nb-border)] rounded-full px-2.5 py-0.5">
           {appointments.length}
         </span>
       </div>
-      <div className="bg-[#1E1E2A] rounded-xl border border-[#2E2E3D] overflow-hidden shadow-sm">
+      <div className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] overflow-hidden shadow-sm">
         {appointments.length === 0 ? (
           <div className="py-12 flex flex-col items-center text-center">
-            <CalendarX2 size={32} className="text-[#2E2E3D] mb-3" />
-            <p className="text-sm font-medium text-[#9090A8]">No upcoming appointments</p>
-            <p className="text-xs text-[#9090A8] mt-1">Booked appointments will appear here</p>
+            <CalendarX2 size={32} className="text-[var(--nb-border)] mb-3" />
+            <p className="text-sm font-medium text-[var(--nb-text-2)]">No upcoming appointments</p>
+            <p className="text-xs text-[var(--nb-text-2)] mt-1">Booked appointments will appear here</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#2E2E3D] bg-[#1E1E2A]">
-                <th className="text-left px-5 py-3 font-medium text-[#9090A8] text-xs uppercase tracking-wide">
+              <tr className="border-b border-[var(--nb-border)] bg-[var(--nb-card)]">
+                <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">
                   Client
                 </th>
-                <th className="text-left px-5 py-3 font-medium text-[#9090A8] text-xs uppercase tracking-wide">
+                <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">
                   Type
                 </th>
-                <th className="text-left px-5 py-3 font-medium text-[#9090A8] text-xs uppercase tracking-wide">
+                <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">
                   Date
                 </th>
-                <th className="text-left px-5 py-3 font-medium text-[#9090A8] text-xs uppercase tracking-wide">
+                <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">
                   Time
                 </th>
-                <th className="text-left px-5 py-3 font-medium text-[#9090A8] text-xs uppercase tracking-wide">
+                <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">
                   Artist
                 </th>
-                <th className="text-left px-5 py-3 font-medium text-[#9090A8] text-xs uppercase tracking-wide">
+                <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">
                   Status
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1E1E2A]">
+            <tbody className="divide-y divide-[var(--nb-card)]">
               {appointments.map((appt) => {
                 const cfg = getStatusConfig(appt.status);
                 return (
                   <tr
                     key={appt.id}
-                    className="hover:bg-[#1E1E2A] transition-colors"
+                    className="hover:bg-[var(--nb-card)] transition-colors"
                   >
-                    <td className="px-5 py-3.5 font-medium text-[#F0F0F5]">
+                    <td className="px-5 py-3.5 font-medium text-[var(--nb-text)]">
                       {appt.clients?.name ?? "—"}
                     </td>
-                    <td className="px-5 py-3.5 text-[#9090A8]">{appt.type}</td>
-                    <td className="px-5 py-3.5 text-[#9090A8]">
+                    <td className="px-5 py-3.5 text-[var(--nb-text-2)]">{appt.type}</td>
+                    <td className="px-5 py-3.5 text-[var(--nb-text-2)]">
                       {formatDate(appt.date)}
                     </td>
-                    <td className="px-5 py-3.5 text-[#9090A8]">
+                    <td className="px-5 py-3.5 text-[var(--nb-text-2)]">
                       {formatTime(appt.time)}
                     </td>
-                    <td className="px-5 py-3.5 text-[#9090A8]">
+                    <td className="px-5 py-3.5 text-[var(--nb-text-2)]">
                       {appt.artist_name}
                     </td>
                     <td className="px-5 py-3.5">
