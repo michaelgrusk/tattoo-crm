@@ -397,6 +397,7 @@ export function InvoicesView({
       open={!!selectedInvoice}
       onOpenChange={(v) => { if (!v) setSelectedInvoice(null); }}
       onStatusChanged={handleStatusChanged}
+      onDeleted={handleInvoiceDeleted}
     />
 
     {showToast && (

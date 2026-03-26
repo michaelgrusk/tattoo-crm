@@ -219,7 +219,7 @@ export function CalendarView() {
       console.error("[calendar] fetch error:", error.message, error);
     }
 
-    setAppointments((data as Appointment[]) ?? []);
+    setAppointments((data as unknown as Appointment[]) ?? []);
     setLoading(false);
   }, [weekStart]);
 

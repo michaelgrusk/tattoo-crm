@@ -498,7 +498,7 @@ export function AnalyticsView() {
           .eq("user_id", userId),
       ]);
 
-      setInvoices((inv as Invoice[]) ?? []);
+      setInvoices((inv as unknown as Invoice[]) ?? []);
       setAppointments((appts as AppointmentRow[]) ?? []);
       setAllAppointments((allAppts as AppointmentRow[]) ?? []);
       setNewClientCount((clients ?? []).length);
