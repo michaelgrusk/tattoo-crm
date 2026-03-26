@@ -5,7 +5,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 /** Routes that are publicly accessible without authentication. */
-const PUBLIC_PATHS = ["/login", "/intake", "/intake/confirmation"];
+const PUBLIC_PATHS = ["/login", "/intake", "/waiver", "/api/submit-waiver"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({

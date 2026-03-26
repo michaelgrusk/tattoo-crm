@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Plus,
@@ -13,8 +13,10 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  PenLine,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
+import { supabase, getUserId } from "@/lib/supabase/client";
+import { StudioSignModal } from "./studio-sign-modal";
 import type { WaiverTemplate, SignedWaiver, WaiverSection, WaiverField } from "../types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -162,14 +164,18 @@ function SignedWaiverDialog({
               <p className="text-[11px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide">
                 Signature
               </p>
-              {waiver.signature_type === "drawn" ? (
+              {waiver.signature_type === "draw" || waiver.signature_type === "drawn" ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={waiver.signature_data}
                   alt="Signature"
                   className="border border-[var(--nb-border)] rounded-lg bg-white max-h-24 object-contain"
                 />
               ) : (
-                <p className="text-[var(--nb-text)] font-medium italic text-lg">
+                <p
+                  className="text-[var(--nb-text)] text-2xl"
+                  style={{ fontFamily: "cursive" }}
+                >
                   {waiver.signature_data}
                 </p>
               )}
@@ -190,6 +196,7 @@ function TemplateCard({
   onCopy,
   onToggleActive,
   onViewSigs,
+  onSignNow,
 }: {
   template: WaiverTemplate;
   sigCount: number;
@@ -197,6 +204,7 @@ function TemplateCard({
   onCopy: () => void;
   onToggleActive: () => void;
   onViewSigs: () => void;
+  onSignNow: () => void;
 }) {
   return (
     <div className="bg-[var(--nb-card)] rounded-2xl border border-[var(--nb-border)] overflow-hidden shadow-sm">
@@ -253,6 +261,13 @@ function TemplateCard({
           <Users size={11} />
           {sigCount} Sig{sigCount !== 1 ? "s" : ""}
         </button>
+        <button
+          onClick={onSignNow}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-[#7C3AED] hover:bg-[#6D28D9] transition-colors ml-auto"
+        >
+          <PenLine size={11} />
+          Sign Now
+        </button>
       </div>
     </div>
   );
@@ -271,7 +286,13 @@ export function WaiversView({
   const [templates, setTemplates] = useState(initialTemplates);
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [selectedSigned, setSelectedSigned] = useState<SignedWaiver | null>(null);
+  const [studioSignTemplate, setStudioSignTemplate] = useState<WaiverTemplate | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
+
+  useEffect(() => {
+    getUserId().then((id) => setUserId(id ?? null));
+  }, []);
 
   function showToast(msg: string, type: "success" | "error" = "success") {
     setToast({ msg, type });
@@ -285,7 +306,7 @@ export function WaiversView({
   });
 
   async function handleCopy(templateId: number) {
-    const url = `${window.location.origin}/waivers/sign/${templateId}`;
+    const url = `${window.location.origin}/waiver/sign/${templateId}`;
     await navigator.clipboard.writeText(url);
     setCopiedId(templateId);
     setTimeout(() => setCopiedId(null), 2000);
@@ -385,6 +406,7 @@ export function WaiversView({
                     onCopy={() => handleCopy(t.id)}
                     onToggleActive={() => handleToggleActive(t)}
                     onViewSigs={() => setTab("signed")}
+                    onSignNow={() => setStudioSignTemplate(t)}
                   />
                 ))}
               </div>
@@ -463,6 +485,18 @@ export function WaiversView({
           waiver={selectedSigned}
           templates={templates}
           onClose={() => setSelectedSigned(null)}
+        />
+      )}
+
+      {studioSignTemplate && userId && (
+        <StudioSignModal
+          template={studioSignTemplate}
+          userId={userId}
+          onClose={() => setStudioSignTemplate(null)}
+          onSigned={() => {
+            showToast("Waiver signed successfully!");
+            setStudioSignTemplate(null);
+          }}
         />
       )}
 

@@ -13,6 +13,8 @@ import {
   Expand,
   CheckCircle2,
   AlertCircle,
+  ScrollText,
+  Eye,
 } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { ClientListItem } from "../page";
+import type { SignedWaiver, WaiverField, WaiverSection } from "../../waivers/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -667,6 +670,106 @@ function Toast({ message, type }: NonNullable<ToastState>) {
   );
 }
 
+// ─── Waiver viewer dialog ─────────────────────────────────────────────────────
+
+function formatWaiverDate(str: string) {
+  return new Date(str).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function renderWaiverResponse(
+  field: WaiverField,
+  responses: Record<string, string | boolean>
+) {
+  const val = responses[field.id];
+  if (field.type === "checkbox") return val ? "✓ Agreed" : "✗ Not agreed";
+  if (field.type === "yesno") {
+    if (val === true || val === "true" || val === "yes") {
+      const followUp = field.followUpLabel
+        ? responses[field.id + "_followup"]
+        : undefined;
+      return followUp ? `Yes — ${followUp}` : "Yes";
+    }
+    return val === false || val === "false" || val === "no" ? "No" : String(val ?? "—");
+  }
+  return String(val ?? "—");
+}
+
+function WaiverViewDialog({
+  waiver,
+  onClose,
+}: {
+  waiver: SignedWaiver;
+  onClose: () => void;
+}) {
+  // We don't have the full template sections here, so render raw responses
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[var(--nb-card)] rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--nb-border)] shrink-0">
+          <div>
+            <h3 className="text-base font-semibold text-[var(--nb-text)]">
+              {waiver.waiver_templates?.name ?? "Signed Waiver"}
+            </h3>
+            <p className="text-xs text-[var(--nb-text-2)] mt-0.5">
+              Signed {formatWaiverDate(waiver.signed_at)}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="size-7 flex items-center justify-center rounded-lg hover:bg-[var(--nb-bg)] transition-colors text-[var(--nb-text-2)]"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+          {Object.entries(waiver.responses).map(([key, val]) => (
+            <div key={key} className="text-sm">
+              <p className="text-[var(--nb-text-2)] mb-0.5 capitalize">
+                {key.replace(/_/g, " ")}
+              </p>
+              <p className="text-[var(--nb-text)] font-medium">{String(val)}</p>
+            </div>
+          ))}
+
+          {waiver.signature_data && (
+            <div className="pt-2 border-t border-[var(--nb-border)]">
+              <p className="text-xs font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-2">
+                Signature
+              </p>
+              {waiver.signature_type === "draw" || waiver.signature_type === "drawn" ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={waiver.signature_data}
+                  alt="Signature"
+                  className="border border-[var(--nb-border)] rounded-lg bg-white max-h-20 object-contain"
+                />
+              ) : (
+                <p
+                  className="text-[var(--nb-text)] text-2xl"
+                  style={{ fontFamily: "cursive" }}
+                >
+                  {waiver.signature_data}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function ClientDetailPanel({
@@ -680,6 +783,8 @@ export function ClientDetailPanel({
 }) {
   const [requests, setRequests] = useState<TattooRequest[]>([]);
   const [nextAppt, setNextAppt] = useState<NextAppointment>(null);
+  const [signedWaivers, setSignedWaivers] = useState<SignedWaiver[]>([]);
+  const [selectedWaiver, setSelectedWaiver] = useState<SignedWaiver | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -768,9 +873,15 @@ export function ClientDetailPanel({
         .gte("date", today)
         .order("date", { ascending: true })
         .limit(1),
-    ]).then(([{ data: reqs }, { data: appts }]) => {
+      supabase
+        .from("signed_waivers")
+        .select("*, waiver_templates(name)")
+        .eq("client_id", String(client.id))
+        .order("signed_at", { ascending: false }),
+    ]).then(([{ data: reqs }, { data: appts }, { data: waivers }]) => {
       setRequests((reqs as TattooRequest[]) ?? []);
       setNextAppt((appts?.[0] as NextAppointment) ?? null);
+      setSignedWaivers((waivers as unknown as SignedWaiver[]) ?? []);
       setLoading(false);
     });
   }, [client.id]);
@@ -1090,6 +1201,43 @@ export function ClientDetailPanel({
               </section>
             )}
 
+            {/* ── Signed Waivers ───────────────────────────────────────── */}
+            {signedWaivers.length > 0 && (
+              <section className="mb-8">
+                <h3 className="text-sm font-semibold text-[var(--nb-text)] mb-3 flex items-center gap-2">
+                  <ScrollText size={14} className="text-[var(--nb-text-2)]" />
+                  Waivers
+                  <span className="text-xs font-medium text-[var(--nb-text-2)]">
+                    {signedWaivers.length}
+                  </span>
+                </h3>
+                <div className="space-y-2">
+                  {signedWaivers.map((w) => (
+                    <div
+                      key={w.id}
+                      className="flex items-center justify-between bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-4 py-3"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-[var(--nb-text)]">
+                          {w.waiver_templates?.name ?? "Waiver"}
+                        </p>
+                        <p className="text-xs text-[var(--nb-text-2)] mt-0.5">
+                          Signed {formatDate(w.signed_at)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setSelectedWaiver(w)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--nb-text-2)] bg-[var(--nb-bg)] border border-[var(--nb-border)] hover:text-[var(--nb-text)] transition-colors"
+                      >
+                        <Eye size={12} />
+                        View
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* ── Tattoo History ────────────────────────────────────────── */}
             <section>
               <div className="flex items-center justify-between mb-3">
@@ -1242,6 +1390,14 @@ export function ClientDetailPanel({
           showToast("Client updated!", "success");
         }}
       />
+
+      {/* Waiver view dialog */}
+      {selectedWaiver && (
+        <WaiverViewDialog
+          waiver={selectedWaiver}
+          onClose={() => setSelectedWaiver(null)}
+        />
+      )}
 
       {/* Toast */}
       {toast && <Toast message={toast.message} type={toast.type} />}
