@@ -9,6 +9,7 @@ import {
   CalendarDays,
   FileText,
   BarChart2,
+  Settings,
   LogOut,
   Copy,
   Check,
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/analytics", label: "Analytics", icon: BarChart2 },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {
