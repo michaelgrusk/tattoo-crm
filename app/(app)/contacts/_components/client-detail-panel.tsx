@@ -17,6 +17,7 @@ import {
   Eye,
 } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +48,7 @@ type NextAppointment = {
   date: string;
   time: string;
   type: string;
+  status: string;
   artist_name: string;
 } | null;
 
@@ -142,12 +144,12 @@ function StatBox({
   sub?: string;
 }) {
   return (
-    <div className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-5 py-4">
-      <p className="text-xs font-medium text-[var(--nb-text-2)] uppercase tracking-wide mb-1">
+    <div className="flex flex-col bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-3 py-3 md:px-5 md:py-4 overflow-hidden">
+      <p className="text-[10px] md:text-xs font-medium text-[var(--nb-text-2)] uppercase tracking-wide mb-1 truncate">
         {label}
       </p>
-      <p className="text-xl font-semibold text-[var(--nb-text)]">{value}</p>
-      {sub && <p className="text-xs text-[var(--nb-text-2)] mt-0.5">{sub}</p>}
+      <p className="text-base md:text-xl font-semibold text-[var(--nb-text)] break-words leading-tight">{value}</p>
+      {sub && <p className="text-[10px] md:text-xs text-[var(--nb-text-2)] mt-0.5 truncate">{sub}</p>}
     </div>
   );
 }
@@ -781,8 +783,10 @@ export function ClientDetailPanel({
   onDeleted: (id: string | number) => void;
   onUpdated: (updated: ClientListItem) => void;
 }) {
+  const router = useRouter();
   const [requests, setRequests] = useState<TattooRequest[]>([]);
   const [nextAppt, setNextAppt] = useState<NextAppointment>(null);
+  const [apptDialogOpen, setApptDialogOpen] = useState(false);
   const [signedWaivers, setSignedWaivers] = useState<SignedWaiver[]>([]);
   const [selectedWaiver, setSelectedWaiver] = useState<SignedWaiver | null>(null);
   const [loading, setLoading] = useState(true);
@@ -868,7 +872,7 @@ export function ClientDetailPanel({
         .order("created_at", { ascending: false }),
       supabase
         .from("appointments")
-        .select("date, time, type, artist_name")
+        .select("date, time, type, status, artist_name")
         .eq("client_id", String(client.id))
         .gte("date", today)
         .order("date", { ascending: true })
@@ -1059,7 +1063,7 @@ export function ClientDetailPanel({
         </div>
 
         {/* Stat boxes */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-2 md:gap-4 mb-8 items-stretch">
           <StatBox
             label="Total Spent"
             value={`$${client.totalSpent.toLocaleString()}`}
@@ -1069,22 +1073,94 @@ export function ClientDetailPanel({
             value={String(client.sessions)}
             sub={client.sessions === 1 ? "appointment" : "appointments"}
           />
-          <StatBox
-            label="Next Appointment"
-            value={
-              loading
-                ? "—"
-                : nextAppt
-                ? formatAppointmentDate(nextAppt.date)
-                : "None scheduled"
-            }
-            sub={
-              !loading && nextAppt
-                ? `${formatTime(nextAppt.time)} · ${nextAppt.type}`
-                : undefined
-            }
-          />
+          {/* Next Appointment — clickable when an appointment exists */}
+          {nextAppt ? (
+            <button
+              onClick={() => setApptDialogOpen(true)}
+              className="flex flex-col text-left bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-3 py-3 md:px-5 md:py-4 overflow-hidden hover:border-[#7C3AED]/50 hover:shadow-sm transition-all group"
+            >
+              <p className="text-[10px] md:text-xs font-medium text-[var(--nb-text-2)] uppercase tracking-wide mb-1 truncate group-hover:text-[#7C3AED] transition-colors">
+                Next Appointment
+              </p>
+              <p className="text-base md:text-xl font-semibold text-[var(--nb-text)] break-words leading-tight">
+                {formatAppointmentDate(nextAppt.date)}
+              </p>
+              <p className="text-[10px] md:text-xs text-[var(--nb-text-2)] mt-0.5 truncate">
+                {formatTime(nextAppt.time)} · {nextAppt.type}
+              </p>
+            </button>
+          ) : (
+            <StatBox
+              label="Next Appointment"
+              value={loading ? "—" : "None scheduled"}
+            />
+          )}
         </div>
+
+        {/* Next Appointment detail dialog */}
+        {nextAppt && (
+          <Dialog open={apptDialogOpen} onOpenChange={setApptDialogOpen}>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Next Appointment</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-1">
+                <div className="bg-[var(--nb-bg)] rounded-xl border border-[var(--nb-border)] px-4 py-4 space-y-3">
+                  <div>
+                    <p className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-0.5">Date</p>
+                    <p className="text-sm font-medium text-[var(--nb-text)]">
+                      {new Date(nextAppt.date + "T00:00:00").toLocaleDateString("en-US", {
+                        weekday: "long", month: "long", day: "numeric", year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-0.5">Time</p>
+                    <p className="text-sm font-medium text-[var(--nb-text)]">{formatTime(nextAppt.time)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-0.5">Type</p>
+                    <p className="text-sm font-medium text-[var(--nb-text)]">{nextAppt.type}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-0.5">Status</p>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                      nextAppt.status === "confirmed"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : nextAppt.status === "cancelled"
+                        ? "bg-red-50 text-red-700"
+                        : nextAppt.status === "completed"
+                        ? "bg-sky-50 text-sky-700"
+                        : "bg-amber-50 text-amber-700"
+                    }`}>
+                      <span className={`size-1.5 rounded-full ${
+                        nextAppt.status === "confirmed"
+                          ? "bg-emerald-400"
+                          : nextAppt.status === "cancelled"
+                          ? "bg-red-400"
+                          : nextAppt.status === "completed"
+                          ? "bg-sky-400"
+                          : "bg-amber-400"
+                      }`} />
+                      {nextAppt.status.charAt(0).toUpperCase() + nextAppt.status.slice(1)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Close</Button>
+                </DialogClose>
+                <Button
+                  onClick={() => { setApptDialogOpen(false); router.push("/calendar"); }}
+                  className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
+                >
+                  View on Calendar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-[var(--nb-text-2)] py-8">
