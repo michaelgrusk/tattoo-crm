@@ -9,6 +9,7 @@ export type ClientListItem = {
   created_at: string;
   notes: string | null;
   skin_notes: string | null;
+  status: string | null;
   sessions: number;
   totalSpent: number;
 };

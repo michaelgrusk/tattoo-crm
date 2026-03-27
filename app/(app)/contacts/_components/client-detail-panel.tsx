@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { STATUS_CONFIG } from "./contacts-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -787,6 +788,8 @@ export function ClientDetailPanel({
   const [requests, setRequests] = useState<TattooRequest[]>([]);
   const [nextAppt, setNextAppt] = useState<NextAppointment>(null);
   const [apptDialogOpen, setApptDialogOpen] = useState(false);
+  const [localStatus, setLocalStatus] = useState<string>(client.status ?? "");
+  const [statusSaving, setStatusSaving] = useState(false);
   const [signedWaivers, setSignedWaivers] = useState<SignedWaiver[]>([]);
   const [selectedWaiver, setSelectedWaiver] = useState<SignedWaiver | null>(null);
   const [loading, setLoading] = useState(true);
@@ -802,6 +805,17 @@ export function ClientDetailPanel({
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast({ message, type });
     toastTimer.current = setTimeout(() => setToast(null), 3500);
+  }
+
+  async function handleStatusChange(newStatus: string) {
+    setLocalStatus(newStatus);
+    setStatusSaving(true);
+    await supabase
+      .from("clients")
+      .update({ status: newStatus })
+      .eq("id", String(client.id));
+    setStatusSaving(false);
+    onUpdated({ ...client, status: newStatus });
   }
 
   async function handleDeleteClient() {
@@ -857,6 +871,11 @@ export function ClientDetailPanel({
     setDeleteConfirm(false);
     setDeleting(false);
   }, [client.id]);
+
+  // Sync local status when client changes
+  useEffect(() => {
+    setLocalStatus(client.status ?? "");
+  }, [client.id, client.status]);
 
   useEffect(() => {
     setLoading(true);
@@ -1037,6 +1056,34 @@ export function ClientDetailPanel({
                     month: "short",
                   })}
                 </span>
+              </div>
+
+              {/* Status dropdown */}
+              <div className="mt-3 flex items-center gap-2">
+                <div className="relative">
+                  {localStatus && STATUS_CONFIG[localStatus] && (
+                    <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 size-2 rounded-full pointer-events-none ${STATUS_CONFIG[localStatus].dot}`} />
+                  )}
+                  <select
+                    value={localStatus}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    disabled={statusSaving}
+                    className={`appearance-none pl-6 pr-6 py-1 text-xs font-medium rounded-full border transition-colors outline-none cursor-pointer disabled:opacity-60 ${
+                      localStatus && STATUS_CONFIG[localStatus]
+                        ? `${STATUS_CONFIG[localStatus].bg} ${STATUS_CONFIG[localStatus].text} border-transparent`
+                        : "bg-[var(--nb-bg)] text-[var(--nb-text-2)] border-[var(--nb-border)]"
+                    }`}
+                  >
+                    <option value="">No status</option>
+                    {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+                      <option key={key} value={key}>{cfg.label}</option>
+                    ))}
+                  </select>
+                  <svg className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" width="10" height="10" viewBox="0 0 10 10" fill="currentColor" opacity="0.5">
+                    <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                  </svg>
+                </div>
+                {statusSaving && <Loader2 size={12} className="animate-spin text-[var(--nb-text-2)]" />}
               </div>
             </div>
           </div>
