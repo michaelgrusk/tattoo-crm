@@ -14,7 +14,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("studio_name, slug")
+    .select("studio_name, slug, currency")
     .eq("id", user.id)
     .single();
 
@@ -22,6 +22,7 @@ export default async function SettingsPage() {
     <SettingsView
       initialStudioName={profile?.studio_name ?? ""}
       initialSlug={profile?.slug ?? ""}
+      initialCurrency={profile?.currency ?? "USD"}
     />
   );
 }

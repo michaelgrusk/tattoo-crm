@@ -6,6 +6,7 @@ import { CheckCircle2 } from "lucide-react";
 import type { TattooRequest } from "../page";
 import { formatDistanceToNow } from "@/lib/date-utils";
 import { RequestDetailModal } from "./request-detail-modal";
+import { useCurrency } from "@/components/currency-provider";
 
 const COLUMNS: {
   status: TattooRequest["status"];
@@ -76,6 +77,7 @@ function RequestCard({
   request: TattooRequest;
   onClick: () => void;
 }) {
+  const { format } = useCurrency();
   const parsed = parseDescription(request.description);
 
   return (
@@ -125,7 +127,7 @@ function RequestCard({
         </span>
         {request.quote_amount != null && (
           <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">
-            ${request.quote_amount.toLocaleString()} quoted
+            {format(request.quote_amount)} quoted
           </span>
         )}
         <span className="text-xs text-[#7C3AED] font-medium">View →</span>

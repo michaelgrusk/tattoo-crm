@@ -9,6 +9,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
+import { useCurrency } from "@/components/currency-provider";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,20 +74,6 @@ function getMonthBuckets(startStr: string, endStr: string) {
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
-function fmt(n: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(n);
-}
-
-function fmtShort(n: number) {
-  if (n >= 1000) return `$${+(n / 1000).toFixed(1)}k`;
-  return `$${n}`;
-}
-
 function formatHour(h: number) {
   if (h === 0) return "12 AM";
   if (h < 12) return `${h} AM`;
@@ -148,6 +135,7 @@ function RevenueChart({
   end: string;
   loading: boolean;
 }) {
+  const { format, formatShort } = useCurrency();
   const buckets = getMonthBuckets(start, end);
 
   const data = buckets.map(({ year, month, label }) => {
@@ -177,7 +165,7 @@ function RevenueChart({
             style={{ top: CHART_H - frac * CHART_H }}
           >
             <span className="text-[10px] text-[var(--nb-text-2)] pr-2 -mt-2.5 select-none">
-              {fmtShort(max * frac)}
+              {formatShort(max * frac)}
             </span>
           </div>
         ))}
@@ -197,7 +185,7 @@ function RevenueChart({
                 {/* Tooltip */}
                 {total > 0 && (
                   <div className="absolute bottom-full mb-2 bg-[var(--nb-bg)] text-white text-[10px] font-medium px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg">
-                    {fmt(total)}
+                    {format(total)}
                     <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
                   </div>
                 )}
@@ -292,6 +280,7 @@ function TopClients({
   invoices: Invoice[];
   loading: boolean;
 }) {
+  const { format } = useCurrency();
   const byClient: Record<string, { name: string; total: number }> = {};
   for (const inv of invoices) {
     if (!inv.client_id) continue;
@@ -330,7 +319,7 @@ function TopClients({
                 {name}
               </span>
               <span className="text-sm font-semibold text-[var(--nb-text)] ml-3 shrink-0 tabular-nums">
-                {fmt(total)}
+                {format(total)}
               </span>
             </div>
             <div className="h-1.5 bg-[var(--nb-bg)] rounded-full overflow-hidden">
@@ -431,6 +420,7 @@ const DATE_INPUT_CLS =
   "h-9 w-full rounded-lg border border-[var(--nb-border)] bg-[var(--nb-card)] px-3 text-sm text-[var(--nb-text)] outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors";
 
 export function AnalyticsView() {
+  const { format } = useCurrency();
   const [period, setPeriod] = useState<Period>("6m");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -612,7 +602,7 @@ export function AnalyticsView() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
         <StatCard
           label="Total Revenue"
-          value={fmt(totalRevenue)}
+          value={format(totalRevenue)}
           sub={periodLabel}
           icon={TrendingUp}
           iconBg="bg-emerald-50"
@@ -621,7 +611,7 @@ export function AnalyticsView() {
         />
         <StatCard
           label="Avg. per Session"
-          value={fmt(avgPerSession)}
+          value={format(avgPerSession)}
           sub={totalSessions > 0 ? `over ${totalSessions} sessions` : "no sessions yet"}
           icon={Clock}
           iconBg="bg-[var(--nb-active-bg)]"

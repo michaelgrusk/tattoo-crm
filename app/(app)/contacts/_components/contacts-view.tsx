@@ -7,6 +7,7 @@ import type { ClientListItem } from "../page";
 import { ClientDetailPanel } from "./client-detail-panel";
 import { AddClientDialog } from "./add-client-dialog";
 import { Button } from "@/components/ui/button";
+import { useCurrency } from "@/components/currency-provider";
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -75,6 +76,7 @@ function ClientRow({
   isSelected: boolean;
   onClick: () => void;
 }) {
+  const { format } = useCurrency();
   const color = getAvatarColor(client.name);
   const initials = getInitials(client.name);
 
@@ -102,7 +104,7 @@ function ClientRow({
       </div>
       <div className="text-right shrink-0">
         <p className="text-sm font-medium text-[var(--nb-text)]">
-          ${client.totalSpent.toLocaleString()}
+          {format(client.totalSpent)}
         </p>
         <p className="text-xs text-[var(--nb-text-2)]">
           {client.sessions} session{client.sessions !== 1 ? "s" : ""}

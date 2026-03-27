@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Invoice } from "../page";
+import { useCurrency } from "@/components/currency-provider";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -55,15 +56,6 @@ const STATUS_BUTTONS: { value: Invoice["status"]; label: string }[] = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
 function formatDate(dateStr: string) {
   return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
     month: "long",
@@ -91,6 +83,7 @@ export function InvoiceDetailDialog({
   onStatusChanged: (toast: string) => void;
   onDeleted: () => void;
 }) {
+  const { format } = useCurrency();
   const [currentStatus, setCurrentStatus] = useState<Invoice["status"] | null>(null);
   const [updating, setUpdating] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -210,7 +203,7 @@ export function InvoiceDetailDialog({
                   Amount
                 </p>
                 <p className="text-2xl font-semibold text-[var(--nb-text)] leading-none">
-                  {formatCurrency(invoice.amount)}
+                  {format(invoice.amount)}
                 </p>
               </div>
               {cfg && (

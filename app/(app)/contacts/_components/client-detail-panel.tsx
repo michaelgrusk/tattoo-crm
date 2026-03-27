@@ -19,6 +19,7 @@ import {
 import { supabase, getUserId } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { STATUS_CONFIG } from "./contacts-view";
+import { useCurrency } from "@/components/currency-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -785,6 +786,7 @@ export function ClientDetailPanel({
   onUpdated: (updated: ClientListItem) => void;
 }) {
   const router = useRouter();
+  const { format } = useCurrency();
   const [requests, setRequests] = useState<TattooRequest[]>([]);
   const [nextAppt, setNextAppt] = useState<NextAppointment>(null);
   const [apptDialogOpen, setApptDialogOpen] = useState(false);
@@ -1113,7 +1115,7 @@ export function ClientDetailPanel({
         <div className="grid grid-cols-3 gap-2 md:gap-4 mb-8 items-stretch">
           <StatBox
             label="Total Spent"
-            value={`$${client.totalSpent.toLocaleString()}`}
+            value={format(client.totalSpent)}
           />
           <StatBox
             label="Sessions"

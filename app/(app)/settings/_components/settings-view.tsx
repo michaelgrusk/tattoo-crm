@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { CURRENCY_OPTIONS, formatCurrency } from "@/lib/currency";
+import type { CurrencyCode } from "@/lib/currency";
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
@@ -62,15 +64,23 @@ function Toast({ toast }: { toast: ToastState }) {
 export function SettingsView({
   initialStudioName,
   initialSlug,
+  initialCurrency,
 }: {
   initialStudioName: string;
   initialSlug: string;
+  initialCurrency: string;
 }) {
   const router = useRouter();
 
   // Studio profile
   const [studioName, setStudioName] = useState(initialStudioName);
   const [slug, setSlug] = useState(initialSlug);
+
+  // Currency
+  const [currency, setCurrency] = useState<CurrencyCode>(
+    (initialCurrency as CurrencyCode) ?? "USD"
+  );
+  const [currencySaving, setCurrencySaving] = useState(false);
   const [slugError, setSlugError] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
 
@@ -150,6 +160,35 @@ export function SettingsView({
       );
     } else {
       showToast("Profile saved!");
+    }
+  }
+
+  // ── Save currency ────────────────────────────────────────────────────────
+
+  async function handleSaveCurrency() {
+    setCurrencySaving(true);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      showToast("Not authenticated", "error");
+      setCurrencySaving(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ currency })
+      .eq("id", user.id);
+
+    setCurrencySaving(false);
+
+    if (error) {
+      showToast(error.message, "error");
+    } else {
+      showToast("Currency saved!");
+      router.refresh();
     }
   }
 
@@ -333,6 +372,62 @@ export function SettingsView({
               >
                 {pwSaving && <Loader2 size={14} className="animate-spin" />}
                 {pwSaving ? "Updating…" : "Update Password"}
+              </button>
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* ── Currency ──────────────────────────────────────────────────── */}
+        <SectionCard
+          title="Currency"
+          description="Choose the currency used across invoices, analytics, and client spend."
+        >
+          <div className="space-y-4">
+            <div>
+              <label className={labelCls}>Currency</label>
+              <div className="relative">
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
+                  className={`${inputCls} appearance-none pr-9 cursor-pointer`}
+                >
+                  {CURRENCY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--nb-text-2)]"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+              <p className="mt-1.5 text-xs text-[var(--nb-text-2)]">
+                Amounts will display as:{" "}
+                <span className="font-medium text-[var(--nb-text)]">
+                  {formatCurrency(1250, currency)}
+                </span>
+              </p>
+            </div>
+
+            <div className="pt-1">
+              <button
+                onClick={handleSaveCurrency}
+                disabled={currencySaving}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-medium transition-colors disabled:opacity-60"
+              >
+                {currencySaving && <Loader2 size={14} className="animate-spin" />}
+                {currencySaving ? "Saving…" : "Save Currency"}
               </button>
             </div>
           </div>

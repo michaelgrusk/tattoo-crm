@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import type { Invoice, InvoiceSummary } from "../page";
 import { NewInvoiceDialog } from "./new-invoice-dialog";
 import { InvoiceDetailDialog } from "./invoice-detail-dialog";
+import { useCurrency } from "@/components/currency-provider";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,15 +63,6 @@ const STATUS_CONFIG: Record<
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
 
 function formatDate(dateStr: string) {
   return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
@@ -140,6 +132,7 @@ export function InvoicesView({
   summary: InvoiceSummary;
 }) {
   const router = useRouter();
+  const { format } = useCurrency();
   const [filter, setFilter] = useState<Filter>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -207,7 +200,7 @@ export function InvoicesView({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5">
         <SummaryCard
           label={`Revenue — ${monthName}`}
-          value={formatCurrency(summary.totalThisMonth)}
+          value={format(summary.totalThisMonth)}
           sub="From paid invoices this month"
           icon={TrendingUp}
           iconBg="bg-emerald-50"
@@ -215,7 +208,7 @@ export function InvoicesView({
         />
         <SummaryCard
           label="Outstanding"
-          value={formatCurrency(summary.outstanding)}
+          value={format(summary.outstanding)}
           sub={`${counts.pending} unpaid invoice${counts.pending !== 1 ? "s" : ""}`}
           icon={Clock}
           iconBg="bg-amber-50"
@@ -223,7 +216,7 @@ export function InvoicesView({
         />
         <SummaryCard
           label="Deposits Held"
-          value={formatCurrency(summary.depositsHeld)}
+          value={format(summary.depositsHeld)}
           sub={`${counts.deposit} deposit${counts.deposit !== 1 ? "s" : ""} on file`}
           icon={Landmark}
           iconBg="bg-sky-50"
@@ -334,7 +327,7 @@ export function InvoicesView({
 
                     {/* Amount */}
                     <td className="px-5 py-3.5 text-right font-semibold text-[var(--nb-text)] tabular-nums whitespace-nowrap">
-                      {formatCurrency(inv.amount)}
+                      {format(inv.amount)}
                     </td>
 
                     {/* Status */}
@@ -379,7 +372,7 @@ export function InvoicesView({
             </span>
             <span className="text-xs font-semibold text-[var(--nb-text)]">
               Total:{" "}
-              {formatCurrency(
+              {format(
                 filtered.reduce((sum, inv) => sum + (inv.amount ?? 0), 0)
               )}
             </span>
