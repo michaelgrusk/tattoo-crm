@@ -533,9 +533,9 @@ export function AnalyticsView() {
   }
 
   return (
-    <div className="p-8 space-y-7">
+    <div className="p-4 md:p-8 space-y-7">
       {/* Header */}
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-[var(--nb-text)]">Analytics</h1>
           <p className="mt-1 text-sm text-[var(--nb-text-2)]">
@@ -609,7 +609,7 @@ export function AnalyticsView() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
         <StatCard
           label="Total Revenue"
           value={fmt(totalRevenue)}
@@ -649,8 +649,8 @@ export function AnalyticsView() {
       </div>
 
       {/* Charts row: Revenue (wider) + Busiest hours */}
-      <div className="grid grid-cols-5 gap-5">
-        <div className="col-span-3 bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] p-6 shadow-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-5">
+        <div className="lg:col-span-3 bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-semibold text-[var(--nb-text)]">
               Revenue Over Time
@@ -671,7 +671,7 @@ export function AnalyticsView() {
           )}
         </div>
 
-        <div className="col-span-2 bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] p-6 shadow-sm">
+        <div className="lg:col-span-2 bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-semibold text-[var(--nb-text)]">
               Busiest Hours
@@ -683,7 +683,7 @@ export function AnalyticsView() {
       </div>
 
       {/* Bottom row: Top clients + Popular styles */}
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
         <div className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-semibold text-[var(--nb-text)]">

@@ -17,6 +17,7 @@ import {
   LinkIcon,
   Sun,
   Moon,
+  X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useTheme } from "@/components/theme-provider";
@@ -31,7 +32,13 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({
+  mobileOpen = false,
+  onMobileClose,
+}: {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggle } = useTheme();
@@ -73,11 +80,25 @@ export function Sidebar() {
   const intakeUrl = slug ? `/intake/${slug}` : null;
 
   return (
-    <aside className="w-60 shrink-0 flex flex-col h-full bg-[var(--nb-card)] border-r border-[var(--nb-border)]">
-      <div className="h-16 flex items-center px-6 border-b border-[var(--nb-border)]">
+    <aside
+      className={`
+        flex flex-col bg-[var(--nb-card)] border-r border-[var(--nb-border)]
+        fixed inset-y-0 left-0 z-50 w-72 transition-transform duration-300 ease-in-out
+        lg:relative lg:w-60 lg:translate-x-0 lg:z-auto lg:shrink-0
+        ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+      `}
+    >
+      <div className="h-16 flex items-center justify-between px-6 border-b border-[var(--nb-border)] shrink-0">
         <span className="text-lg font-semibold tracking-tight text-[#7C3AED]">
           Needlebook
         </span>
+        <button
+          onClick={onMobileClose}
+          className="lg:hidden size-8 flex items-center justify-center rounded-lg hover:bg-[var(--nb-bg)] transition-colors text-[var(--nb-text-2)]"
+          aria-label="Close menu"
+        >
+          <X size={18} />
+        </button>
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">
@@ -87,6 +108,7 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
+              onClick={onMobileClose}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-[var(--nb-active-bg)] text-[var(--nb-active-text)]"

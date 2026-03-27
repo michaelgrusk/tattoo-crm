@@ -77,66 +77,66 @@ export function UpcomingAppointments({
             <p className="text-xs text-[var(--nb-text-2)] mt-1">Booked appointments will appear here</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[var(--nb-border)] bg-[var(--nb-card)]">
-                <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">
-                  Client
-                </th>
-                <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">
-                  Type
-                </th>
-                <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">
-                  Date
-                </th>
-                <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">
-                  Time
-                </th>
-                <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">
-                  Artist
-                </th>
-                <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--nb-card)]">
+          <>
+            {/* Mobile card list */}
+            <div className="sm:hidden divide-y divide-[var(--nb-border)]">
               {appointments.map((appt) => {
                 const cfg = getStatusConfig(appt.status);
                 return (
-                  <tr
-                    key={appt.id}
-                    className="hover:bg-[var(--nb-card)] transition-colors"
-                  >
-                    <td className="px-5 py-3.5 font-medium text-[var(--nb-text)]">
-                      {appt.clients?.name ?? "—"}
-                    </td>
-                    <td className="px-5 py-3.5 text-[var(--nb-text-2)]">{appt.type}</td>
-                    <td className="px-5 py-3.5 text-[var(--nb-text-2)]">
-                      {formatDate(appt.date)}
-                    </td>
-                    <td className="px-5 py-3.5 text-[var(--nb-text-2)]">
-                      {formatTime(appt.time)}
-                    </td>
-                    <td className="px-5 py-3.5 text-[var(--nb-text-2)]">
-                      {appt.artist_name}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.text} ${cfg.bg}`}
-                      >
-                        <span
-                          className={`size-1.5 rounded-full ${cfg.dot}`}
-                        />
-                        {appt.status.charAt(0).toUpperCase() +
-                          appt.status.slice(1)}
-                      </span>
-                    </td>
-                  </tr>
+                  <div key={appt.id} className="px-4 py-3.5 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[var(--nb-text)] truncate">
+                        {appt.clients?.name ?? "—"}
+                      </p>
+                      <p className="text-xs text-[var(--nb-text-2)] mt-0.5">
+                        {formatDate(appt.date)} · {formatTime(appt.time)}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.text} ${cfg.bg}`}>
+                      <span className={`size-1.5 rounded-full ${cfg.dot}`} />
+                      {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
+                    </span>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--nb-border)] bg-[var(--nb-card)]">
+                    <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">Client</th>
+                    <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">Type</th>
+                    <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">Date</th>
+                    <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">Time</th>
+                    <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">Artist</th>
+                    <th className="text-left px-5 py-3 font-medium text-[var(--nb-text-2)] text-xs uppercase tracking-wide">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--nb-card)]">
+                  {appointments.map((appt) => {
+                    const cfg = getStatusConfig(appt.status);
+                    return (
+                      <tr key={appt.id} className="hover:bg-[var(--nb-card)] transition-colors">
+                        <td className="px-5 py-3.5 font-medium text-[var(--nb-text)]">{appt.clients?.name ?? "—"}</td>
+                        <td className="px-5 py-3.5 text-[var(--nb-text-2)]">{appt.type}</td>
+                        <td className="px-5 py-3.5 text-[var(--nb-text-2)]">{formatDate(appt.date)}</td>
+                        <td className="px-5 py-3.5 text-[var(--nb-text-2)]">{formatTime(appt.time)}</td>
+                        <td className="px-5 py-3.5 text-[var(--nb-text-2)]">{appt.artist_name}</td>
+                        <td className="px-5 py-3.5">
+                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.text} ${cfg.bg}`}>
+                            <span className={`size-1.5 rounded-full ${cfg.dot}`} />
+                            {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </section>

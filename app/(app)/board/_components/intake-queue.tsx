@@ -164,7 +164,7 @@ export function IntakeQueue({ requests }: { requests: TattooRequest[] }) {
           {totalActive}
         </span>
       </div>
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {COLUMNS.map(({ status, label, dotColor }) => {
           const cards = requests.filter((r) => r.status === status);
           return (

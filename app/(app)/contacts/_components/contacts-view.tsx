@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Search, UserPlus, CheckCircle2, Users } from "lucide-react";
+import { Search, UserPlus, CheckCircle2, Users, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ClientListItem } from "../page";
 import { ClientDetailPanel } from "./client-detail-panel";
@@ -88,6 +88,7 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
     clients[0]?.id ?? null
   );
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -123,8 +124,8 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
 
   return (
     <div className="flex h-full">
-      {/* Left panel */}
-      <div className="w-80 shrink-0 flex flex-col border-r border-[var(--nb-border)] bg-[var(--nb-card)]">
+      {/* Left panel — full width on mobile (list view), fixed width sidebar on md+ */}
+      <div className={`flex-col border-r border-[var(--nb-border)] bg-[var(--nb-card)] w-full md:w-80 md:shrink-0 ${mobileView === "detail" ? "hidden md:flex" : "flex"}`}>
         {/* Header */}
         <div className="px-5 pt-6 pb-4 border-b border-[var(--nb-border)]">
           <div className="flex items-center justify-between mb-3">
@@ -174,15 +175,25 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
                 key={client.id}
                 client={client}
                 isSelected={client.id === selectedId}
-                onClick={() => setSelectedId(client.id)}
+                onClick={() => { setSelectedId(client.id); setMobileView("detail"); }}
               />
             ))
           )}
         </div>
       </div>
 
-      {/* Right panel */}
-      <div className="flex-1 overflow-y-auto bg-[var(--nb-bg)]">
+      {/* Right panel — full width on mobile (detail view), flex-1 on md+ */}
+      <div className={`flex-1 flex flex-col overflow-y-auto bg-[var(--nb-bg)] ${mobileView === "list" ? "hidden md:flex" : "flex"}`}>
+        {/* Mobile back button */}
+        <div className="md:hidden px-4 pt-4 pb-2 shrink-0">
+          <button
+            onClick={() => setMobileView("list")}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#7C3AED] hover:underline"
+          >
+            <ArrowLeft size={16} />
+            All Clients
+          </button>
+        </div>
         {selectedClient ? (
           <ClientDetailPanel
             client={selectedClient}

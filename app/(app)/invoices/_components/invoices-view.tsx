@@ -185,9 +185,9 @@ export function InvoicesView({
 
   return (
     <>
-    <div className="p-8 space-y-7">
+    <div className="p-4 md:p-8 space-y-7">
       {/* Page header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-[var(--nb-text)]">Invoices</h1>
           <p className="mt-1 text-sm text-[var(--nb-text-2)]">
@@ -204,7 +204,7 @@ export function InvoicesView({
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5">
         <SummaryCard
           label={`Revenue — ${monthName}`}
           value={formatCurrency(summary.totalThisMonth)}
@@ -259,7 +259,7 @@ export function InvoicesView({
           ))}
         </div>
 
-        {/* Table */}
+        {/* Table — horizontally scrollable on mobile */}
         {filtered.length === 0 ? (
           <div className="py-16 flex flex-col items-center text-center">
             <FileX size={32} className="text-[var(--nb-border)] mb-3" />
@@ -269,7 +269,8 @@ export function InvoicesView({
             </p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-[var(--nb-border)] bg-[var(--nb-card)]">
                 {[
@@ -366,6 +367,7 @@ export function InvoicesView({
               })}
             </tbody>
           </table>
+          </div>
         )}
 
         {/* Table footer */}
