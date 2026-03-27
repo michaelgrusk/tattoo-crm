@@ -15,6 +15,7 @@ export type AppointmentScheduledEvent = {
     user_id: string;
     client_name: string;
     client_email: string;
+    client_phone?: string; // E.164 format, e.g. +14155552671
     appointment_date: string; // YYYY-MM-DD
     appointment_time: string; // HH:MM:SS
     appointment_type: string;

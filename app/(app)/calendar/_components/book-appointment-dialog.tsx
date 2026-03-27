@@ -17,7 +17,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Client = { id: string | number; name: string; email: string };
+type Client = { id: string | number; name: string; email: string; phone?: string };
 type BookingMode = "existing" | "general";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -191,7 +191,7 @@ export function BookAppointmentDialog({
         if (!userId) return;
         supabase
           .from("clients")
-          .select("id, name, email")
+          .select("id, name, email, phone")
           .eq("user_id", userId)
           .order("name")
           .then(({ data }) => setClients((data as Client[]) ?? []));
@@ -272,6 +272,7 @@ export function BookAppointmentDialog({
           appointment_id: inserted.id,
           client_name: form.selectedClient.name,
           client_email: form.selectedClient.email,
+          client_phone: form.selectedClient.phone ?? undefined,
           appointment_date: form.date,
           appointment_time: time,
           appointment_type: form.apptType,

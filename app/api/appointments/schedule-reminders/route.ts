@@ -10,6 +10,7 @@ export async function POST(request: NextRequest) {
       appointment_id,
       client_name,
       client_email,
+      client_phone,
       appointment_date,
       appointment_time,
       appointment_type,
@@ -17,14 +18,15 @@ export async function POST(request: NextRequest) {
       appointment_id: string;
       client_name: string;
       client_email: string;
+      client_phone?: string;
       appointment_date: string;
       appointment_time: string;
       appointment_type: string;
     };
 
-    if (!client_email) {
-      // No email address — silently skip, not an error
-      return NextResponse.json({ scheduled: false, reason: "no client email" });
+    if (!client_email && !client_phone) {
+      // No contact details — silently skip, not an error
+      return NextResponse.json({ scheduled: false, reason: "no client contact details" });
     }
 
     // Auth
@@ -52,6 +54,7 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         client_name,
         client_email,
+        ...(client_phone ? { client_phone } : {}),
         appointment_date,
         appointment_time,
         appointment_type,

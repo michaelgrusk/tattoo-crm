@@ -1,6 +1,20 @@
 import { inngest } from "./client";
 import { resend } from "@/lib/resend";
+import { getTwilioClient, TWILIO_MESSAGING_SERVICE_SID } from "@/lib/twilio";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+
+async function sendSms(to: string, body: string) {
+  try {
+    await getTwilioClient().messages.create({
+      messagingServiceSid: TWILIO_MESSAGING_SERVICE_SID,
+      to,
+      body,
+    });
+  } catch (err) {
+    // SMS is non-critical — log but don't throw
+    console.error("[inngest] SMS send failed:", err);
+  }
+}
 
 const EVENT = "needlebook/appointment.scheduled";
 
@@ -128,7 +142,7 @@ function listItem(emoji: string, text: string): string {
 export const reminder24h = inngest.createFunction(
   { id: "appointment-24h-reminder", name: "Appointment: 24-hour reminder", triggers: [{ event: EVENT }] },
   async ({ event, step }) => {
-    const { appointment_id, client_name, client_email, appointment_date, appointment_time, appointment_type, studio_name } = event.data;
+    const { appointment_id, client_name, client_email, client_phone, appointment_date, appointment_time, appointment_type, studio_name } = event.data;
 
     const apptDt = apptDatetime(appointment_date, appointment_time);
     const sendAt = new Date(apptDt.getTime() - 24 * 60 * 60 * 1000);
@@ -165,6 +179,13 @@ export const reminder24h = inngest.createFunction(
         subject: `Reminder: Your appointment tomorrow at ${studio_name}`,
         html,
       });
+
+      if (client_phone) {
+        await sendSms(
+          client_phone,
+          `Hi ${client_name}! Reminder: your ${appointment_type} at ${studio_name} is tomorrow at ${formatTime(appointment_time)}. Eat well, stay hydrated, and wear comfy clothes. See you then!`
+        );
+      }
     });
 
     return { sent: true };
@@ -176,7 +197,7 @@ export const reminder24h = inngest.createFunction(
 export const reminder1Week = inngest.createFunction(
   { id: "appointment-1week-prep", name: "Appointment: 1-week prep instructions", triggers: [{ event: EVENT }] },
   async ({ event, step }) => {
-    const { appointment_id, client_name, client_email, appointment_date, appointment_time, appointment_type, studio_name } = event.data;
+    const { appointment_id, client_name, client_email, client_phone, appointment_date, appointment_time, appointment_type, studio_name } = event.data;
 
     const apptDt = apptDatetime(appointment_date, appointment_time);
     const sendAt = new Date(apptDt.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -217,6 +238,13 @@ export const reminder1Week = inngest.createFunction(
         subject: `Your appointment at ${studio_name} is one week away`,
         html,
       });
+
+      if (client_phone) {
+        await sendSms(
+          client_phone,
+          `Hi ${client_name}! Your ${appointment_type} at ${studio_name} is in 1 week. Start moisturising daily, avoid sun on the area, and skip alcohol 24hrs before. Check your email for the full prep guide!`
+        );
+      }
     });
 
     return { sent: true };
@@ -228,7 +256,7 @@ export const reminder1Week = inngest.createFunction(
 export const aftercareFollowUp = inngest.createFunction(
   { id: "appointment-aftercare-followup", name: "Appointment: aftercare follow-up", triggers: [{ event: EVENT }] },
   async ({ event, step }) => {
-    const { appointment_id, client_name, client_email, appointment_date, appointment_time, appointment_type, studio_name } = event.data;
+    const { appointment_id, client_name, client_email, client_phone, appointment_date, appointment_time, appointment_type, studio_name } = event.data;
 
     const apptDt = apptDatetime(appointment_date, appointment_time);
     // Send the morning after the appointment (same time next day)
@@ -271,6 +299,13 @@ export const aftercareFollowUp = inngest.createFunction(
         subject: `Your aftercare guide from ${studio_name}`,
         html,
       });
+
+      if (client_phone) {
+        await sendSms(
+          client_phone,
+          `Hi ${client_name}! How's the new ink? 🖤 Keep it clean, moisturised, and out of the sun. Check your email for the full aftercare guide from ${studio_name}. Any questions? Just reach out!`
+        );
+      }
     });
 
     return { sent: true };
@@ -282,7 +317,7 @@ export const aftercareFollowUp = inngest.createFunction(
 export const rebookingNudge = inngest.createFunction(
   { id: "appointment-rebook-nudge", name: "Appointment: 6-month rebooking nudge", triggers: [{ event: EVENT }] },
   async ({ event, step }) => {
-    const { appointment_id, client_name, client_email, appointment_date, appointment_time, appointment_type, studio_name, user_id } = event.data;
+    const { appointment_id, client_name, client_email, client_phone, appointment_date, appointment_time, appointment_type, studio_name, user_id } = event.data;
 
     const apptDt = apptDatetime(appointment_date, appointment_time);
     // 6 months after the appointment
@@ -359,6 +394,13 @@ export const rebookingNudge = inngest.createFunction(
         subject: `Ready for your next tattoo? 🖤 ${studio_name} would love to see you`,
         html,
       });
+
+      if (client_phone) {
+        await sendSms(
+          client_phone,
+          `Hi ${client_name}! It's been 6 months since your visit to ${studio_name} ✨ Ready for your next session? Book here: ${intakeUrl}`
+        );
+      }
     });
 
     return { sent: true };
