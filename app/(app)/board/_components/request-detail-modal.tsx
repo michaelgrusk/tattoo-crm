@@ -577,7 +577,7 @@ export function RequestDetailModal({
                       onClick={handleDecline}
                     />
                   </div>
-                  {request.whatsapp_opt_in && (
+                  {(request.whatsapp_opt_in || !!parsed.phone) && (
                     <button
                       type="button"
                       onClick={handleSendQuoteWhatsApp}
