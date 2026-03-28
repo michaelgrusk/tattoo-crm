@@ -123,7 +123,7 @@ export function UpcomingAppointments({
                         <td className="px-5 py-3.5 text-[var(--nb-text-2)]">{appt.type}</td>
                         <td className="px-5 py-3.5 text-[var(--nb-text-2)]">{formatDate(appt.date)}</td>
                         <td className="px-5 py-3.5 text-[var(--nb-text-2)]">{formatTime(appt.time)}</td>
-                        <td className="px-5 py-3.5 text-[var(--nb-text-2)]">{appt.artist_name}</td>
+                        <td className="px-5 py-3.5 text-[var(--nb-text-2)]">{appt.artists?.name ?? appt.artist_name ?? "—"}</td>
                         <td className="px-5 py-3.5">
                           <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.text} ${cfg.bg}`}>
                             <span className={`size-1.5 rounded-full ${cfg.dot}`} />

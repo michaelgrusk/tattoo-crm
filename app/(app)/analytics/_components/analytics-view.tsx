@@ -25,6 +25,12 @@ type Invoice = {
 
 type AppointmentRow = { time: string; date: string };
 type RequestRow = { style: string };
+type ArtistApptRow = {
+  artist_id: number | null;
+  type: string;
+  date: string;
+  artists: { id: number; name: string; avatar_url: string | null } | null;
+};
 
 // ─── Period helpers ───────────────────────────────────────────────────────────
 
@@ -414,6 +420,141 @@ function PopularStyles({
   );
 }
 
+// ─── Artist Performance ───────────────────────────────────────────────────────
+
+const ARTIST_AVATAR_COLORS = [
+  { bg: "bg-violet-100", text: "text-violet-700" },
+  { bg: "bg-sky-100", text: "text-sky-700" },
+  { bg: "bg-emerald-100", text: "text-emerald-700" },
+  { bg: "bg-amber-100", text: "text-amber-700" },
+  { bg: "bg-rose-100", text: "text-rose-700" },
+];
+
+function getArtistColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return ARTIST_AVATAR_COLORS[Math.abs(hash) % ARTIST_AVATAR_COLORS.length];
+}
+
+function ArtistPerformance({
+  artistAppts,
+  upcomingArtistAppts,
+  loading,
+}: {
+  artistAppts: ArtistApptRow[];
+  upcomingArtistAppts: { artist_id: number }[];
+  loading: boolean;
+}) {
+  // Aggregate per artist
+  const map: Record<number, { name: string; avatar_url: string | null; sessions: number; types: Record<string, number> }> = {};
+  for (const row of artistAppts) {
+    if (!row.artist_id || !row.artists) continue;
+    if (!map[row.artist_id]) {
+      map[row.artist_id] = { name: row.artists.name, avatar_url: row.artists.avatar_url, sessions: 0, types: {} };
+    }
+    map[row.artist_id].sessions += 1;
+    const t = row.type ?? "Other";
+    map[row.artist_id].types[t] = (map[row.artist_id].types[t] ?? 0) + 1;
+  }
+
+  const upcomingByArtist: Record<number, number> = {};
+  for (const row of upcomingArtistAppts) {
+    upcomingByArtist[row.artist_id] = (upcomingByArtist[row.artist_id] ?? 0) + 1;
+  }
+
+  const rows = Object.entries(map)
+    .map(([id, v]) => {
+      const topType = Object.entries(v.types).sort(([, a], [, b]) => b - a)[0]?.[0] ?? "—";
+      return { id: Number(id), ...v, topType, upcoming: upcomingByArtist[Number(id)] ?? 0 };
+    })
+    .sort((a, b) => b.sessions - a.sessions);
+
+  if (!loading && rows.length === 0) {
+    return (
+      <p className="text-sm text-[var(--nb-text-2)] py-6 text-center">
+        No artist data yet — assign artists to appointments to see performance
+      </p>
+    );
+  }
+
+  return (
+    <div className={`transition-opacity ${loading ? "opacity-40" : ""}`}>
+      {/* Desktop table */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-[var(--nb-border)]">
+              <th className="text-left py-2.5 px-3 text-xs font-semibold text-[var(--nb-text-2)] uppercase tracking-wide">Artist</th>
+              <th className="text-right py-2.5 px-3 text-xs font-semibold text-[var(--nb-text-2)] uppercase tracking-wide">Sessions</th>
+              <th className="text-right py-2.5 px-3 text-xs font-semibold text-[var(--nb-text-2)] uppercase tracking-wide">Upcoming</th>
+              <th className="text-left py-2.5 px-3 text-xs font-semibold text-[var(--nb-text-2)] uppercase tracking-wide">Top Type</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--nb-border)]">
+            {rows.map((row) => {
+              const initials = row.name.trim().split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+              const color = getArtistColor(row.name);
+              return (
+                <tr key={row.id} className="hover:bg-[var(--nb-bg)] transition-colors">
+                  <td className="py-3 px-3">
+                    <div className="flex items-center gap-2.5">
+                      {row.avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={row.avatar_url} alt={row.name} className="size-8 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <span className={`size-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${color.bg} ${color.text}`}>
+                          {initials}
+                        </span>
+                      )}
+                      <span className="font-medium text-[var(--nb-text)]">{row.name}</span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-3 text-right font-semibold text-[var(--nb-text)]">{row.sessions}</td>
+                  <td className="py-3 px-3 text-right text-[var(--nb-text-2)]">{row.upcoming}</td>
+                  <td className="py-3 px-3">
+                    <span className="inline-flex items-center rounded-full bg-[var(--nb-active-bg)] px-2.5 py-0.5 text-xs font-medium text-[#7C3AED]">
+                      {row.topType}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="sm:hidden space-y-3">
+        {rows.map((row) => {
+          const initials = row.name.trim().split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+          const color = getArtistColor(row.name);
+          return (
+            <div key={row.id} className="flex items-center gap-3 rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-3">
+              {row.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={row.avatar_url} alt={row.name} className="size-10 rounded-full object-cover shrink-0" />
+              ) : (
+                <span className={`size-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${color.bg} ${color.text}`}>
+                  {initials}
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-[var(--nb-text)] truncate">{row.name}</p>
+                <p className="text-xs text-[var(--nb-text-2)] mt-0.5">
+                  {row.sessions} sessions · {row.upcoming} upcoming
+                </p>
+              </div>
+              <span className="shrink-0 inline-flex items-center rounded-full bg-[var(--nb-active-bg)] px-2.5 py-0.5 text-xs font-medium text-[#7C3AED]">
+                {row.topType}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main view ────────────────────────────────────────────────────────────────
 
 const DATE_INPUT_CLS =
@@ -429,6 +570,8 @@ export function AnalyticsView() {
   const [allAppointments, setAllAppointments] = useState<AppointmentRow[]>([]);
   const [newClientCount, setNewClientCount] = useState(0);
   const [requests, setRequests] = useState<RequestRow[]>([]);
+  const [artistAppts, setArtistAppts] = useState<ArtistApptRow[]>([]);
+  const [upcomingArtistAppts, setUpcomingArtistAppts] = useState<{ artist_id: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const today = toLocalDateStr(new Date());
@@ -455,6 +598,8 @@ export function AnalyticsView() {
         { data: clients },
         { data: reqs },
         { data: allAppts },
+        { data: artAppts },
+        { data: upcomingArtAppts },
       ] = await Promise.all([
         supabase
           .from("invoices")
@@ -486,6 +631,21 @@ export function AnalyticsView() {
           .from("appointments")
           .select("time, date")
           .eq("user_id", userId),
+        // Artist appointments in period
+        supabase
+          .from("appointments")
+          .select("artist_id, type, date, artists(id, name, avatar_url)")
+          .eq("user_id", userId)
+          .gte("date", effectiveStart)
+          .lte("date", effectiveEnd)
+          .not("artist_id", "is", null),
+        // Upcoming artist appointments (all-time, for upcoming count)
+        supabase
+          .from("appointments")
+          .select("artist_id")
+          .eq("user_id", userId)
+          .gte("date", today)
+          .not("artist_id", "is", null),
       ]);
 
       setInvoices((inv as unknown as Invoice[]) ?? []);
@@ -493,6 +653,8 @@ export function AnalyticsView() {
       setAllAppointments((allAppts as AppointmentRow[]) ?? []);
       setNewClientCount((clients ?? []).length);
       setRequests((reqs as RequestRow[]) ?? []);
+      setArtistAppts((artAppts as unknown as ArtistApptRow[]) ?? []);
+      setUpcomingArtistAppts((upcomingArtAppts as unknown as { artist_id: number }[]) ?? []);
       setLoading(false);
     }
 
@@ -695,6 +857,21 @@ export function AnalyticsView() {
           </div>
           <PopularStyles requests={requests} loading={loading} />
         </div>
+      </div>
+
+      {/* Artist Performance */}
+      <div className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-sm font-semibold text-[var(--nb-text)]">
+            Artist Performance
+          </h2>
+          <span className="text-xs text-[var(--nb-text-2)]">{periodLabel}</span>
+        </div>
+        <ArtistPerformance
+          artistAppts={artistAppts}
+          upcomingArtistAppts={upcomingArtistAppts}
+          loading={loading}
+        />
       </div>
     </div>
   );

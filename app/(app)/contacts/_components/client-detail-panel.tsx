@@ -54,6 +54,13 @@ type NextAppointment = {
   artist_name: string;
 } | null;
 
+type ArtistHistoryRow = {
+  artist_id: number;
+  name: string;
+  avatar_url: string | null;
+  sessions: number;
+};
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const REQUEST_STATUS_STYLES: Record<string, { text: string; bg: string }> = {
@@ -794,6 +801,7 @@ export function ClientDetailPanel({
   const [statusSaving, setStatusSaving] = useState(false);
   const [signedWaivers, setSignedWaivers] = useState<SignedWaiver[]>([]);
   const [selectedWaiver, setSelectedWaiver] = useState<SignedWaiver | null>(null);
+  const [artistHistory, setArtistHistory] = useState<ArtistHistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -903,10 +911,25 @@ export function ClientDetailPanel({
         .select("*, waiver_templates(name)")
         .eq("client_id", String(client.id))
         .order("signed_at", { ascending: false }),
-    ]).then(([{ data: reqs }, { data: appts }, { data: waivers }]) => {
+      supabase
+        .from("appointments")
+        .select("artist_id, artists(id, name, avatar_url)")
+        .eq("client_id", String(client.id))
+        .not("artist_id", "is", null),
+    ]).then(([{ data: reqs }, { data: appts }, { data: waivers }, { data: artistAppts }]) => {
       setRequests((reqs as TattooRequest[]) ?? []);
       setNextAppt((appts?.[0] as NextAppointment) ?? null);
       setSignedWaivers((waivers as unknown as SignedWaiver[]) ?? []);
+      // Aggregate artist history
+      const map: Record<number, ArtistHistoryRow> = {};
+      for (const row of (artistAppts ?? []) as unknown as { artist_id: number; artists: { id: number; name: string; avatar_url: string | null } | null }[]) {
+        if (!row.artist_id || !row.artists) continue;
+        if (!map[row.artist_id]) {
+          map[row.artist_id] = { artist_id: row.artist_id, name: row.artists.name, avatar_url: row.artists.avatar_url, sessions: 0 };
+        }
+        map[row.artist_id].sessions += 1;
+      }
+      setArtistHistory(Object.values(map).sort((a, b) => b.sessions - a.sessions));
       setLoading(false);
     });
   }, [client.id]);
@@ -1359,6 +1382,44 @@ export function ClientDetailPanel({
                       </button>
                     </div>
                   ))}
+                </div>
+              </section>
+            )}
+
+            {/* ── Artist History ───────────────────────────────────────── */}
+            {artistHistory.length > 0 && (
+              <section className="mb-8">
+                <h3 className="text-sm font-semibold text-[var(--nb-text)] mb-3">
+                  Artists
+                  <span className="ml-2 text-xs font-medium text-[var(--nb-text-2)]">
+                    {artistHistory.length}
+                  </span>
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  {artistHistory.map((a) => {
+                    const initials = a.name.trim().split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+                    return (
+                      <div
+                        key={a.artist_id}
+                        className="flex items-center gap-3 bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-4 py-3"
+                      >
+                        {a.avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={a.avatar_url} alt={a.name} className="size-9 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <span className="size-9 rounded-full bg-[var(--nb-active-bg)] flex items-center justify-center text-sm font-semibold text-[#7C3AED] shrink-0">
+                            {initials}
+                          </span>
+                        )}
+                        <div>
+                          <p className="text-sm font-medium text-[var(--nb-text)]">{a.name}</p>
+                          <p className="text-xs text-[var(--nb-text-2)]">
+                            {a.sessions} {a.sessions === 1 ? "session" : "sessions"}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             )}

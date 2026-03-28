@@ -28,7 +28,9 @@ type Appointment = {
   type: string;
   status: string;
   artist_name: string | null;
+  artist_id: number | null;
   clients: { name: string } | null;
+  artists: { name: string } | null;
 };
 
 // ─── Color mapping (deterministic by type string) ─────────────────────────────
@@ -112,6 +114,10 @@ function AppointmentBlock({ appt, onClick }: { appt: Appointment; onClick: () =>
   const top = timeToTop(appt.time);
   if (top < 0 || top >= HOURS.length * HOUR_HEIGHT) return null;
   const color = getTypeColor(appt.type);
+  const artistName = appt.artists?.name ?? appt.artist_name ?? null;
+  const artistInitials = artistName
+    ? artistName.trim().split(/\s+/).map((p: string) => p[0]).slice(0, 2).join("").toUpperCase()
+    : null;
 
   return (
     <div
@@ -122,9 +128,16 @@ function AppointmentBlock({ appt, onClick }: { appt: Appointment; onClick: () =>
       <p className={`text-xs font-semibold leading-tight truncate ${color.text}`}>
         {appt.clients?.name ?? appt.artist_name ?? "Appointment"}
       </p>
-      <p className={`text-[11px] mt-0.5 leading-tight truncate opacity-60 ${color.text}`}>
-        {formatApptTime(appt.time)}
-      </p>
+      <div className={`flex items-center justify-between mt-0.5`}>
+        <p className={`text-[11px] leading-tight truncate opacity-60 ${color.text}`}>
+          {formatApptTime(appt.time)}
+        </p>
+        {artistInitials && (
+          <span className="shrink-0 size-[14px] rounded-full bg-black/25 flex items-center justify-center text-[8px] font-bold text-white leading-none ml-1">
+            {artistInitials}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -210,7 +223,7 @@ export function CalendarView() {
 
     const { data, error } = await supabase
       .from("appointments")
-      .select("id, client_id, date, time, type, status, artist_name, clients(name)")
+      .select("id, client_id, date, time, type, status, artist_name, artist_id, clients(name), artists(name)")
       .eq("user_id", userId)
       .gte("date", start)
       .lte("date", end)
@@ -532,6 +545,12 @@ export function CalendarView() {
                     <p className="text-[11px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-0.5">Type</p>
                     <p className="text-sm text-[var(--nb-text)]">{selectedAppt.type}</p>
                   </div>
+                  {(selectedAppt.artists?.name ?? selectedAppt.artist_name) && (
+                    <div>
+                      <p className="text-[11px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-0.5">Artist</p>
+                      <p className="text-sm text-[var(--nb-text)]">{selectedAppt.artists?.name ?? selectedAppt.artist_name}</p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-[11px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-0.5">Status</p>
                     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${

@@ -18,6 +18,7 @@ import type { TattooRequest } from "../page";
 
 type ModalView = "detail" | "send-quote" | "deposit" | "schedule";
 type Working = "" | "quote" | "deposit" | "decline" | "schedule";
+type MatchedArtist = { id: number; name: string; avatar_url: string | null };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -128,6 +129,9 @@ export function RequestDetailModal({
   const [working, setWorking] = useState<Working>("");
   const [declineConfirm, setDeclineConfirm] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [matchedArtists, setMatchedArtists] = useState<MatchedArtist[]>([]);
+  const [assignedArtistId, setAssignedArtistId] = useState<number | null>(null);
+  const [assigning, setAssigning] = useState(false);
 
   // Send-quote form
   const [sqAmount, setSqAmount] = useState("");
@@ -157,6 +161,20 @@ export function RequestDetailModal({
       setScTime("10:00");
       setScType("Full session");
       setScStatus("confirmed");
+      setAssignedArtistId(request.artist_id ?? null);
+      // Fetch artists whose styles include this request's style
+      if (request.style) {
+        getUserId().then((userId) => {
+          if (!userId) return;
+          supabase
+            .from("artists")
+            .select("id, name, avatar_url")
+            .eq("user_id", userId)
+            .eq("is_active", true)
+            .contains("styles", [request.style])
+            .then(({ data }) => setMatchedArtists((data as MatchedArtist[]) ?? []));
+        });
+      }
     }
   }, [open, request?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -283,6 +301,16 @@ export function RequestDetailModal({
     onSuccess("Request declined");
   }
 
+  async function handleAssignArtist(artistId: number) {
+    setAssigning(true);
+    const { error } = await supabase
+      .from("tattoo_requests")
+      .update({ artist_id: artistId })
+      .eq("id", request!.id);
+    setAssigning(false);
+    if (!error) setAssignedArtistId(artistId);
+  }
+
   async function handleSchedule() {
     if (!scDate) { setServerError("Date is required"); return; }
     setWorking("schedule");
@@ -295,6 +323,7 @@ export function RequestDetailModal({
       user_id: userId,
       client_id: request!.client_id ?? null,
       artist_name: request!.client_id ? null : request!.client_name,
+      artist_id: assignedArtistId ?? null,
       date: scDate,
       time: scTime + ":00",
       type: scType,
@@ -410,6 +439,51 @@ export function RequestDetailModal({
                 )}
               </div>
             </div>
+
+            {/* Recommended artists */}
+            {matchedArtists.length > 0 && (
+              <div>
+                <SectionLabel>Recommended Artists</SectionLabel>
+                <div className="flex flex-wrap gap-2">
+                  {matchedArtists.map((artist) => {
+                    const isAssigned = assignedArtistId === artist.id;
+                    const initials = artist.name
+                      .trim()
+                      .split(/\s+/)
+                      .map((p) => p[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase();
+                    return (
+                      <button
+                        key={artist.id}
+                        type="button"
+                        disabled={assigning}
+                        onClick={() => handleAssignArtist(artist.id)}
+                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
+                          isAssigned
+                            ? "bg-[var(--nb-active-bg)] text-[#7C3AED] border-[#C4B5FD]"
+                            : "bg-[var(--nb-card)] text-[var(--nb-text-2)] border-[var(--nb-border)] hover:border-[#7C3AED] hover:text-[#7C3AED]"
+                        }`}
+                      >
+                        {artist.avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={artist.avatar_url} alt={artist.name} className="size-5 rounded-full object-cover" />
+                        ) : (
+                          <span className="size-5 rounded-full bg-[var(--nb-border)] flex items-center justify-center text-[9px] font-bold text-[var(--nb-text-2)]">
+                            {initials}
+                          </span>
+                        )}
+                        {artist.name}
+                        {isAssigned && (
+                          <span className="text-[10px] font-semibold text-[#7C3AED]">✓</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Reference image */}
             {request.reference_image_url && (

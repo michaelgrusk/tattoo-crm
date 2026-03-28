@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
+  Users2,
   CalendarDays,
   FileText,
   BarChart2,
@@ -25,6 +27,7 @@ import { useTheme } from "@/components/theme-provider";
 const navItems = [
   { href: "/board", label: "Board", icon: LayoutDashboard },
   { href: "/contacts", label: "Contacts", icon: Users },
+  { href: "/artists", label: "Artists", icon: Users2 },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/analytics", label: "Analytics", icon: BarChart2 },
@@ -46,6 +49,7 @@ export function Sidebar({
   const [slug, setSlug] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [activeArtistCount, setActiveArtistCount] = useState<number | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -54,12 +58,12 @@ export function Sidebar({
       if (!user) return;
       setStudioName(user.user_metadata?.studio_name ?? null);
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("slug")
-        .eq("id", user.id)
-        .single();
+      const [{ data: profile }, { count }] = await Promise.all([
+        supabase.from("profiles").select("slug").eq("id", user.id).single(),
+        supabase.from("artists").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_active", true),
+      ]);
       setSlug(profile?.slug ?? null);
+      setActiveArtistCount(count ?? 0);
     });
   }, []);
 
@@ -88,10 +92,8 @@ export function Sidebar({
         ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
       `}
     >
-      <div className="h-16 flex items-center justify-between px-6 border-b border-[var(--nb-border)] shrink-0">
-        <span className="text-lg font-semibold tracking-tight text-[#7C3AED]">
-          Needlebook
-        </span>
+      <div className="flex items-center justify-between border-b border-[var(--nb-border)] shrink-0" style={{ padding: "12px 16px" }}>
+        <Image src="/logo.png" alt="Needlebook" width={178} height={60} className="rounded-xl min-w-0 shrink" style={{ width: "100%", height: "auto" }} />
         <button
           onClick={onMobileClose}
           className="lg:hidden size-8 flex items-center justify-center rounded-lg hover:bg-[var(--nb-bg)] transition-colors text-[var(--nb-text-2)]"
@@ -119,7 +121,16 @@ export function Sidebar({
                 size={18}
                 className={isActive ? "text-[var(--nb-active-text)]" : "text-[var(--nb-text-2)]"}
               />
-              {label}
+              <span className="flex-1">{label}</span>
+              {href === "/artists" && activeArtistCount !== null && activeArtistCount > 0 && (
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none ${
+                  isActive
+                    ? "bg-[#7C3AED]/20 text-[#7C3AED]"
+                    : "bg-[var(--nb-border)] text-[var(--nb-text-2)]"
+                }`}>
+                  {activeArtistCount}
+                </span>
+              )}
             </Link>
           );
         })}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Loader2, Eye, EyeOff } from "lucide-react";
@@ -80,21 +81,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm bg-[var(--nb-card)] rounded-2xl border border-[var(--nb-border)] shadow-sm px-8 py-8">
         {/* Branding */}
         <div className="flex flex-col items-center mb-7">
-          <div className="size-10 rounded-xl bg-[#7C3AED] flex items-center justify-center mb-3">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-            </svg>
-          </div>
+          <Image src="/logo.png" alt="Needlebook" width={200} height={200} style={{ height: "110px", width: "auto" }} className="mb-3" />
           <h1 className="text-xl font-semibold text-[var(--nb-text)]">Needlebook</h1>
           <p className="text-xs text-[var(--nb-text-2)] mt-0.5">Tattoo artist CRM</p>
         </div>

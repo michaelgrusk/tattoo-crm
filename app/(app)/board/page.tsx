@@ -13,6 +13,7 @@ export type TattooRequest = {
   status: "new request" | "quote sent" | "deposit paid" | "declined";
   reference_image_url: string | null;
   quote_amount: number | null;
+  artist_id: number | null;
 };
 
 export type Appointment = {
@@ -20,11 +21,13 @@ export type Appointment = {
   created_at: string;
   client_id: string;
   artist_name: string;
+  artist_id: number | null;
   date: string;
   time: string;
   type: string;
   status: string;
   clients: { name: string } | null;
+  artists: { name: string } | null;
 };
 
 export default async function BoardPage() {
@@ -41,7 +44,7 @@ export default async function BoardPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("appointments")
-      .select("*, clients(name)")
+      .select("*, clients(name), artists(name)")
       .eq("user_id", userId)
       .gte("date", today)
       .order("date", { ascending: true })

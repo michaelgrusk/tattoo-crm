@@ -18,6 +18,7 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Client = { id: string | number; name: string; email: string; phone?: string };
+type Artist = { id: number; name: string };
 type BookingMode = "existing" | "general";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -164,6 +165,7 @@ const EMPTY_FORM = {
   time: "10:00",
   apptType: "Consultation",
   status: "confirmed",
+  artistId: null as number | null,
 };
 
 const selectCls =
@@ -180,11 +182,12 @@ export function BookAppointmentDialog({
 }) {
   const [form, setForm] = useState({ ...EMPTY_FORM, date: todayStr() });
   const [clients, setClients] = useState<Client[]>([]);
+  const [artists, setArtists] = useState<Artist[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch clients when dialog opens
+  // Fetch clients + artists when dialog opens
   useEffect(() => {
     if (open) {
       getUserId().then((userId) => {
@@ -195,6 +198,13 @@ export function BookAppointmentDialog({
           .eq("user_id", userId)
           .order("name")
           .then(({ data }) => setClients((data as Client[]) ?? []));
+        supabase
+          .from("artists")
+          .select("id, name")
+          .eq("user_id", userId)
+          .eq("is_active", true)
+          .order("name")
+          .then(({ data }) => setArtists((data as Artist[]) ?? []));
       });
     }
   }, [open]);
@@ -248,6 +258,7 @@ export function BookAppointmentDialog({
         user_id: userId,
         client_id: form.mode === "existing" ? form.selectedClient!.id : null,
         artist_name: form.mode === "general" ? form.bookingLabel.trim() : null,
+        artist_id: form.artistId ?? null,
         date: form.date,
         time,
         type: form.apptType,
@@ -426,6 +437,28 @@ export function BookAppointmentDialog({
               </select>
             </div>
           </div>
+
+          {/* Artist */}
+          {artists.length > 0 && (
+            <div className="space-y-1.5">
+              <Label htmlFor="appt-artist">Artist</Label>
+              <select
+                id="appt-artist"
+                value={form.artistId ?? ""}
+                onChange={(e) =>
+                  setField("artistId", e.target.value ? Number(e.target.value) : null)
+                }
+                className={selectCls}
+              >
+                <option value="">— No specific artist —</option>
+                {artists.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {serverError && (
             <p className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
