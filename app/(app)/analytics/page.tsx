@@ -1,5 +1,5 @@
-import { AnalyticsView } from "./_components/analytics-view";
+import { AnalyticsTabs } from "./_components/analytics-tabs";
 
 export default function AnalyticsPage() {
-  return <AnalyticsView />;
+  return <AnalyticsTabs />;
 }
