@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2, MessageCircle } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
+import { sendWhatsAppTemplate } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -133,6 +134,8 @@ export function RequestDetailModal({
   const [matchedArtists, setMatchedArtists] = useState<MatchedArtist[]>([]);
   const [assignedArtistId, setAssignedArtistId] = useState<number | null>(null);
   const [assigning, setAssigning] = useState(false);
+  const [waSending, setWaSending] = useState(false);
+  const [waResult, setWaResult] = useState<string | null>(null);
 
   // Send-quote form
   const [sqAmount, setSqAmount] = useState("");
@@ -163,6 +166,7 @@ export function RequestDetailModal({
       setScType("Full session");
       setScStatus("confirmed");
       setAssignedArtistId(request.artist_id ?? null);
+      setWaResult(null);
       // Fetch artists whose styles include this request's style
       if (request.style) {
         getUserId().then((userId) => {
@@ -338,6 +342,28 @@ export function RequestDetailModal({
     onSuccess("Appointment scheduled!");
   }
 
+  async function handleSendQuoteWhatsApp() {
+    const p = parseDescription(request!.description);
+    if (!p.phone) { setWaResult("No phone number found for this client"); return; }
+    setWaSending(true);
+    setWaResult(null);
+    const res = await sendWhatsAppTemplate({
+      phoneNumber: p.phone,
+      templateName: "quote",
+      variables: {
+        client_name: request!.client_name,
+        studio_name: "your studio",
+        style: request!.style,
+        amount: request!.quote_amount != null ? `$${request!.quote_amount.toLocaleString()}` : "TBD",
+      },
+      clientId: request!.client_id ?? undefined,
+      relatedType: "tattoo_request",
+      relatedId: request!.id,
+    });
+    setWaSending(false);
+    setWaResult(res.success ? "Sent via WhatsApp!" : `WhatsApp error: ${res.error}`);
+  }
+
   // ── Derived ──────────────────────────────────────────────────────────────────
 
   if (!request) return null;
@@ -507,6 +533,11 @@ export function RequestDetailModal({
                 {serverError}
               </p>
             )}
+            {waResult && (
+              <p className={`text-xs rounded-lg px-3 py-2 border ${waResult.startsWith("Sent") ? "text-emerald-700 bg-emerald-50 border-emerald-200" : "text-red-600 bg-red-50 border-red-200"}`}>
+                {waResult}
+              </p>
+            )}
 
             {/* Action footer */}
             <div className="border-t border-[var(--nb-border)] pt-4">
@@ -530,20 +561,33 @@ export function RequestDetailModal({
               )}
 
               {request.status === "quote sent" && (
-                <div className="flex items-center justify-between gap-2">
-                  <Button
-                    onClick={() => setView("deposit")}
-                    disabled={busy}
-                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
-                  >
-                    Mark Deposit Paid
-                  </Button>
-                  <DeclineButton
-                    confirm={declineConfirm}
-                    busy={busy}
-                    working={working}
-                    onClick={handleDecline}
-                  />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Button
+                      onClick={() => setView("deposit")}
+                      disabled={busy}
+                      className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
+                    >
+                      Mark Deposit Paid
+                    </Button>
+                    <DeclineButton
+                      confirm={declineConfirm}
+                      busy={busy}
+                      working={working}
+                      onClick={handleDecline}
+                    />
+                  </div>
+                  {request.whatsapp_opt_in && (
+                    <button
+                      type="button"
+                      onClick={handleSendQuoteWhatsApp}
+                      disabled={waSending || busy}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                    >
+                      {waSending ? <Loader2 size={12} className="animate-spin" /> : <MessageCircle size={12} />}
+                      {waSending ? "Sending…" : "Send Quote via WhatsApp"}
+                    </button>
+                  )}
                 </div>
               )}
 

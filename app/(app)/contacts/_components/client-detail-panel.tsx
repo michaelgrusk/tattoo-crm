@@ -15,8 +15,10 @@ import {
   AlertCircle,
   ScrollText,
   Eye,
+  MessageCircle,
 } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
+import { sendWhatsAppTemplate } from "@/lib/whatsapp";
 import { useRouter } from "next/navigation";
 import { STATUS_CONFIG } from "./contacts-view";
 import { useCurrency } from "@/components/currency-provider";
@@ -71,6 +73,15 @@ type ArtistHistoryRow = {
   name: string;
   avatar_url: string | null;
   sessions: number;
+};
+
+type WaMessage = {
+  id: string;
+  direction: "inbound" | "outbound";
+  template_name: string | null;
+  message_text: string | null;
+  status: string;
+  status_updated_at: string;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -962,7 +973,10 @@ export function ClientDetailPanel({
   const [nextAppt, setNextAppt] = useState<NextAppointment>(null);
   const [apptDialogOpen, setApptDialogOpen] = useState(false);
   const [clientAppts, setClientAppts] = useState<ClientAppt[]>([]);
-  const [apptTab, setApptTab] = useState<"requests" | "appointments">("requests");
+  const [apptTab, setApptTab] = useState<"requests" | "appointments" | "messages">("requests");
+  const [waMessages, setWaMessages] = useState<WaMessage[]>([]);
+  const [aftercareSendingId, setAftercareSendingId] = useState<string | null>(null);
+  const [aftercareResult, setAftercareResult] = useState<{ id: string; msg: string } | null>(null);
   const [apptBookOpen, setApptBookOpen] = useState(false);
   const [localStatus, setLocalStatus] = useState<string>(client.status ?? "");
   const [statusSaving, setStatusSaving] = useState(false);
@@ -1021,6 +1035,28 @@ export function ClientDetailPanel({
   const [editingRequest, setEditingRequest] = useState<TattooRequest | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleSendAftercare(apptId: string) {
+    if (!client.phone) {
+      setAftercareResult({ id: apptId, msg: "No phone number on file" });
+      return;
+    }
+    setAftercareSendingId(apptId);
+    setAftercareResult(null);
+    const res = await sendWhatsAppTemplate({
+      phoneNumber: client.phone,
+      templateName: "aftercare",
+      variables: { client_name: client.name.split(" ")[0] },
+      clientId: String(client.id),
+      relatedType: "appointment",
+      relatedId: apptId,
+    });
+    setAftercareSendingId(null);
+    setAftercareResult({
+      id: apptId,
+      msg: res.success ? "Aftercare sent via WhatsApp!" : `WhatsApp error: ${res.error}`,
+    });
+  }
 
   async function handleDeleteRequest(id: string) {
     if (confirmDeleteId !== id) {
@@ -1107,11 +1143,17 @@ export function ClientDetailPanel({
         .select("id, date, time, type, status, artist_name, artists(name)")
         .eq("client_id", String(client.id))
         .order("date", { ascending: false }),
-    ]).then(([{ data: reqs }, { data: appts }, { data: waivers }, { data: artistAppts }, { data: apptRows }]) => {
+      supabase
+        .from("whatsapp_messages")
+        .select("id, direction, template_name, message_text, status, status_updated_at")
+        .eq("client_id", String(client.id))
+        .order("status_updated_at", { ascending: false }),
+    ]).then(([{ data: reqs }, { data: appts }, { data: waivers }, { data: artistAppts }, { data: apptRows }, { data: waMsgs }]) => {
       setRequests((reqs as TattooRequest[]) ?? []);
       setNextAppt((appts?.[0] as NextAppointment) ?? null);
       setSignedWaivers((waivers as unknown as SignedWaiver[]) ?? []);
       setClientAppts((apptRows as unknown as ClientAppt[]) ?? []);
+      setWaMessages((waMsgs as WaMessage[]) ?? []);
       // Aggregate artist history
       const map: Record<number, ArtistHistoryRow> = {};
       for (const row of (artistAppts ?? []) as unknown as { artist_id: number; artists: { id: number; name: string; avatar_url: string | null } | null }[]) {
@@ -1619,18 +1661,22 @@ export function ClientDetailPanel({
 
             {/* ── Section tabs ──────────────────────────────────────── */}
             <div className="flex rounded-lg border border-[var(--nb-border)] bg-[var(--nb-bg)] p-0.5 gap-0.5 mb-6">
-              {(["requests","appointments"] as const).map((t) => (
+              {(["requests","appointments","messages"] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setApptTab(t)}
                   type="button"
-                  className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-colors ${
                     apptTab === t
                       ? "bg-[var(--nb-card)] text-[#7C3AED] shadow-sm border border-[var(--nb-border)]"
                       : "text-[var(--nb-text-2)] hover:text-[var(--nb-text)]"
                   }`}
                 >
-                  {t === "requests" ? `Requests (${requests.length})` : `Appointments (${clientAppts.length})`}
+                  {t === "requests"
+                    ? `Requests (${requests.length})`
+                    : t === "appointments"
+                    ? `Appts (${clientAppts.length})`
+                    : `Messages${waMessages.length > 0 ? ` (${waMessages.length})` : ""}`}
                 </button>
               ))}
             </div>
@@ -1835,22 +1881,93 @@ export function ClientDetailPanel({
                       };
                       const ss = statusStyles[appt.status] ?? { text: "text-[var(--nb-text-2)]", bg: "bg-[var(--nb-active-bg)]", dot: "bg-[var(--nb-border)]" };
                       return (
-                        <div key={appt.id} className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-4 py-3 flex items-center gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-sm font-medium text-[var(--nb-text)]">{dateStr}</p>
-                              <p className="text-xs text-[var(--nb-text-2)]">{timeStr}</p>
+                        <div key={appt.id} className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-4 py-3 space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-medium text-[var(--nb-text)]">{dateStr}</p>
+                                <p className="text-xs text-[var(--nb-text-2)]">{timeStr}</p>
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                <span className="text-xs text-[var(--nb-text-2)]">{appt.type}</span>
+                                {artistDisplay && (
+                                  <span className="text-xs text-[var(--nb-text-2)]">· {artistDisplay}</span>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                              <span className="text-xs text-[var(--nb-text-2)]">{appt.type}</span>
-                              {artistDisplay && (
-                                <span className="text-xs text-[var(--nb-text-2)]">· {artistDisplay}</span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {appt.status === "completed" && client.phone && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSendAftercare(appt.id)}
+                                  disabled={aftercareSendingId === appt.id}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                                >
+                                  {aftercareSendingId === appt.id ? <Loader2 size={10} className="animate-spin" /> : <MessageCircle size={10} />}
+                                  Aftercare
+                                </button>
                               )}
+                              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${ss.text} ${ss.bg}`}>
+                                <span className={`size-1.5 rounded-full ${ss.dot}`} />
+                                {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
+                              </span>
                             </div>
                           </div>
-                          <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${ss.text} ${ss.bg}`}>
-                            <span className={`size-1.5 rounded-full ${ss.dot}`} />
-                            {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
+                          {aftercareResult?.id === appt.id && (
+                            <p className={`text-xs rounded-lg px-2.5 py-1.5 border ${aftercareResult.msg.startsWith("Aftercare") ? "text-emerald-700 bg-emerald-50 border-emerald-200" : "text-red-600 bg-red-50 border-red-200"}`}>
+                              {aftercareResult.msg}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ── WhatsApp Messages ─────────────────────────────────────── */}
+            {apptTab === "messages" && (
+              <section>
+                <h3 className="text-sm font-semibold text-[var(--nb-text)] mb-3">
+                  WhatsApp Messages
+                  {waMessages.length > 0 && (
+                    <span className="ml-2 text-xs font-medium text-[var(--nb-text-2)]">
+                      {waMessages.length}
+                    </span>
+                  )}
+                </h3>
+                {waMessages.length === 0 ? (
+                  <div className="bg-[var(--nb-card)] rounded-xl border border-dashed border-[var(--nb-border)] p-8 text-center text-sm text-[var(--nb-text-2)]">
+                    No WhatsApp messages yet
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {waMessages.map((msg) => {
+                      const isOut = msg.direction === "outbound";
+                      const statusColors: Record<string, { text: string; bg: string }> = {
+                        sent:      { text: "text-sky-700",     bg: "bg-sky-50" },
+                        delivered: { text: "text-emerald-700", bg: "bg-emerald-50" },
+                        read:      { text: "text-violet-700",  bg: "bg-violet-50" },
+                        failed:    { text: "text-red-700",     bg: "bg-red-50" },
+                      };
+                      const sc = statusColors[msg.status] ?? { text: "text-[var(--nb-text-2)]", bg: "bg-[var(--nb-active-bg)]" };
+                      const label = msg.template_name
+                        ? msg.template_name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+                        : msg.message_text?.slice(0, 40) ?? "Message";
+                      return (
+                        <div key={msg.id} className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-4 py-3 flex items-center gap-3">
+                          <div className={`shrink-0 size-7 rounded-full flex items-center justify-center text-xs font-bold ${isOut ? "bg-[#7C3AED]/10 text-[#7C3AED]" : "bg-emerald-50 text-emerald-600"}`}>
+                            {isOut ? "↑" : "↓"}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-[var(--nb-text)] truncate">{label}</p>
+                            <p className="text-xs text-[var(--nb-text-2)] mt-0.5">
+                              {isOut ? "Sent" : "Received"} · {new Date(msg.status_updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            </p>
+                          </div>
+                          <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${sc.text} ${sc.bg}`}>
+                            {msg.status.charAt(0).toUpperCase() + msg.status.slice(1)}
                           </span>
                         </div>
                       );

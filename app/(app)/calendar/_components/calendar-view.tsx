@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Plus, Loader2, CheckCircle2, X, Banknote } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Loader2, CheckCircle2, X, Banknote, MessageCircle } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
+import { sendWhatsAppTemplate } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { BookAppointmentDialog } from "./book-appointment-dialog";
 import { DepositModal } from "./deposit-modal";
@@ -205,6 +206,8 @@ export function CalendarView() {
   const [saving, setSaving] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [completeView, setCompleteView] = useState(false);
+  const [waReminderSending, setWaReminderSending] = useState(false);
+  const [waReminderResult, setWaReminderResult] = useState<string | null>(null);
   const [completeAmount, setCompleteAmount] = useState("");
   const [completePayType, setCompletePayType] = useState("Full payment");
   const [completeNotes, setCompleteNotes] = useState("");
@@ -325,12 +328,49 @@ export function CalendarView() {
     setEditMode(true);
   }
 
+  async function handleSendReminder() {
+    if (!selectedAppt?.client_id) return;
+    setWaReminderSending(true);
+    setWaReminderResult(null);
+    const { data: client } = await supabase
+      .from("clients")
+      .select("name, phone")
+      .eq("id", selectedAppt.client_id)
+      .single();
+    if (!client?.phone) {
+      setWaReminderSending(false);
+      setWaReminderResult("No phone number on file for this client");
+      return;
+    }
+    const [h, m] = selectedAppt.time.split(":").map(Number);
+    const timeStr = `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+    const dateStr = new Date(selectedAppt.date + "T00:00:00").toLocaleDateString("en-US", {
+      weekday: "long", month: "long", day: "numeric",
+    });
+    const res = await sendWhatsAppTemplate({
+      phoneNumber: client.phone,
+      templateName: "reminder",
+      variables: {
+        client_name: client.name,
+        studio_name: "your studio",
+        date: dateStr,
+        time: timeStr,
+      },
+      clientId: selectedAppt.client_id,
+      relatedType: "appointment",
+      relatedId: selectedAppt.id,
+    });
+    setWaReminderSending(false);
+    setWaReminderResult(res.success ? "Reminder sent via WhatsApp!" : `WhatsApp error: ${res.error}`);
+  }
+
   function closeAppt() {
     setSelectedAppt(null);
     setDeleteConfirm(false);
     setEditMode(false);
     setDepositOpen(false);
     setCompleteView(false);
+    setWaReminderResult(null);
     setCompleteAmount("");
     setCompletePayType("Full payment");
     setCompleteNotes("");
@@ -776,45 +816,62 @@ export function CalendarView() {
                   </div>
                 </div>
                 {/* Footer — detail */}
-                <div className="px-5 py-3 border-t border-[var(--nb-border)] flex items-center justify-between">
-                  <button
-                    onClick={handleDeleteAppointment}
-                    disabled={deleting}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
-                      deleteConfirm
-                        ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
-                        : "bg-[var(--nb-card)] text-[var(--nb-text-2)] border-[var(--nb-border)] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-                    }`}
-                  >
-                    {deleting && <Loader2 size={12} className="animate-spin" />}
-                    {deleteConfirm ? "Confirm Delete?" : "Delete"}
-                  </button>
-                  <div className="flex items-center gap-2">
+                <div className="px-5 py-3 border-t border-[var(--nb-border)] space-y-2">
+                  {waReminderResult && (
+                    <p className={`text-xs rounded-lg px-3 py-2 border ${waReminderResult.startsWith("Reminder") ? "text-emerald-700 bg-emerald-50 border-emerald-200" : "text-red-600 bg-red-50 border-red-200"}`}>
+                      {waReminderResult}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between">
                     <button
-                      onClick={() => setDepositOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                      onClick={handleDeleteAppointment}
+                      disabled={deleting}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
+                        deleteConfirm
+                          ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                          : "bg-[var(--nb-card)] text-[var(--nb-text-2)] border-[var(--nb-border)] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                      }`}
                     >
-                      <Banknote size={12} />
-                      Deposit
+                      {deleting && <Loader2 size={12} className="animate-spin" />}
+                      {deleteConfirm ? "Confirm Delete?" : "Delete"}
                     </button>
-                    <button
-                      onClick={() => setCompleteView(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors"
-                    >
-                      Complete Session
-                    </button>
-                    <button
-                      onClick={openEditMode}
-                      className="px-3 py-1.5 text-xs font-medium text-[#7C3AED] rounded-lg border border-[var(--nb-border)] hover:bg-[var(--nb-bg)] transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={closeAppt}
-                      className="px-4 py-1.5 text-sm font-medium text-[var(--nb-text-2)] rounded-lg border border-[var(--nb-border)] hover:bg-[var(--nb-bg)] transition-colors"
-                    >
-                      Close
-                    </button>
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                      {selectedAppt.client_id && (
+                        <button
+                          onClick={handleSendReminder}
+                          disabled={waReminderSending}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                        >
+                          {waReminderSending ? <Loader2 size={12} className="animate-spin" /> : <MessageCircle size={12} />}
+                          Remind
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setDepositOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                      >
+                        <Banknote size={12} />
+                        Deposit
+                      </button>
+                      <button
+                        onClick={() => setCompleteView(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                      >
+                        Complete Session
+                      </button>
+                      <button
+                        onClick={openEditMode}
+                        className="px-3 py-1.5 text-xs font-medium text-[#7C3AED] rounded-lg border border-[var(--nb-border)] hover:bg-[var(--nb-bg)] transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={closeAppt}
+                        className="px-4 py-1.5 text-sm font-medium text-[var(--nb-text-2)] rounded-lg border border-[var(--nb-border)] hover:bg-[var(--nb-bg)] transition-colors"
+                      >
+                        Close
+                      </button>
+                    </div>
                   </div>
                 </div>
               </>

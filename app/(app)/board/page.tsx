@@ -14,6 +14,7 @@ export type TattooRequest = {
   reference_image_url: string | null;
   quote_amount: number | null;
   artist_id: number | null;
+  whatsapp_opt_in: boolean;
 };
 
 export type Appointment = {

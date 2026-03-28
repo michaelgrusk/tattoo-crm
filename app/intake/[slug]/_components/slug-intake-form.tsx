@@ -11,6 +11,7 @@ type FormData = {
   name: string;
   email: string;
   phone: string;
+  whatsappOptIn: boolean;
   description: string;
   style: string;
   placement: string;
@@ -41,6 +42,7 @@ const EMPTY: FormData = {
   name: "",
   email: "",
   phone: "",
+  whatsappOptIn: false,
   description: "",
   style: "Blackwork",
   placement: "",
@@ -244,6 +246,7 @@ export function SlugIntakeForm({
       style: form.style,
       status: "new request",
       reference_image_url: imageUrl,
+      whatsapp_opt_in: form.whatsappOptIn,
     });
 
     setSubmitting(false);
@@ -318,6 +321,28 @@ export function SlugIntakeForm({
               <input type="tel" placeholder="+1 (555) 000-0000" value={form.phone}
                 onChange={(e) => set("phone", e.target.value)} className={inputCls} autoComplete="tel" />
             </Field>
+
+            <label className="flex items-start gap-3 cursor-pointer group mt-1">
+              <div className="relative flex items-center justify-center mt-0.5 shrink-0">
+                <input
+                  type="checkbox"
+                  checked={form.whatsappOptIn}
+                  onChange={(e) => set("whatsappOptIn", e.target.checked)}
+                  className="peer sr-only"
+                />
+                <div className="size-5 rounded-md border-2 border-[var(--nb-border)] bg-[var(--nb-card)] peer-checked:bg-[#7C3AED] peer-checked:border-[#7C3AED] transition-colors flex items-center justify-center group-hover:border-[#7C3AED]/60">
+                  {form.whatsappOptIn && (
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <span className="text-sm text-[var(--nb-text-2)] leading-snug select-none">
+                I agree to receive updates about my quote, deposit, appointment, and aftercare via{" "}
+                <span className="text-[var(--nb-text)] font-medium">WhatsApp</span>
+              </span>
+            </label>
           </div>
         )}
 
