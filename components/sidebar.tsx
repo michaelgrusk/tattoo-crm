@@ -49,33 +49,50 @@ export function Sidebar({
   const [slug, setSlug] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [upcomingCount, setUpcomingCount] = useState<number | null>(null);
+  const [todayCount, setTodayCount] = useState<number>(0);
+  const [boardCount, setBoardCount] = useState<number>(0);
+  const [contactsBadge, setContactsBadge] = useState<number>(0);
 
   useEffect(() => { setMounted(true); }, []);
+
+  // Real-time badge bump when a new board request is manually added
+  useEffect(() => {
+    function onBoardBadge() { setBoardCount((n) => n + 1); }
+    window.addEventListener("nb:board-badge", onBoardBadge);
+    return () => window.removeEventListener("nb:board-badge", onBoardBadge);
+  }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return;
       setStudioName(user.user_metadata?.studio_name ?? null);
 
-      const today = new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
       const pad = (n: number) => String(n).padStart(2, "0");
-      const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-      const todayStr = fmt(today);
-      const tomorrowStr = fmt(tomorrow);
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 
-      const [{ data: profile }, { count }] = await Promise.all([
+      const [{ data: profile }, { count: calCount }, { count: boardC }, { count: leadsCount }] = await Promise.all([
         supabase.from("profiles").select("slug").eq("id", user.id).single(),
+        // Calendar: only today's appointments, not completed or cancelled
         supabase.from("appointments").select("id", { count: "exact", head: true })
           .eq("user_id", user.id)
-          .in("date", [todayStr, tomorrowStr])
+          .eq("date", todayStr)
           .neq("status", "completed")
           .neq("status", "cancelled"),
+        // Board: unactioned new requests
+        supabase.from("tattoo_requests").select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("status", "new_request"),
+        // Contacts: new_lead clients
+        supabase.from("clients").select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("status", "new_lead"),
       ]);
+
       setSlug(profile?.slug ?? null);
-      setUpcomingCount(count ?? 0);
+      setTodayCount(calCount ?? 0);
+      setBoardCount(boardC ?? 0);
+      setContactsBadge(leadsCount ?? 0);
     });
   }, []);
 
@@ -105,7 +122,7 @@ export function Sidebar({
       `}
     >
       <div className="flex items-center justify-between border-b border-[var(--nb-border)] shrink-0" style={{ padding: "12px 16px" }}>
-        <Image src="/logo.png" alt="Needlebook" width={178} height={60} className="rounded-xl min-w-0 shrink" style={{ width: "100%", height: "auto" }} />
+        <Image src="/logo.png" alt="Needlebook" width={178} height={60} className="rounded-xl min-w-0 shrink" style={{ width: "100%", height: "auto" }} priority loading="eager" />
         <button
           onClick={onMobileClose}
           className="lg:hidden size-8 flex items-center justify-center rounded-lg hover:bg-[var(--nb-bg)] transition-colors text-[var(--nb-text-2)]"
@@ -118,11 +135,23 @@ export function Sidebar({
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/");
+
+          // Badge value for this nav item
+          let badge = 0;
+          if (href === "/calendar") badge = todayCount;
+          if (href === "/board") badge = boardCount;
+          if (href === "/contacts") badge = contactsBadge;
+
+          function handleClick() {
+            if (href === "/contacts") setContactsBadge(0);
+            onMobileClose?.();
+          }
+
           return (
             <Link
               key={href}
               href={href}
-              onClick={onMobileClose}
+              onClick={handleClick}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-[var(--nb-active-bg)] text-[var(--nb-active-text)]"
@@ -134,13 +163,13 @@ export function Sidebar({
                 className={isActive ? "text-[var(--nb-active-text)]" : "text-[var(--nb-text-2)]"}
               />
               <span className="flex-1">{label}</span>
-              {href === "/calendar" && upcomingCount !== null && upcomingCount > 0 && (
+              {badge > 0 && (
                 <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none ${
                   isActive
                     ? "bg-[#7C3AED]/20 text-[#7C3AED]"
                     : "bg-[#7C3AED] text-white"
                 }`}>
-                  {upcomingCount}
+                  {badge}
                 </span>
               )}
             </Link>

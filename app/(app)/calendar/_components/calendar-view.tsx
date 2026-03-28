@@ -158,7 +158,7 @@ function DayColumn({
   return (
     <div
       className={`flex-1 relative border-l border-[var(--nb-card)] ${
-        isToday ? "bg-[#FAFEFF]" : "bg-[var(--nb-card)]"
+        isToday ? "bg-[rgba(124,58,237,0.06)]" : "bg-[var(--nb-card)]"
       }`}
       style={{ height: totalHeight }}
     >

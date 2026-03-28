@@ -181,7 +181,6 @@ export function ArtistsView({ artists: initial }: { artists: Artist[] }) {
       .select("artist_id")
       .gte("date", fmt(today))
       .neq("status", "completed")
-      .neq("status", "cancelled")
       .not("artist_id", "is", null)
       .then(({ data }) => {
         if (!data) return;

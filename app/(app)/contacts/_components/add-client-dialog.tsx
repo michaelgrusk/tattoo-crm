@@ -14,6 +14,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 
 type FormFields = {
@@ -114,6 +115,7 @@ export function AddClientDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Add New Client</DialogTitle>
+          <DialogDescription className="sr-only">Create a new client record</DialogDescription>
         </DialogHeader>
 
         <form

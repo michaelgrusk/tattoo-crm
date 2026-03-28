@@ -13,6 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -247,6 +248,7 @@ export function NewInvoiceDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>New Invoice</DialogTitle>
+          <DialogDescription className="sr-only">Create a new invoice</DialogDescription>
         </DialogHeader>
 
         <form

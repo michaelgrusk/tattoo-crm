@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import type { TattooRequest } from "../page";
 
@@ -217,6 +218,7 @@ export function RequestDetailModal({
           email: request!.client_email,
           phone: parsed.phone || null,
           notes: `Created from tattoo request · ${request!.style}`,
+          status: "quote_sent",
         })
         .select("id")
         .single();
@@ -358,6 +360,7 @@ export function RequestDetailModal({
       <DialogContent className="sm:max-w-xl overflow-y-auto max-h-[92vh]">
         <DialogHeader>
           <DialogTitle>{titleMap[view]}</DialogTitle>
+          <DialogDescription className="sr-only">Request details and workflow actions</DialogDescription>
         </DialogHeader>
 
         {/* ════════════════════════════════════════════════════

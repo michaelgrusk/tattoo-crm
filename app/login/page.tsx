@@ -81,7 +81,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm bg-[var(--nb-card)] rounded-2xl border border-[var(--nb-border)] shadow-sm px-8 py-8">
         {/* Branding */}
         <div className="flex flex-col items-center mb-7">
-          <Image src="/logo.png" alt="Needlebook" width={200} height={200} style={{ height: "110px", width: "auto" }} className="mb-3" />
+          <Image src="/logo.png" alt="Needlebook" width={200} height={200} style={{ height: "110px", width: "auto" }} className="mb-3" priority loading="eager" />
           <h1 className="text-xl font-semibold text-[var(--nb-text)]">Needlebook</h1>
           <p className="text-xs text-[var(--nb-text-2)] mt-0.5">Tattoo artist CRM</p>
         </div>

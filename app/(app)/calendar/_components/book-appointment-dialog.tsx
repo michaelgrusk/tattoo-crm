@@ -13,6 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -302,6 +303,7 @@ export function BookAppointmentDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Book Appointment</DialogTitle>
+          <DialogDescription className="sr-only">Schedule a new appointment</DialogDescription>
         </DialogHeader>
 
         <form

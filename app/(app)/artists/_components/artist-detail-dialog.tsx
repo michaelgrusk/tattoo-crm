@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogClose,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -133,6 +134,7 @@ function CompletedSessionsDialog({
           <DialogTitle className="text-[var(--nb-text)]">
             Sessions Completed — {artistName}
           </DialogTitle>
+          <DialogDescription className="sr-only">List of completed sessions for this artist</DialogDescription>
         </DialogHeader>
 
         {loading ? (
@@ -217,7 +219,6 @@ function UpcomingSessionsDialog({
       .eq("artist_id", artistId)
       .gte("date", today)
       .neq("status", "completed")
-      .neq("status", "cancelled")
       .order("date", { ascending: true })
       .order("time", { ascending: true })
       .then(({ data }) => {
@@ -233,6 +234,7 @@ function UpcomingSessionsDialog({
           <DialogTitle className="text-[var(--nb-text)]">
             Upcoming Appointments — {artistName}
           </DialogTitle>
+          <DialogDescription className="sr-only">List of upcoming appointments for this artist</DialogDescription>
         </DialogHeader>
 
         {loading ? (
@@ -329,8 +331,7 @@ export function ArtistDetailDialog({
           .select("id", { count: "exact", head: true })
           .eq("artist_id", artist.id)
           .gte("date", today)
-          .neq("status", "completed")
-          .neq("status", "cancelled"),
+          .neq("status", "completed"),
       ]);
 
       setStats({
@@ -351,6 +352,7 @@ export function ArtistDetailDialog({
       <DialogContent className="sm:max-w-md bg-[var(--nb-card)] border border-[var(--nb-border)]">
         <DialogHeader>
           <DialogTitle className="sr-only">Artist details</DialogTitle>
+          <DialogDescription className="sr-only">Artist profile and statistics</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-1">

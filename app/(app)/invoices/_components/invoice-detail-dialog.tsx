@@ -11,6 +11,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import type { Invoice } from "../page";
 import { useCurrency } from "@/components/currency-provider";
@@ -156,6 +157,7 @@ export function InvoiceDetailDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Invoice {invoiceNumber(invoice.id)}</DialogTitle>
+          <DialogDescription className="sr-only">Invoice details and status</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 pt-1">

@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
@@ -203,6 +204,7 @@ export function AddEditArtistDialog({
           <DialogTitle className="text-[var(--nb-text)]">
             {artist ? "Edit Artist" : "Add Artist"}
           </DialogTitle>
+          <DialogDescription className="sr-only">Artist profile details</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 py-2">

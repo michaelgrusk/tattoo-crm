@@ -16,7 +16,9 @@ export const STATUS_CONFIG: Record<
   { label: string; dot: string; text: string; bg: string }
 > = {
   new_lead:             { label: "New Lead",            dot: "bg-blue-400",    text: "text-blue-700",    bg: "bg-blue-50"    },
-  consultation_booked:  { label: "Consultation Booked", dot: "bg-violet-400",  text: "text-violet-700",  bg: "bg-violet-50"  },
+  contacting:           { label: "Contacting",          dot: "bg-cyan-400",    text: "text-cyan-700",    bg: "bg-cyan-50"    },
+  quote_sent:           { label: "Quote Sent",          dot: "bg-violet-400",  text: "text-violet-700",  bg: "bg-violet-50"  },
+  consultation_booked:  { label: "Consultation Booked", dot: "bg-purple-400",  text: "text-purple-700",  bg: "bg-purple-50"  },
   first_session_done:   { label: "1st Session Done",    dot: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50" },
   healing_followup:     { label: "Healing Follow-up",   dot: "bg-amber-400",   text: "text-amber-700",   bg: "bg-amber-50"   },
   touchup_followup:     { label: "Touch-up Follow-up",  dot: "bg-orange-400",  text: "text-orange-700",  bg: "bg-orange-50"  },

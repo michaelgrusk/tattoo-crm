@@ -31,6 +31,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import type { ClientListItem } from "../page";
 import type { SignedWaiver, WaiverField, WaiverSection } from "../../waivers/types";
@@ -96,6 +97,27 @@ function getStatusStyle(status: string) {
       bg: "bg-[var(--nb-border)]",
     }
   );
+}
+
+const TATTOO_STYLES = ["Traditional", "Neo-Traditional", "Realism", "Watercolor", "Blackwork", "Tribal", "Japanese", "Geometric", "Minimalist", "Illustrative", "Dotwork", "Surrealism", "Other"];
+
+function parseDescription(raw: string) {
+  const FIELD_RE = /^(Placement|Size|Preferred date|Phone):\s*(.+)$/;
+  const lines = raw.split("\n");
+  const structured: Record<string, string> = {};
+  const descLines: string[] = [];
+  for (const line of lines) {
+    const m = line.match(FIELD_RE);
+    if (m) structured[m[1]] = m[2].trim();
+    else if (line.trim()) descLines.push(line);
+  }
+  return {
+    tattooDescription: descLines.join("\n").trim(),
+    placement: structured["Placement"] ?? "",
+    size: structured["Size"] ?? "",
+    preferredDate: structured["Preferred date"] ?? "",
+    phone: structured["Phone"] ?? "",
+  };
 }
 
 function formatDate(dateStr: string, opts?: Intl.DateTimeFormatOptions) {
@@ -212,6 +234,135 @@ function Lightbox({
         onClick={(e) => e.stopPropagation()}
       />
     </div>
+  );
+}
+
+// ─── Edit Tattoo Request Dialog ───────────────────────────────────────────────
+
+function EditRequestDialog({
+  open,
+  onOpenChange,
+  request,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  request: TattooRequest | null;
+  onSaved: (updated: TattooRequest) => void;
+}) {
+  const parsed = request ? parseDescription(request.description) : null;
+
+  const [style, setStyle] = useState("");
+  const [status, setStatus] = useState("");
+  const [description, setDescription] = useState("");
+  const [placement, setPlacement] = useState("");
+  const [size, setSize] = useState("");
+  const [preferredDate, setPreferredDate] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open && request && parsed) {
+      setStyle(request.style);
+      setStatus(request.status);
+      setDescription(parsed.tattooDescription);
+      setPlacement(parsed.placement);
+      setSize(parsed.size);
+      setPreferredDate(parsed.preferredDate);
+      setError(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, request?.id]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!style.trim() || !description.trim()) {
+      setError("Style and description are required.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+
+    const parts = [description.trim()];
+    if (placement.trim()) parts.push(`Placement: ${placement.trim()}`);
+    if (size.trim()) parts.push(`Size: ${size.trim()}`);
+    if (preferredDate) parts.push(`Preferred date: ${preferredDate}`);
+
+    const newDescription = parts.join("\n");
+
+    const { error: dbErr } = await supabase
+      .from("tattoo_requests")
+      .update({ style: style.trim(), status, description: newDescription })
+      .eq("id", request!.id);
+
+    setSubmitting(false);
+    if (dbErr) { setError(dbErr.message); return; }
+
+    onSaved({ ...request!, style: style.trim(), status, description: newDescription });
+    onOpenChange(false);
+  }
+
+  const inputCls = "w-full h-9 rounded-lg border border-[var(--nb-border)] bg-[var(--nb-card)] px-3 text-sm text-[var(--nb-text)] outline-none placeholder:text-[var(--nb-text-2)] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg bg-[var(--nb-card)] border border-[var(--nb-border)]">
+        <DialogHeader>
+          <DialogTitle className="text-[var(--nb-text)]">Edit Tattoo Request</DialogTitle>
+          <DialogDescription className="sr-only">Edit tattoo request details</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[var(--nb-text)]">Style *</label>
+              <select value={style} onChange={e => setStyle(e.target.value)} className={inputCls}>
+                <option value="">Select style…</option>
+                {TATTOO_STYLES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[var(--nb-text)]">Status</label>
+              <select value={status} onChange={e => setStatus(e.target.value)} className={inputCls}>
+                {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-[var(--nb-text)]">Description *</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={3}
+              className="w-full rounded-lg border border-[var(--nb-border)] bg-[var(--nb-card)] px-3 py-2 text-sm text-[var(--nb-text)] outline-none placeholder:text-[var(--nb-text-2)] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors resize-none"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[var(--nb-text)]">Placement</label>
+              <input type="text" value={placement} onChange={e => setPlacement(e.target.value)} placeholder="e.g. Left forearm" className={inputCls} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[var(--nb-text)]">Size / dimensions</label>
+              <input type="text" value={size} onChange={e => setSize(e.target.value)} placeholder="e.g. 10x8 cm" className={inputCls} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-[var(--nb-text)]">Preferred date</label>
+            <input type="date" value={preferredDate} onChange={e => setPreferredDate(e.target.value)} className={inputCls} />
+          </div>
+          {error && (
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+          )}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-[var(--nb-border)] text-[var(--nb-text-2)]">Cancel</Button>
+            <Button type="submit" disabled={submitting} className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5">
+              {submitting && <Loader2 size={13} className="animate-spin" />}
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -341,6 +492,7 @@ function AddRequestDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Add Tattoo Request</DialogTitle>
+          <DialogDescription className="sr-only">Add a new tattoo request for this client</DialogDescription>
         </DialogHeader>
 
         <form
@@ -579,6 +731,7 @@ function EditClientDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit Client</DialogTitle>
+          <DialogDescription className="sr-only">Edit client details</DialogDescription>
         </DialogHeader>
 
         <form id="edit-client-form" onSubmit={handleSubmit} className="space-y-4 pt-1">
@@ -863,6 +1016,25 @@ export function ClientDetailPanel({
 
   // Lightbox
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  // Tattoo request edit/delete
+  const [editingRequest, setEditingRequest] = useState<TattooRequest | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleDeleteRequest(id: string) {
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      return;
+    }
+    setDeletingId(id);
+    const { error } = await supabase.from("tattoo_requests").delete().eq("id", id);
+    setDeletingId(null);
+    setConfirmDeleteId(null);
+    if (!error) {
+      setRequests((prev) => prev.filter((r) => r.id !== id));
+    }
+  }
 
   // Dialog
   const [addRequestOpen, setAddRequestOpen] = useState(false);
@@ -1195,6 +1367,7 @@ export function ClientDetailPanel({
             <DialogContent className="sm:max-w-sm">
               <DialogHeader>
                 <DialogTitle>Next Appointment</DialogTitle>
+                <DialogDescription className="sr-only">Upcoming appointment details</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-1">
                 <div className="bg-[var(--nb-bg)] rounded-xl border border-[var(--nb-border)] px-4 py-4 space-y-3">
@@ -1575,6 +1748,42 @@ export function ClientDetailPanel({
                                 {req.description}
                               </p>
                             )}
+                            {/* Edit / Delete actions */}
+                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--nb-border)]">
+                              <button
+                                onClick={() => { setConfirmDeleteId(null); setEditingRequest(req); }}
+                                className="text-xs font-medium text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors px-2 py-1 rounded-lg hover:bg-[var(--nb-active-bg)]"
+                              >
+                                Edit
+                              </button>
+                              <div className="ml-auto flex items-center gap-1.5">
+                                {confirmDeleteId === req.id ? (
+                                  <>
+                                    <button
+                                      onClick={() => setConfirmDeleteId(null)}
+                                      className="text-xs text-[var(--nb-text-2)] hover:text-[var(--nb-text)] px-2 py-1 rounded-lg transition-colors"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteRequest(req.id)}
+                                      disabled={deletingId === req.id}
+                                      className="inline-flex items-center gap-1 text-xs font-medium bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-50"
+                                    >
+                                      {deletingId === req.id && <Loader2 size={11} className="animate-spin" />}
+                                      Confirm delete?
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    onClick={() => handleDeleteRequest(req.id)}
+                                    className="text-xs font-medium text-[var(--nb-text-2)] hover:text-red-600 transition-colors px-2 py-1 rounded-lg hover:bg-red-50"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       );
@@ -1658,6 +1867,18 @@ export function ClientDetailPanel({
       {lightboxUrl && (
         <Lightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />
       )}
+
+      {/* Edit Tattoo Request dialog */}
+      <EditRequestDialog
+        open={!!editingRequest}
+        onOpenChange={(v) => { if (!v) setEditingRequest(null); }}
+        request={editingRequest}
+        onSaved={(updated) => {
+          setRequests((prev) => prev.map((r) => r.id === updated.id ? updated : r));
+          setEditingRequest(null);
+          showToast("Request updated!", "success");
+        }}
+      />
 
       {/* Add Tattoo Request dialog */}
       <AddRequestDialog
