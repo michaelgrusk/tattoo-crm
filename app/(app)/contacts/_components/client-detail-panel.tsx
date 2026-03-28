@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import type { ClientListItem } from "../page";
 import type { SignedWaiver, WaiverField, WaiverSection } from "../../waivers/types";
+import { BookAppointmentDialog } from "../../calendar/_components/book-appointment-dialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,6 +54,16 @@ type NextAppointment = {
   status: string;
   artist_name: string;
 } | null;
+
+type ClientAppt = {
+  id: string;
+  date: string;
+  time: string;
+  type: string;
+  status: string;
+  artist_name: string | null;
+  artists: { name: string } | null;
+};
 
 type ArtistHistoryRow = {
   artist_id: number;
@@ -797,6 +808,9 @@ export function ClientDetailPanel({
   const [requests, setRequests] = useState<TattooRequest[]>([]);
   const [nextAppt, setNextAppt] = useState<NextAppointment>(null);
   const [apptDialogOpen, setApptDialogOpen] = useState(false);
+  const [clientAppts, setClientAppts] = useState<ClientAppt[]>([]);
+  const [apptTab, setApptTab] = useState<"requests" | "appointments">("requests");
+  const [apptBookOpen, setApptBookOpen] = useState(false);
   const [localStatus, setLocalStatus] = useState<string>(client.status ?? "");
   const [statusSaving, setStatusSaving] = useState(false);
   const [signedWaivers, setSignedWaivers] = useState<SignedWaiver[]>([]);
@@ -916,10 +930,16 @@ export function ClientDetailPanel({
         .select("artist_id, artists(id, name, avatar_url)")
         .eq("client_id", String(client.id))
         .not("artist_id", "is", null),
-    ]).then(([{ data: reqs }, { data: appts }, { data: waivers }, { data: artistAppts }]) => {
+      supabase
+        .from("appointments")
+        .select("id, date, time, type, status, artist_name, artists(name)")
+        .eq("client_id", String(client.id))
+        .order("date", { ascending: false }),
+    ]).then(([{ data: reqs }, { data: appts }, { data: waivers }, { data: artistAppts }, { data: apptRows }]) => {
       setRequests((reqs as TattooRequest[]) ?? []);
       setNextAppt((appts?.[0] as NextAppointment) ?? null);
       setSignedWaivers((waivers as unknown as SignedWaiver[]) ?? []);
+      setClientAppts((apptRows as unknown as ClientAppt[]) ?? []);
       // Aggregate artist history
       const map: Record<number, ArtistHistoryRow> = {};
       for (const row of (artistAppts ?? []) as unknown as { artist_id: number; artists: { id: number; name: string; avatar_url: string | null } | null }[]) {
@@ -1424,125 +1444,212 @@ export function ClientDetailPanel({
               </section>
             )}
 
-            {/* ── Tattoo History ────────────────────────────────────────── */}
-            <section>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-[var(--nb-text)]">
-                  Tattoo History
-                  {requests.length > 0 && (
-                    <span className="ml-2 text-xs font-medium text-[var(--nb-text-2)]">
-                      {requests.length}
-                    </span>
-                  )}
-                </h3>
-                <Button
-                  size="sm"
-                  onClick={() => setAddRequestOpen(true)}
-                  className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
+            {/* ── Section tabs ──────────────────────────────────────── */}
+            <div className="flex rounded-lg border border-[var(--nb-border)] bg-[var(--nb-bg)] p-0.5 gap-0.5 mb-6">
+              {(["requests","appointments"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setApptTab(t)}
+                  type="button"
+                  className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors ${
+                    apptTab === t
+                      ? "bg-[var(--nb-card)] text-[#7C3AED] shadow-sm border border-[var(--nb-border)]"
+                      : "text-[var(--nb-text-2)] hover:text-[var(--nb-text)]"
+                  }`}
                 >
-                  <Plus size={13} />
-                  Add Request
-                </Button>
-              </div>
+                  {t === "requests" ? `Requests (${requests.length})` : `Appointments (${clientAppts.length})`}
+                </button>
+              ))}
+            </div>
 
-              {requests.length === 0 ? (
-                <div className="bg-[var(--nb-card)] rounded-xl border border-dashed border-[var(--nb-border)] p-8 text-center text-sm text-[var(--nb-text-2)]">
-                  No tattoo requests yet
+            {/* ── Tattoo History ────────────────────────────────────────── */}
+            {apptTab === "requests" && (
+              <section>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-[var(--nb-text)]">
+                    Tattoo History
+                    {requests.length > 0 && (
+                      <span className="ml-2 text-xs font-medium text-[var(--nb-text-2)]">
+                        {requests.length}
+                      </span>
+                    )}
+                  </h3>
+                  <Button
+                    size="sm"
+                    onClick={() => setAddRequestOpen(true)}
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
+                  >
+                    <Plus size={13} />
+                    Add Request
+                  </Button>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {requests.map((req) => {
-                    const statusStyle = getStatusStyle(req.status);
-                    const isUploadingCard = uploadingCardIds.has(req.id);
 
-                    return (
-                      <div
-                        key={req.id}
-                        className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] overflow-hidden"
-                      >
-                        {/* Reference image strip */}
-                        {req.reference_image_url ? (
-                          <button
-                            onClick={() =>
-                              setLightboxUrl(req.reference_image_url!)
-                            }
-                            className="group relative w-full h-36 overflow-hidden block border-b border-[var(--nb-border)]"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={req.reference_image_url}
-                              alt="Reference"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                              <Expand
-                                size={20}
-                                className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow"
-                              />
-                            </div>
-                          </button>
-                        ) : (
-                          <div className="border-b border-[var(--nb-border)] border-dashed">
+                {requests.length === 0 ? (
+                  <div className="bg-[var(--nb-card)] rounded-xl border border-dashed border-[var(--nb-border)] p-8 text-center text-sm text-[var(--nb-text-2)]">
+                    No tattoo requests yet
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {requests.map((req) => {
+                      const statusStyle = getStatusStyle(req.status);
+                      const isUploadingCard = uploadingCardIds.has(req.id);
+
+                      return (
+                        <div
+                          key={req.id}
+                          className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] overflow-hidden"
+                        >
+                          {/* Reference image strip */}
+                          {req.reference_image_url ? (
                             <button
                               onClick={() =>
-                                cardImageInputRefs.current[req.id]?.click()
+                                setLightboxUrl(req.reference_image_url!)
                               }
-                              disabled={isUploadingCard}
-                              className="w-full flex items-center justify-center gap-2 py-3 text-xs text-[var(--nb-text-2)] hover:text-[#7C3AED] hover:bg-[var(--nb-card)] transition-colors disabled:opacity-50"
+                              className="group relative w-full h-36 overflow-hidden block border-b border-[var(--nb-border)]"
                             >
-                              {isUploadingCard ? (
-                                <Loader2 size={13} className="animate-spin" />
-                              ) : (
-                                <Upload size={13} />
-                              )}
-                              {isUploadingCard
-                                ? "Uploading…"
-                                : "Add reference image"}
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={req.reference_image_url}
+                                alt="Reference"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                <Expand
+                                  size={20}
+                                  className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow"
+                                />
+                              </div>
                             </button>
-                            <input
-                              ref={(el) => {
-                                cardImageInputRefs.current[req.id] = el;
-                              }}
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) =>
-                                handleCardImageUpload(req.id, e)
-                              }
-                            />
-                          </div>
-                        )}
-
-                        {/* Card body */}
-                        <div className="px-5 py-4">
-                          <div className="flex items-start justify-between gap-3 mb-2">
-                            <span className="inline-flex items-center rounded-full bg-[var(--nb-active-bg)] px-2.5 py-0.5 text-xs font-medium text-[#7C3AED]">
-                              {req.style}
-                            </span>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span
-                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyle.text} ${statusStyle.bg}`}
+                          ) : (
+                            <div className="border-b border-[var(--nb-border)] border-dashed">
+                              <button
+                                onClick={() =>
+                                  cardImageInputRefs.current[req.id]?.click()
+                                }
+                                disabled={isUploadingCard}
+                                className="w-full flex items-center justify-center gap-2 py-3 text-xs text-[var(--nb-text-2)] hover:text-[#7C3AED] hover:bg-[var(--nb-card)] transition-colors disabled:opacity-50"
                               >
-                                {req.status.charAt(0).toUpperCase() +
-                                  req.status.slice(1)}
+                                {isUploadingCard ? (
+                                  <Loader2 size={13} className="animate-spin" />
+                                ) : (
+                                  <Upload size={13} />
+                                )}
+                                {isUploadingCard
+                                  ? "Uploading…"
+                                  : "Add reference image"}
+                              </button>
+                              <input
+                                ref={(el) => {
+                                  cardImageInputRefs.current[req.id] = el;
+                                }}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) =>
+                                  handleCardImageUpload(req.id, e)
+                                }
+                              />
+                            </div>
+                          )}
+
+                          {/* Card body */}
+                          <div className="px-5 py-4">
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <span className="inline-flex items-center rounded-full bg-[var(--nb-active-bg)] px-2.5 py-0.5 text-xs font-medium text-[#7C3AED]">
+                                {req.style}
                               </span>
-                              <span className="text-xs text-[var(--nb-text-2)]">
-                                {formatDate(req.created_at)}
-                              </span>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span
+                                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyle.text} ${statusStyle.bg}`}
+                                >
+                                  {req.status.charAt(0).toUpperCase() +
+                                    req.status.slice(1)}
+                                </span>
+                                <span className="text-xs text-[var(--nb-text-2)]">
+                                  {formatDate(req.created_at)}
+                                </span>
+                              </div>
+                            </div>
+                            {req.description && (
+                              <p className="text-sm text-[var(--nb-text)] leading-relaxed">
+                                {req.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ── Appointments ──────────────────────────────────────────── */}
+            {apptTab === "appointments" && (
+              <section>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-[var(--nb-text)]">
+                    Appointments
+                    {clientAppts.length > 0 && (
+                      <span className="ml-2 text-xs font-medium text-[var(--nb-text-2)]">
+                        {clientAppts.length}
+                      </span>
+                    )}
+                  </h3>
+                  <Button
+                    size="sm"
+                    onClick={() => setApptBookOpen(true)}
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
+                  >
+                    <Plus size={13} />
+                    Book
+                  </Button>
+                </div>
+                {clientAppts.length === 0 ? (
+                  <div className="bg-[var(--nb-card)] rounded-xl border border-dashed border-[var(--nb-border)] p-8 text-center text-sm text-[var(--nb-text-2)]">
+                    No appointments yet
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {clientAppts.map((appt) => {
+                      const [h, m] = appt.time.split(":").map(Number);
+                      const timeStr = `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+                      const dateStr = new Date(appt.date + "T00:00:00").toLocaleDateString("en-US", {
+                        weekday: "short", month: "short", day: "numeric", year: "numeric",
+                      });
+                      const artistDisplay = appt.artists?.name ?? appt.artist_name ?? null;
+                      const statusStyles: Record<string, { text: string; bg: string; dot: string }> = {
+                        confirmed: { text: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-400" },
+                        pending: { text: "text-amber-700", bg: "bg-amber-50", dot: "bg-amber-400" },
+                        completed: { text: "text-sky-700", bg: "bg-sky-50", dot: "bg-sky-400" },
+                        cancelled: { text: "text-red-700", bg: "bg-red-50", dot: "bg-red-400" },
+                      };
+                      const ss = statusStyles[appt.status] ?? { text: "text-[var(--nb-text-2)]", bg: "bg-[var(--nb-active-bg)]", dot: "bg-[var(--nb-border)]" };
+                      return (
+                        <div key={appt.id} className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-4 py-3 flex items-center gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-medium text-[var(--nb-text)]">{dateStr}</p>
+                              <p className="text-xs text-[var(--nb-text-2)]">{timeStr}</p>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              <span className="text-xs text-[var(--nb-text-2)]">{appt.type}</span>
+                              {artistDisplay && (
+                                <span className="text-xs text-[var(--nb-text-2)]">· {artistDisplay}</span>
+                              )}
                             </div>
                           </div>
-                          {req.description && (
-                            <p className="text-sm text-[var(--nb-text)] leading-relaxed">
-                              {req.description}
-                            </p>
-                          )}
+                          <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${ss.text} ${ss.bg}`}>
+                            <span className={`size-1.5 rounded-full ${ss.dot}`} />
+                            {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
+                          </span>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
           </>
         )}
       </div>
@@ -1563,6 +1670,23 @@ export function ClientDetailPanel({
           setRequests((prev) => [req, ...prev]);
           setAddRequestOpen(false);
           showToast("Tattoo request added!", "success");
+        }}
+      />
+
+      {/* Book Appointment dialog */}
+      <BookAppointmentDialog
+        open={apptBookOpen}
+        onOpenChange={setApptBookOpen}
+        onSuccess={() => {
+          setApptBookOpen(false);
+          // re-fetch appointments
+          supabase
+            .from("appointments")
+            .select("id, date, time, type, status, artist_name, artists(name)")
+            .eq("client_id", String(client.id))
+            .order("date", { ascending: false })
+            .then(({ data }) => setClientAppts((data as unknown as ClientAppt[]) ?? []));
+          showToast("Appointment booked!", "success");
         }}
       />
 

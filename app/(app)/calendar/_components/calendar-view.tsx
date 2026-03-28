@@ -204,6 +204,16 @@ export function CalendarView() {
   const [editStatus, setEditStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
+  const [completeView, setCompleteView] = useState(false);
+  const [completeAmount, setCompleteAmount] = useState("");
+  const [completePayType, setCompletePayType] = useState("Full payment");
+  const [completeNotes, setCompleteNotes] = useState("");
+  const [completing, setCompleting] = useState(false);
+  const [calTab, setCalTab] = useState<"calendar" | "appointments">("calendar");
+  const [allAppts, setAllAppts] = useState<Appointment[]>([]);
+  const [allApptsLoading, setAllApptsLoading] = useState(false);
+  const [apptSearch, setApptSearch] = useState("");
+  const [apptStatusFilter, setApptStatusFilter] = useState("all");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -238,10 +248,28 @@ export function CalendarView() {
     setLoading(false);
   }, [weekStart]);
 
+  const fetchAllAppts = useCallback(async () => {
+    setAllApptsLoading(true);
+    const userId = await getUserId();
+    if (!userId) { setAllApptsLoading(false); return; }
+    const { data } = await supabase
+      .from("appointments")
+      .select("id, client_id, date, time, type, status, artist_name, artist_id, clients(name), artists(name)")
+      .eq("user_id", userId)
+      .order("date", { ascending: false })
+      .order("time", { ascending: false });
+    setAllAppts((data as unknown as Appointment[]) ?? []);
+    setAllApptsLoading(false);
+  }, []);
+
   // Run on mount and whenever the week changes
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
+
+  useEffect(() => {
+    if (calTab === "appointments") fetchAllAppts();
+  }, [calTab, fetchAllAppts]);
 
   function fireToast(message: string) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -253,6 +281,39 @@ export function CalendarView() {
   function handleBookingSuccess() {
     fetchAppointments();
     fireToast("Appointment booked!");
+  }
+
+  async function handleCompleteSession() {
+    if (!selectedAppt || !completeAmount) return;
+    setCompleting(true);
+    const userId = await getUserId();
+    if (!userId) { setCompleting(false); return; }
+    const today = toDateStr(new Date());
+    const clientName = selectedAppt.clients?.name ?? selectedAppt.artist_name ?? "Client";
+
+    // Update appointment to completed
+    await supabase
+      .from("appointments")
+      .update({ status: "completed" })
+      .eq("id", selectedAppt.id);
+
+    // Create invoice
+    await supabase.from("invoices").insert({
+      user_id: userId,
+      client_id: selectedAppt.client_id ?? null,
+      artist_id: selectedAppt.artist_id ?? null,
+      appointment_id: selectedAppt.id,
+      amount: parseFloat(completeAmount),
+      type: `${selectedAppt.type} — ${clientName}`,
+      status: "paid",
+      date: today,
+    });
+
+    setCompleting(false);
+    closeAppt();
+    fetchAppointments();
+    fetchAllAppts();
+    fireToast("Session completed! Invoice created automatically.");
   }
 
   function openEditMode() {
@@ -269,6 +330,10 @@ export function CalendarView() {
     setDeleteConfirm(false);
     setEditMode(false);
     setDepositOpen(false);
+    setCompleteView(false);
+    setCompleteAmount("");
+    setCompletePayType("Full payment");
+    setCompleteNotes("");
   }
 
   async function handleSaveEdit() {
@@ -330,6 +395,32 @@ export function CalendarView() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-[var(--nb-card)]">
+      {/* Tab switcher */}
+      <div className="flex items-center gap-1 px-4 py-2 border-b border-[var(--nb-border)] shrink-0 bg-[var(--nb-card)]">
+        <button
+          onClick={() => setCalTab("calendar")}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            calTab === "calendar"
+              ? "bg-[#7C3AED] text-white"
+              : "text-[var(--nb-text-2)] hover:bg-[var(--nb-bg)] hover:text-[var(--nb-text)]"
+          }`}
+        >
+          Calendar
+        </button>
+        <button
+          onClick={() => setCalTab("appointments")}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            calTab === "appointments"
+              ? "bg-[#7C3AED] text-white"
+              : "text-[var(--nb-text-2)] hover:bg-[var(--nb-bg)] hover:text-[var(--nb-text)]"
+          }`}
+        >
+          All Appointments
+        </button>
+      </div>
+
+      {calTab === "calendar" && (
+      <>
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-[var(--nb-border)] shrink-0 gap-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -486,6 +577,119 @@ export function CalendarView() {
           })}
         </div>
       </div>
+      </>
+      )}
+
+      {calTab === "appointments" && (
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-[var(--nb-bg)]">
+          {/* Search + filter bar */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              placeholder="Search by client name…"
+              value={apptSearch}
+              onChange={(e) => setApptSearch(e.target.value)}
+              className="flex-1 h-9 rounded-lg border border-[var(--nb-border)] bg-[var(--nb-card)] px-3 text-sm outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors placeholder:text-[var(--nb-text-2)]"
+            />
+            <div className="flex gap-1.5 flex-wrap">
+              {["all","confirmed","pending","completed","cancelled"].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setApptStatusFilter(s)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${
+                    apptStatusFilter === s
+                      ? "bg-[#7C3AED] text-white"
+                      : "bg-[var(--nb-card)] border border-[var(--nb-border)] text-[var(--nb-text-2)] hover:text-[var(--nb-text)]"
+                  }`}
+                >
+                  {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Stats summary */}
+          {(() => {
+            const filtered = allAppts
+              .filter((a) => apptStatusFilter === "all" || a.status === apptStatusFilter)
+              .filter((a) => {
+                if (!apptSearch.trim()) return true;
+                const name = a.clients?.name ?? a.artist_name ?? "";
+                return name.toLowerCase().includes(apptSearch.toLowerCase());
+              });
+            const completedCount = allAppts.filter((a) => a.status === "completed").length;
+            return (
+              <>
+                <div className="flex items-center gap-4 text-xs text-[var(--nb-text-2)]">
+                  <span>{filtered.length} appointments</span>
+                  <span>{completedCount} completed</span>
+                </div>
+
+                {/* Table */}
+                <div className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] overflow-hidden shadow-sm">
+                  {allApptsLoading ? (
+                    <div className="py-12 flex items-center justify-center gap-2 text-sm text-[var(--nb-text-2)]">
+                      <Loader2 size={16} className="animate-spin" />
+                      Loading…
+                    </div>
+                  ) : filtered.length === 0 ? (
+                    <div className="py-12 text-center text-sm text-[var(--nb-text-2)]">No appointments found</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[600px] text-sm">
+                        <thead>
+                          <tr className="border-b border-[var(--nb-border)]">
+                            {["Client","Artist","Date","Time","Type","Status",""].map((col,i) => (
+                              <th key={i} className="px-4 py-3 text-left text-xs font-semibold text-[var(--nb-text-2)] uppercase tracking-wide">{col}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--nb-border)]">
+                          {filtered.map((appt) => {
+                            const [h,m] = appt.time.split(":").map(Number);
+                            const timeStr = `${h%12||12}:${String(m).padStart(2,"0")} ${h>=12?"PM":"AM"}`;
+                            const dateStr = new Date(appt.date+"T00:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+                            const statusCfg: Record<string,{dot:string;text:string;bg:string}> = {
+                              confirmed:{dot:"bg-emerald-400",text:"text-emerald-700",bg:"bg-emerald-50"},
+                              pending:{dot:"bg-amber-400",text:"text-amber-700",bg:"bg-amber-50"},
+                              completed:{dot:"bg-sky-400",text:"text-sky-700",bg:"bg-sky-50"},
+                              cancelled:{dot:"bg-red-400",text:"text-red-700",bg:"bg-red-50"},
+                            };
+                            const cfg = statusCfg[appt.status] ?? {dot:"bg-[var(--nb-border)]",text:"text-[var(--nb-text-2)]",bg:"bg-[var(--nb-active-bg)]"};
+                            return (
+                              <tr key={appt.id} className="hover:bg-[var(--nb-bg)] transition-colors">
+                                <td className="px-4 py-3 font-medium text-[var(--nb-text)]">{appt.clients?.name ?? appt.artist_name ?? "—"}</td>
+                                <td className="px-4 py-3 text-[var(--nb-text-2)]">{appt.artists?.name ?? appt.artist_name ?? "—"}</td>
+                                <td className="px-4 py-3 text-[var(--nb-text-2)] whitespace-nowrap">{dateStr}</td>
+                                <td className="px-4 py-3 text-[var(--nb-text-2)]">{timeStr}</td>
+                                <td className="px-4 py-3 text-[var(--nb-text-2)]">{appt.type}</td>
+                                <td className="px-4 py-3">
+                                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.text} ${cfg.bg}`}>
+                                    <span className={`size-1.5 rounded-full ${cfg.dot}`} />
+                                    {appt.status.charAt(0).toUpperCase()+appt.status.slice(1)}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <button
+                                    onClick={() => { setSelectedAppt(appt); }}
+                                    className="px-3 py-1.5 text-xs font-medium text-[#7C3AED] rounded-lg border border-[var(--nb-border)] hover:bg-[var(--nb-bg)] transition-colors"
+                                  >
+                                    View
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
 
       {/* Appointment detail dialog */}
       {selectedAppt && (
@@ -500,7 +704,7 @@ export function CalendarView() {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--nb-border)]">
               <h3 className="text-base font-semibold text-[var(--nb-text)]">
-                {editMode ? "Edit Appointment" : "Appointment Details"}
+                {completeView ? "Complete Session" : editMode ? "Edit Appointment" : "Appointment Details"}
               </h3>
               <button
                 onClick={closeAppt}
@@ -510,7 +714,7 @@ export function CalendarView() {
               </button>
             </div>
 
-            {!editMode ? (
+            {!editMode && !completeView ? (
               <>
                 {/* Body — detail view */}
                 <div className="px-5 py-4 space-y-3">
@@ -594,6 +798,12 @@ export function CalendarView() {
                       Deposit
                     </button>
                     <button
+                      onClick={() => setCompleteView(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                    >
+                      Complete Session
+                    </button>
+                    <button
                       onClick={openEditMode}
                       className="px-3 py-1.5 text-xs font-medium text-[#7C3AED] rounded-lg border border-[var(--nb-border)] hover:bg-[var(--nb-bg)] transition-colors"
                     >
@@ -608,7 +818,7 @@ export function CalendarView() {
                   </div>
                 </div>
               </>
-            ) : (
+            ) : editMode ? (
               <>
                 {/* Body — edit view */}
                 <div className="px-5 py-4 space-y-3">
@@ -671,6 +881,65 @@ export function CalendarView() {
                   >
                     {saving && <Loader2 size={12} className="animate-spin" />}
                     {saving ? "Saving…" : "Save Changes"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Body — complete session form */}
+                <div className="px-5 py-4 space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide">Amount Charged</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="e.g. 350"
+                      value={completeAmount}
+                      onChange={(e) => setCompleteAmount(e.target.value)}
+                      autoFocus
+                      className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-[#7C3AED] transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide">Payment Type</label>
+                    <select
+                      value={completePayType}
+                      onChange={(e) => setCompletePayType(e.target.value)}
+                      className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-[#7C3AED] transition-colors"
+                    >
+                      <option>Full payment</option>
+                      <option>Deposit</option>
+                      <option>Cash</option>
+                      <option>Bank transfer</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide">Notes (optional)</label>
+                    <input
+                      type="text"
+                      placeholder="Any notes…"
+                      value={completeNotes}
+                      onChange={(e) => setCompleteNotes(e.target.value)}
+                      className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-[#7C3AED] transition-colors"
+                    />
+                  </div>
+                </div>
+                {/* Footer — complete session */}
+                <div className="px-5 py-3 border-t border-[var(--nb-border)] flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => setCompleteView(false)}
+                    disabled={completing}
+                    className="px-4 py-1.5 text-sm font-medium text-[var(--nb-text-2)] rounded-lg border border-[var(--nb-border)] hover:bg-[var(--nb-bg)] transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCompleteSession}
+                    disabled={completing || !completeAmount}
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {completing ? "Saving…" : "Confirm & Complete"}
                   </button>
                 </div>
               </>

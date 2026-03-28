@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Link, Mail, Phone, Pencil } from "lucide-react";
+import { Link, Mail, Phone, Pencil, X, Loader2, CalendarDays, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import type { Artist } from "../page";
 
@@ -44,10 +44,256 @@ function getInitials(name: string): string {
   );
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+function formatDate(dateStr: string) {
+  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatTime(timeStr: string) {
+  const [h, m] = timeStr.split(":");
+  const hour = parseInt(h, 10);
+  return `${hour % 12 || 12}:${m} ${hour >= 12 ? "PM" : "AM"}`;
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type CompletedAppt = {
+  id: string;
+  date: string;
+  type: string;
+  clients: { name: string } | null;
+  invoices: { amount: number }[];
+};
+
+type UpcomingAppt = {
+  id: string;
+  date: string;
+  time: string;
+  type: string;
+  status: string;
+  clients: { name: string } | null;
+};
+
+const STATUS_STYLES: Record<string, { text: string; bg: string }> = {
+  scheduled:   { text: "text-sky-700",     bg: "bg-sky-50" },
+  confirmed:   { text: "text-emerald-700", bg: "bg-emerald-50" },
+  "in progress": { text: "text-violet-700", bg: "bg-violet-50" },
+  completed:   { text: "text-emerald-700", bg: "bg-emerald-50" },
+  cancelled:   { text: "text-red-700",     bg: "bg-red-50" },
+};
+
+function statusStyle(s: string) {
+  return STATUS_STYLES[s.toLowerCase()] ?? { text: "text-[var(--nb-text-2)]", bg: "bg-[var(--nb-border)]" };
+}
+
+// ── Completed Sessions Dialog ─────────────────────────────────────────────────
+
+function CompletedSessionsDialog({
+  open,
+  onOpenChange,
+  artistId,
+  artistName,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  artistId: number;
+  artistName: string;
+}) {
+  const [appts, setAppts] = useState<CompletedAppt[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    supabase
+      .from("appointments")
+      .select("id, date, type, clients(name), invoices(amount)")
+      .eq("artist_id", artistId)
+      .eq("status", "completed")
+      .order("date", { ascending: false })
+      .then(({ data }) => {
+        setAppts((data as unknown as CompletedAppt[]) ?? []);
+        setLoading(false);
+      });
+  }, [open, artistId]);
+
+  const totalEarned = appts.reduce(
+    (sum, a) => sum + (a.invoices?.[0]?.amount ?? 0),
+    0
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg bg-[var(--nb-card)] border border-[var(--nb-border)]">
+        <DialogHeader>
+          <DialogTitle className="text-[var(--nb-text)]">
+            Sessions Completed — {artistName}
+          </DialogTitle>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 size={20} className="animate-spin text-[var(--nb-text-2)]" />
+          </div>
+        ) : appts.length === 0 ? (
+          <div className="py-10 text-center text-sm text-[var(--nb-text-2)]">
+            No completed sessions yet.
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+            {totalEarned > 0 && (
+              <div className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-2.5 flex items-center justify-between mb-3">
+                <span className="text-xs text-[var(--nb-text-2)]">Total invoiced</span>
+                <span className="text-sm font-semibold text-emerald-700">
+                  ${totalEarned.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            )}
+            {appts.map((a) => (
+              <div
+                key={a.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-[var(--nb-text)] truncate">
+                    {a.clients?.name ?? "Unknown client"}
+                  </p>
+                  <p className="text-xs text-[var(--nb-text-2)] mt-0.5">
+                    {formatDate(a.date)} · {a.type}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {a.invoices?.[0]?.amount != null && (
+                    <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">
+                      ${a.invoices[0].amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    </span>
+                  )}
+                  <CheckCircle2 size={14} className="text-emerald-500" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline" className="border-[var(--nb-border)] text-[var(--nb-text-2)]">
+              Close
+            </Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Upcoming Sessions Dialog ──────────────────────────────────────────────────
+
+function UpcomingSessionsDialog({
+  open,
+  onOpenChange,
+  artistId,
+  artistName,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  artistId: number;
+  artistName: string;
+}) {
+  const [appts, setAppts] = useState<UpcomingAppt[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    const today = new Date().toISOString().split("T")[0];
+    supabase
+      .from("appointments")
+      .select("id, date, time, type, status, clients(name)")
+      .eq("artist_id", artistId)
+      .gte("date", today)
+      .neq("status", "completed")
+      .neq("status", "cancelled")
+      .order("date", { ascending: true })
+      .order("time", { ascending: true })
+      .then(({ data }) => {
+        setAppts((data as unknown as UpcomingAppt[]) ?? []);
+        setLoading(false);
+      });
+  }, [open, artistId]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg bg-[var(--nb-card)] border border-[var(--nb-border)]">
+        <DialogHeader>
+          <DialogTitle className="text-[var(--nb-text)]">
+            Upcoming Appointments — {artistName}
+          </DialogTitle>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 size={20} className="animate-spin text-[var(--nb-text-2)]" />
+          </div>
+        ) : appts.length === 0 ? (
+          <div className="py-10 text-center text-sm text-[var(--nb-text-2)]">
+            No upcoming appointments.
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+            {appts.map((a) => {
+              const ss = statusStyle(a.status);
+              return (
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-[var(--nb-text)] truncate">
+                      {a.clients?.name ?? "Unknown client"}
+                    </p>
+                    <p className="text-xs text-[var(--nb-text-2)] mt-0.5">
+                      {formatDate(a.date)} · {formatTime(a.time)} · {a.type}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${ss.text} ${ss.bg}`}>
+                      {a.status}
+                    </span>
+                    <a
+                      href="/calendar"
+                      className="shrink-0 size-7 flex items-center justify-center rounded-lg hover:bg-[var(--nb-active-bg)] text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors"
+                      title="View in Calendar"
+                    >
+                      <CalendarDays size={13} />
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline" className="border-[var(--nb-border)] text-[var(--nb-text-2)]">
+              Close
+            </Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Main dialog ───────────────────────────────────────────────────────────────
 
 type Stats = {
-  totalSessions: number;
+  completedSessions: number;
   upcomingSessions: number;
 };
 
@@ -62,10 +308,9 @@ export function ArtistDetailDialog({
   artist: Artist;
   onEdit: () => void;
 }) {
-  const [stats, setStats] = useState<Stats>({
-    totalSessions: 0,
-    upcomingSessions: 0,
-  });
+  const [stats, setStats] = useState<Stats>({ completedSessions: 0, upcomingSessions: 0 });
+  const [completedOpen, setCompletedOpen] = useState(false);
+  const [upcomingOpen, setUpcomingOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -73,20 +318,23 @@ export function ArtistDetailDialog({
     async function fetchStats() {
       const today = new Date().toISOString().split("T")[0];
 
-      const [totalRes, upcomingRes] = await Promise.all([
-        supabase
-          .from("appointments")
-          .select("id", { count: "exact", head: true })
-          .eq("artist_id", artist.id),
+      const [completedRes, upcomingRes] = await Promise.all([
         supabase
           .from("appointments")
           .select("id", { count: "exact", head: true })
           .eq("artist_id", artist.id)
-          .gte("date", today),
+          .eq("status", "completed"),
+        supabase
+          .from("appointments")
+          .select("id", { count: "exact", head: true })
+          .eq("artist_id", artist.id)
+          .gte("date", today)
+          .neq("status", "completed")
+          .neq("status", "cancelled"),
       ]);
 
       setStats({
-        totalSessions: totalRes.count ?? 0,
+        completedSessions: completedRes.count ?? 0,
         upcomingSessions: upcomingRes.count ?? 0,
       });
     }
@@ -98,6 +346,7 @@ export function ArtistDetailDialog({
   const initials = getInitials(artist.name);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-[var(--nb-card)] border border-[var(--nb-border)]">
         <DialogHeader>
@@ -142,20 +391,28 @@ export function ArtistDetailDialog({
 
           {/* Stats */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-3 text-center">
-              <p className="text-xs text-[var(--nb-text-2)] mb-1">
-                Total sessions
+            <button
+              onClick={() => setCompletedOpen(true)}
+              className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-3 text-center hover:border-[#7C3AED]/40 hover:bg-[var(--nb-active-bg)] transition-colors group"
+            >
+              <p className="text-xs text-[var(--nb-text-2)] mb-1 group-hover:text-[#7C3AED] transition-colors">
+                Sessions completed
               </p>
               <p className="text-2xl font-bold text-[var(--nb-text)]">
-                {stats.totalSessions}
+                {stats.completedSessions}
               </p>
-            </div>
-            <div className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-3 text-center">
-              <p className="text-xs text-[var(--nb-text-2)] mb-1">Upcoming</p>
+            </button>
+            <button
+              onClick={() => setUpcomingOpen(true)}
+              className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-3 text-center hover:border-[#7C3AED]/40 hover:bg-[var(--nb-active-bg)] transition-colors group"
+            >
+              <p className="text-xs text-[var(--nb-text-2)] mb-1 group-hover:text-[#7C3AED] transition-colors">
+                Upcoming
+              </p>
               <p className="text-2xl font-bold text-[#7C3AED]">
                 {stats.upcomingSessions}
               </p>
-            </div>
+            </button>
           </div>
 
           {/* Bio */}
@@ -252,5 +509,20 @@ export function ArtistDetailDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <CompletedSessionsDialog
+      open={completedOpen}
+      onOpenChange={setCompletedOpen}
+      artistId={artist.id}
+      artistName={artist.name}
+    />
+
+    <UpcomingSessionsDialog
+      open={upcomingOpen}
+      onOpenChange={setUpcomingOpen}
+      artistId={artist.id}
+      artistName={artist.name}
+    />
+    </>
   );
 }

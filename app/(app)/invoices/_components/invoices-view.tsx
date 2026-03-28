@@ -8,7 +8,6 @@ import {
   Clock,
   Landmark,
   Eye,
-  BellRing,
   CheckCircle2,
   FileX,
 } from "lucide-react";
@@ -17,6 +16,7 @@ import type { Invoice, InvoiceSummary } from "../page";
 import { NewInvoiceDialog } from "./new-invoice-dialog";
 import { InvoiceDetailDialog } from "./invoice-detail-dialog";
 import { useCurrency } from "@/components/currency-provider";
+import { supabase } from "@/lib/supabase/client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -113,15 +113,6 @@ function SummaryCard({
   );
 }
 
-function RemindButton() {
-  return (
-    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors">
-      <BellRing size={12} />
-      Remind
-    </button>
-  );
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function InvoicesView({
@@ -138,6 +129,7 @@ export function InvoicesView({
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [markingPaid, setMarkingPaid] = useState<string | number | null>(null);
 
   const filtered =
     filter === "all" ? invoices : invoices.filter((inv) => inv.status === filter);
@@ -171,6 +163,14 @@ export function InvoicesView({
     setSelectedInvoice(null);
     router.refresh();
     showSuccessToast("Invoice deleted");
+  }
+
+  async function handleMarkPaid(invoiceId: string | number) {
+    setMarkingPaid(invoiceId);
+    await supabase.from("invoices").update({ status: "paid" }).eq("id", invoiceId);
+    setMarkingPaid(null);
+    router.refresh();
+    showSuccessToast("Invoice marked as paid!");
   }
 
   // Current month name for the summary card subtitle
@@ -343,8 +343,15 @@ export function InvoicesView({
                     {/* Action */}
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {(inv.status === "pending" || inv.status === "overdue") && (
-                          <RemindButton />
+                        {(inv.status === "pending" || inv.status === "overdue" || inv.status === "deposit") && (
+                          <button
+                            onClick={() => handleMarkPaid(inv.id)}
+                            disabled={markingPaid === inv.id}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors disabled:opacity-60"
+                          >
+                            <CheckCircle2 size={12} />
+                            {markingPaid === inv.id ? "…" : "Mark Paid"}
+                          </button>
                         )}
                         <button
                           onClick={() => setSelectedInvoice(inv)}

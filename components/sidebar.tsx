@@ -49,7 +49,7 @@ export function Sidebar({
   const [slug, setSlug] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [activeArtistCount, setActiveArtistCount] = useState<number | null>(null);
+  const [upcomingCount, setUpcomingCount] = useState<number | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -58,12 +58,24 @@ export function Sidebar({
       if (!user) return;
       setStudioName(user.user_metadata?.studio_name ?? null);
 
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      const todayStr = fmt(today);
+      const tomorrowStr = fmt(tomorrow);
+
       const [{ data: profile }, { count }] = await Promise.all([
         supabase.from("profiles").select("slug").eq("id", user.id).single(),
-        supabase.from("artists").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_active", true),
+        supabase.from("appointments").select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .in("date", [todayStr, tomorrowStr])
+          .neq("status", "completed")
+          .neq("status", "cancelled"),
       ]);
       setSlug(profile?.slug ?? null);
-      setActiveArtistCount(count ?? 0);
+      setUpcomingCount(count ?? 0);
     });
   }, []);
 
@@ -122,13 +134,13 @@ export function Sidebar({
                 className={isActive ? "text-[var(--nb-active-text)]" : "text-[var(--nb-text-2)]"}
               />
               <span className="flex-1">{label}</span>
-              {href === "/artists" && activeArtistCount !== null && activeArtistCount > 0 && (
+              {href === "/calendar" && upcomingCount !== null && upcomingCount > 0 && (
                 <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none ${
                   isActive
                     ? "bg-[#7C3AED]/20 text-[#7C3AED]"
-                    : "bg-[var(--nb-border)] text-[var(--nb-text-2)]"
+                    : "bg-[#7C3AED] text-white"
                 }`}>
-                  {activeArtistCount}
+                  {upcomingCount}
                 </span>
               )}
             </Link>

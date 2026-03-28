@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Users2, Pencil, PowerOff, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Users2, Pencil, PowerOff, CheckCircle2, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -43,11 +43,13 @@ function getInitials(name: string): string {
 
 function ArtistCard({
   artist,
+  upcomingCount,
   onOpen,
   onEdit,
   onToggle,
 }: {
   artist: Artist;
+  upcomingCount: number;
   onOpen: () => void;
   onEdit: (e: React.MouseEvent) => void;
   onToggle: (e: React.MouseEvent) => void;
@@ -95,6 +97,15 @@ function ArtistCard({
               {artist.years_experience}{" "}
               {artist.years_experience === 1 ? "yr" : "yrs"} experience
             </p>
+          )}
+
+          {upcomingCount > 0 && (
+            <div className="flex items-center gap-1 mt-1">
+              <CalendarDays size={11} className="text-[#7C3AED]" />
+              <span className="text-[11px] font-medium text-[#7C3AED]">
+                {upcomingCount} upcoming
+              </span>
+            </div>
           )}
 
           {/* Style tags */}
@@ -158,6 +169,29 @@ export function ArtistsView({ artists: initial }: { artists: Artist[] }) {
   const [editingArtist, setEditingArtist] = useState<Artist | null>(null);
   const [detailArtist, setDetailArtist] = useState<Artist | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [upcomingByArtist, setUpcomingByArtist] = useState<Record<number, number>>({});
+
+  useEffect(() => {
+    const today = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    supabase
+      .from("appointments")
+      .select("artist_id")
+      .gte("date", fmt(today))
+      .neq("status", "completed")
+      .neq("status", "cancelled")
+      .not("artist_id", "is", null)
+      .then(({ data }) => {
+        if (!data) return;
+        const counts: Record<number, number> = {};
+        for (const row of data) {
+          if (row.artist_id) counts[row.artist_id] = (counts[row.artist_id] ?? 0) + 1;
+        }
+        setUpcomingByArtist(counts);
+      });
+  }, []);
 
   function fireToast(msg: string) {
     setToast(msg);
@@ -258,6 +292,7 @@ export function ArtistsView({ artists: initial }: { artists: Artist[] }) {
               <ArtistCard
                 key={a.id}
                 artist={a}
+                upcomingCount={upcomingByArtist[a.id] ?? 0}
                 onOpen={() => setDetailArtist(a)}
                 onEdit={(e) => openEdit(a, e)}
                 onToggle={(e) => handleToggleActive(a, e)}
@@ -278,6 +313,7 @@ export function ArtistsView({ artists: initial }: { artists: Artist[] }) {
               <ArtistCard
                 key={a.id}
                 artist={a}
+                upcomingCount={0}
                 onOpen={() => setDetailArtist(a)}
                 onEdit={(e) => openEdit(a, e)}
                 onToggle={(e) => handleToggleActive(a, e)}
