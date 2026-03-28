@@ -28,23 +28,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch the studio's WhatsApp connection
-    const { data: conn } = await supabaseAdmin
-      .from("whatsapp_connections")
-      .select("phone_number_id, access_token, is_connected")
-      .eq("user_id", user.id)
-      .single();
+    // ── Resolve phone number ID and access token ──────────────────────────────
+    // Test mode: use env vars directly if present (no whatsapp_connections record needed)
+    const envPhoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const envAccessToken = process.env.WHATSAPP_ACCESS_TOKEN;
 
-    if (!conn?.is_connected) {
-      return NextResponse.json({ error: "WhatsApp not connected" }, { status: 400 });
+    let phoneNumberId: string;
+    let accessToken: string;
+
+    if (envPhoneNumberId && envAccessToken && envAccessToken !== "placeholder") {
+      // Use env var credentials (test / dev mode)
+      phoneNumberId = envPhoneNumberId;
+      accessToken = envAccessToken;
+    } else {
+      // Production: fetch the studio's WhatsApp connection record
+      const { data: conn } = await supabaseAdmin
+        .from("whatsapp_connections")
+        .select("phone_number_id, access_token, is_connected")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!conn?.is_connected) {
+        return NextResponse.json({ error: "WhatsApp not connected" }, { status: 400 });
+      }
+
+      phoneNumberId = conn.phone_number_id;
+      accessToken = conn.access_token;
     }
 
-    const phoneNumberId = conn.phone_number_id;
-    const accessToken = conn.access_token;
-
     // Build the Meta Cloud API payload
-    // Variables are interpolated into a text message body for test mode.
-    // In production, templateName maps to an approved Meta template ID.
     const messagePayload = {
       messaging_product: "whatsapp",
       to: phoneNumber.replace(/\D/g, "").replace(/^0/, ""),

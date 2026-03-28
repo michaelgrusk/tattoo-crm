@@ -100,6 +100,7 @@ export function SettingsView({
 
   // WhatsApp
   const [waTestMode, setWaTestMode] = useState(false);
+  const [waTestModeSaving, setWaTestModeSaving] = useState(false);
   const [waConnected] = useState(false); // will be fetched from whatsapp_connections
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
   const [templateBodies, setTemplateBodies] = useState<Record<string, string>>({
@@ -116,6 +117,35 @@ export function SettingsView({
   // Mounted (for window.location)
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Load whatsapp_test_mode from profiles
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase
+        .from("profiles")
+        .select("whatsapp_test_mode")
+        .eq("id", user.id)
+        .single()
+        .then(({ data }) => {
+          if (data?.whatsapp_test_mode != null) setWaTestMode(data.whatsapp_test_mode);
+        });
+    });
+  }, []);
+
+  async function handleWaTestModeToggle() {
+    const next = !waTestMode;
+    setWaTestMode(next);
+    setWaTestModeSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from("profiles")
+        .update({ whatsapp_test_mode: next })
+        .eq("id", user.id);
+    }
+    setWaTestModeSaving(false);
+  }
 
   function showToast(msg: string, type: "success" | "error" = "success") {
     setToast({ msg, type });
@@ -562,8 +592,9 @@ export function SettingsView({
                 <p className="text-xs text-[var(--nb-text-2)] mt-0.5">Use Meta&apos;s test number during development</p>
               </div>
               <button
-                onClick={() => setWaTestMode((v) => !v)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+                onClick={handleWaTestModeToggle}
+                disabled={waTestModeSaving}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 disabled:opacity-60 ${
                   waTestMode ? "bg-[#7C3AED]" : "bg-[var(--nb-border)]"
                 }`}
                 role="switch"
