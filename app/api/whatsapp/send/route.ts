@@ -56,23 +56,24 @@ export async function POST(req: NextRequest) {
       accessToken = conn.access_token;
     }
 
+    // Normalise phone: strip everything except digits, remove leading +
+    const normalisedPhone = phoneNumber.replace(/\D/g, "").replace(/^0+/, "");
+
+    // TODO: swap back to `templateName` once Meta approves custom templates.
+    // For now use the only approved template "hello_world" for connection testing.
+    const metaTemplateName = "hello_world";
+    const metaLanguageCode = "en_US";
+
     // Build the Meta Cloud API payload
     const messagePayload = {
       messaging_product: "whatsapp",
-      to: phoneNumber.replace(/\D/g, "").replace(/^0/, ""),
+      to: normalisedPhone,
       type: "template",
       template: {
-        name: templateName,
-        language: { code: "en" },
-        components: [
-          {
-            type: "body",
-            parameters: Object.values(variables ?? {}).map((v: unknown) => ({
-              type: "text",
-              text: String(v),
-            })),
-          },
-        ],
+        name: metaTemplateName,
+        language: { code: metaLanguageCode },
+        // hello_world has no body parameters — omit components entirely
+        components: [],
       },
     };
 

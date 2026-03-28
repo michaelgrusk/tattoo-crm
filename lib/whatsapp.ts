@@ -4,6 +4,9 @@
  */
 import { supabase } from "@/lib/supabase/client";
 
+// Template names match the approved Meta template IDs.
+// During testing the send route overrides to "hello_world" (the only pre-approved
+// template). Switch the override off in route.ts once custom templates are approved.
 export type WhatsAppTemplate =
   | "quote"
   | "deposit_followup"
