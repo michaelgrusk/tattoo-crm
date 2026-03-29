@@ -7,9 +7,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       user_id,
+      request_id,
       studio_name,
       client_name,
       client_email,
+      client_phone,
       description,
       style,
       placement,
@@ -17,9 +19,11 @@ export async function POST(req: NextRequest) {
       preferred_date,
     } = body as {
       user_id: string;
+      request_id: string | null;
       studio_name: string;
       client_name: string;
       client_email: string;
+      client_phone?: string;
       description: string;
       style: string;
       placement: string;
@@ -70,6 +74,42 @@ export async function POST(req: NextRequest) {
     if (sendError) {
       console.error("[notify-intake] Resend error:", sendError);
       return NextResponse.json({ error: sendError.message }, { status: 500 });
+    }
+
+    // Auto-create a client record for this lead (if one doesn't already exist)
+    if (client_email && request_id) {
+      const admin = getSupabaseAdmin();
+
+      const { data: existing } = await admin
+        .from("clients")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("email", client_email.toLowerCase())
+        .maybeSingle();
+
+      let clientId: string | null = existing?.id ?? null;
+
+      if (!clientId) {
+        const { data: newClient } = await admin
+          .from("clients")
+          .insert({
+            user_id,
+            name: client_name,
+            email: client_email,
+            phone: client_phone || null,
+            status: "new_lead",
+          })
+          .select("id")
+          .single();
+        clientId = newClient?.id ?? null;
+      }
+
+      if (clientId) {
+        await admin
+          .from("tattoo_requests")
+          .update({ client_id: clientId })
+          .eq("id", request_id);
+      }
     }
 
     return NextResponse.json({ ok: true });

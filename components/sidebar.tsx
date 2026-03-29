@@ -63,6 +63,12 @@ export function Sidebar({
   }, []);
 
   useEffect(() => {
+    function onContactsBadge() { setContactsBadge((n) => n + 1); }
+    window.addEventListener("nb:contacts-badge", onContactsBadge);
+    return () => window.removeEventListener("nb:contacts-badge", onContactsBadge);
+  }, []);
+
+  useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return;
       setStudioName(user.user_metadata?.studio_name ?? null);

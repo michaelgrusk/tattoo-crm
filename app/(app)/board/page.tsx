@@ -10,7 +10,7 @@ export type TattooRequest = {
   client_email: string;
   description: string;
   style: string;
-  status: "new request" | "quote sent" | "deposit paid" | "declined";
+  status: "new request" | "quote sent" | "deposit paid" | "declined" | "archived";
   reference_image_url: string | null;
   quote_amount: number | null;
   artist_id: number | null;
@@ -37,7 +37,7 @@ export default async function BoardPage() {
   const userId = user?.id;
   const today = new Date().toISOString().split("T")[0];
 
-  const [{ data: requests }, { data: appointments }] = await Promise.all([
+  const [{ data: requests }, { data: rawAppointments }] = await Promise.all([
     supabase
       .from("tattoo_requests")
       .select("*")
@@ -45,13 +45,18 @@ export default async function BoardPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("appointments")
-      .select("*, clients(name), artists(name)")
+      .select("*, clients(name, id), artists(name)")
       .eq("user_id", userId)
       .gte("date", today)
       .order("date", { ascending: true })
       .order("time", { ascending: true })
       .limit(20),
   ]);
+
+  const appointments = (rawAppointments ?? []).filter(
+    (a: { client_id: string; clients?: { id: string } | null }) =>
+      a.clients != null
+  );
 
   return (
     <div className="p-4 md:p-8 space-y-6">

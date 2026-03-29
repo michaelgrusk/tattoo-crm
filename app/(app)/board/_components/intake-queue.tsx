@@ -216,7 +216,7 @@ function NewRequestModal({ open, onOpenChange, onSuccess }: {
     if (preferredDate) parts.push(`Preferred date: ${preferredDate}`);
     if (phone.trim()) parts.push(`Phone: ${phone.trim()}`);
 
-    const { error: dbError } = await supabase.from("tattoo_requests").insert({
+    const { data: newReq, error: dbError } = await supabase.from("tattoo_requests").insert({
       user_id: userId,
       client_name: name.trim(),
       client_email: email.trim() || null,
@@ -224,9 +224,45 @@ function NewRequestModal({ open, onOpenChange, onSuccess }: {
       description: parts.join("\n"),
       status,
       artist_id: artistId ? Number(artistId) : null,
-    });
+    }).select("id").single();
+    if (dbError) { setSubmitting(false); setError(dbError.message); return; }
+
+    // Auto-create a new_lead client record if email provided
+    if (email.trim() && newReq?.id) {
+      const { data: existing } = await supabase
+        .from("clients")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("email", email.trim().toLowerCase())
+        .maybeSingle();
+
+      let clientId: string | null = existing?.id ?? null;
+
+      if (!clientId) {
+        const { data: newClient } = await supabase
+          .from("clients")
+          .insert({
+            user_id: userId,
+            name: name.trim(),
+            email: email.trim(),
+            phone: phone.trim() || null,
+            status: "new_lead",
+          })
+          .select("id")
+          .single();
+        clientId = newClient?.id ?? null;
+        if (clientId) window.dispatchEvent(new CustomEvent("nb:contacts-badge"));
+      }
+
+      if (clientId) {
+        await supabase
+          .from("tattoo_requests")
+          .update({ client_id: clientId })
+          .eq("id", newReq.id);
+      }
+    }
+
     setSubmitting(false);
-    if (dbError) { setError(dbError.message); return; }
     // Signal sidebar to refresh board badge
     window.dispatchEvent(new CustomEvent("nb:board-badge"));
     handleOpenChange(false);
@@ -352,12 +388,17 @@ function NewRequestModal({ open, onOpenChange, onSuccess }: {
 
 // ── IntakeQueue ───────────────────────────────────────────────────────────────
 
+type StatusFilter = "active" | "archived" | "all";
+type DateFilter = "all" | "7d" | "30d";
+
 export function IntakeQueue({ requests }: { requests: TattooRequest[] }) {
   const router = useRouter();
   const [selectedRequest, setSelectedRequest] = useState<TattooRequest | null>(null);
   const [newRequestOpen, setNewRequestOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
 
   function fireToast(message: string) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -371,13 +412,27 @@ export function IntakeQueue({ requests }: { requests: TattooRequest[] }) {
     fireToast(message);
   }
 
-  const totalActive = requests.filter(
-    (r) => r.status !== "declined"
-  ).length;
+  // ── Derived ──────────────────────────────────────────────────────────────────
+  const now = Date.now();
+  const dateFilteredRequests = requests.filter((r) => {
+    if (dateFilter === "all") return true;
+    const cutoff = dateFilter === "7d" ? 7 : 30;
+    return now - new Date(r.created_at).getTime() <= cutoff * 24 * 60 * 60 * 1000;
+  });
+
+  const activeStatuses = new Set(["new request", "quote sent", "deposit paid"]);
+  const visibleRequests = dateFilteredRequests.filter((r) => {
+    if (statusFilter === "active") return activeStatuses.has(r.status);
+    if (statusFilter === "archived") return r.status === "archived";
+    return true; // "all"
+  });
+  const archivedRequests = dateFilteredRequests.filter((r) => r.status === "archived");
+  const totalActive = dateFilteredRequests.filter((r) => activeStatuses.has(r.status)).length;
 
   return (
     <section>
-      <div className="flex items-center gap-2.5 mb-4">
+      {/* Header */}
+      <div className="flex items-center gap-2.5 mb-3">
         <h2 className="text-base font-semibold text-[var(--nb-text)]">Intake Queue</h2>
         <span className="text-xs font-medium text-[var(--nb-text-2)] bg-[var(--nb-border)] rounded-full px-2.5 py-0.5">
           {totalActive}
@@ -393,39 +448,116 @@ export function IntakeQueue({ requests }: { requests: TattooRequest[] }) {
           </Button>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        {COLUMNS.map(({ status, label, dotColor }) => {
-          const cards = requests.filter((r) => r.status === status);
-          return (
-            <div key={status}>
-              <div className="flex items-center gap-2 mb-3">
-                <span className={`size-2 rounded-full ${dotColor}`} />
-                <span className="text-sm font-medium text-[var(--nb-text)]">
-                  {label}
-                </span>
-                <span className="ml-auto text-xs font-medium text-[var(--nb-text-2)] bg-[var(--nb-border)] rounded-full px-2 py-0.5">
-                  {cards.length}
-                </span>
-              </div>
-              <div className="space-y-3">
-                {cards.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-[var(--nb-border)] p-6 text-center text-sm text-[var(--nb-text-2)]">
-                    No requests
-                  </div>
-                ) : (
-                  cards.map((req) => (
-                    <RequestCard
-                      key={req.id}
-                      request={req}
-                      onClick={() => setSelectedRequest(req)}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
-          );
-        })}
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        {/* Status filter pills */}
+        <div className="flex rounded-lg border border-[var(--nb-border)] bg-[var(--nb-bg)] p-0.5 gap-0.5">
+          {(["active", "all", "archived"] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setStatusFilter(f)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                statusFilter === f
+                  ? "bg-[var(--nb-card)] text-[#7C3AED] shadow-sm border border-[var(--nb-border)]"
+                  : "text-[var(--nb-text-2)] hover:text-[var(--nb-text)]"
+              }`}
+            >
+              {f === "active" ? "Active" : f === "archived" ? `Archived${archivedRequests.length > 0 ? ` (${archivedRequests.length})` : ""}` : "All"}
+            </button>
+          ))}
+        </div>
+
+        {/* Date range pills */}
+        <div className="flex rounded-lg border border-[var(--nb-border)] bg-[var(--nb-bg)] p-0.5 gap-0.5">
+          {([["all", "All time"], ["30d", "Last 30d"], ["7d", "Last 7d"]] as const).map(([f, label]) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setDateFilter(f)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                dateFilter === f
+                  ? "bg-[var(--nb-card)] text-[#7C3AED] shadow-sm border border-[var(--nb-border)]"
+                  : "text-[var(--nb-text-2)] hover:text-[var(--nb-text)]"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Archived view — flat list */}
+      {statusFilter === "archived" && (
+        <div>
+          {visibleRequests.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-[var(--nb-border)] p-10 text-center text-sm text-[var(--nb-text-2)]">
+              No archived requests
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {visibleRequests.map((req) => (
+                <div key={req.id} className="relative">
+                  <span className="absolute top-2 right-2 z-10 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 border border-amber-200">
+                    Archived
+                  </span>
+                  <RequestCard request={req} onClick={() => setSelectedRequest(req)} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Active / All view — 3 columns */}
+      {statusFilter !== "archived" && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {COLUMNS.map(({ status, label, dotColor }) => {
+            const cards = visibleRequests.filter((r) => r.status === status);
+            const archivedInCol = archivedRequests.length; // total archived (can't know per-column after status change)
+            return (
+              <div key={status}>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className={`size-2 rounded-full ${dotColor}`} />
+                  <span className="text-sm font-medium text-[var(--nb-text)]">
+                    {label}
+                  </span>
+                  <span className="ml-auto text-xs font-medium text-[var(--nb-text-2)] bg-[var(--nb-border)] rounded-full px-2 py-0.5">
+                    {cards.length}
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {cards.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-[var(--nb-border)] p-6 text-center text-sm text-[var(--nb-text-2)]">
+                      No requests
+                    </div>
+                  ) : (
+                    cards.map((req) => (
+                      <RequestCard
+                        key={req.id}
+                        request={req}
+                        onClick={() => setSelectedRequest(req)}
+                      />
+                    ))
+                  )}
+                  {/* Show archived count only on the first column in "active" mode */}
+                  {statusFilter === "active" && status === "new request" && archivedInCol > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setStatusFilter("archived")}
+                      className="w-full text-center text-xs text-[var(--nb-text-2)] hover:text-amber-600 py-1.5 transition-colors"
+                    >
+                      {archivedInCol} archived — view →
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
 
       <RequestDetailModal
         request={selectedRequest}

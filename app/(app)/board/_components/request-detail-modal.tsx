@@ -136,6 +136,7 @@ export function RequestDetailModal({
   const [assigning, setAssigning] = useState(false);
   const [waSending, setWaSending] = useState(false);
   const [waResult, setWaResult] = useState<string | null>(null);
+  const [archiving, setArchiving] = useState(false);
 
   // Send-quote form
   const [sqAmount, setSqAmount] = useState("");
@@ -209,30 +210,12 @@ export function RequestDetailModal({
     const userId = await getUserId();
     if (!userId) { setWorking(""); setServerError("Not authenticated"); return; }
 
-    const parsed = parseDescription(request!.description);
-
-    // Create a client record if one doesn't exist yet
-    let clientId = request!.client_id;
-    if (!clientId) {
-      const { data: clientData, error: clientErr } = await supabase
+    // Update client status to reflect quote stage
+    if (request!.client_id) {
+      await supabase
         .from("clients")
-        .insert({
-          user_id: userId,
-          name: request!.client_name,
-          email: request!.client_email,
-          phone: parsed.phone || null,
-          notes: `Created from tattoo request · ${request!.style}`,
-          status: "quote_sent",
-        })
-        .select("id")
-        .single();
-
-      if (clientErr) {
-        setWorking("");
-        setServerError(clientErr.message);
-        return;
-      }
-      clientId = clientData.id;
+        .update({ status: "quote_sent" })
+        .eq("id", request!.client_id);
     }
 
     // Update the request
@@ -241,14 +224,13 @@ export function RequestDetailModal({
       .update({
         status: "quote sent",
         quote_amount: amount,
-        client_id: clientId,
       })
       .eq("id", request!.id);
 
     setWorking("");
     if (reqErr) { setServerError(reqErr.message); return; }
     close();
-    onSuccess("Quote sent! Client added to Contacts.");
+    onSuccess("Quote sent!");
   }
 
   async function handleConfirmDeposit() {
@@ -264,6 +246,14 @@ export function RequestDetailModal({
     if (!userId) { setWorking(""); setServerError("Not authenticated"); return; }
 
     const today = new Date().toISOString().split("T")[0];
+
+    // Update client status
+    if (request!.client_id) {
+      await supabase
+        .from("clients")
+        .update({ status: "active" })
+        .eq("id", request!.client_id);
+    }
 
     // Create a deposit invoice
     const { error: invErr } = await supabase.from("invoices").insert({
@@ -340,6 +330,16 @@ export function RequestDetailModal({
     if (apptErr) { setServerError(apptErr.message); return; }
     close();
     onSuccess("Appointment scheduled!");
+  }
+
+  async function handleArchive() {
+    setArchiving(true);
+    await supabase
+      .from("tattoo_requests")
+      .update({ status: "archived" })
+      .eq("id", request!.id);
+    setArchiving(false);
+    onSuccess("Request archived");
   }
 
   async function handleSendQuoteWhatsApp() {
@@ -608,6 +608,21 @@ export function RequestDetailModal({
                   />
                 </div>
               )}
+
+              {/* Archive — available for any active (non-archived, non-declined) request */}
+              {!["archived", "declined"].includes(request.status) && (
+                <div className="mt-3 pt-3 border-t border-[var(--nb-border)]">
+                  <button
+                    type="button"
+                    onClick={handleArchive}
+                    disabled={archiving || busy}
+                    className="inline-flex items-center gap-1.5 text-xs text-[var(--nb-text-2)] hover:text-amber-600 transition-colors px-2 py-1 rounded-lg hover:bg-amber-50 disabled:opacity-50"
+                  >
+                    {archiving && <Loader2 size={11} className="animate-spin" />}
+                    Archive this request
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -628,7 +643,6 @@ export function RequestDetailModal({
             <p className="text-sm text-[var(--nb-text-2)] leading-relaxed">
               Set a quote for{" "}
               <span className="font-medium text-[var(--nb-text)]">{request.client_name}</span>.
-              A contact record will be created automatically.
             </p>
 
             <div className="space-y-3">

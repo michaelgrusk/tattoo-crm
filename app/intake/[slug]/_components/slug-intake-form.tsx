@@ -237,7 +237,7 @@ export function SlugIntakeForm({
     lines.push(`Phone: ${form.phone.trim()}`);
     const fullDescription = lines.join("\n");
 
-    const { error } = await supabase.from("tattoo_requests").insert({
+    const { data: newRequest, error } = await supabase.from("tattoo_requests").insert({
       user_id: userId,
       client_id: null,
       client_name: form.name.trim(),
@@ -247,7 +247,7 @@ export function SlugIntakeForm({
       status: "new request",
       reference_image_url: imageUrl,
       whatsapp_opt_in: form.whatsappOptIn,
-    });
+    }).select("id").single();
 
     setSubmitting(false);
 
@@ -256,15 +256,17 @@ export function SlugIntakeForm({
       return;
     }
 
-    // Fire notification email — don't await, don't block redirect on failure
+    // Fire notification email + auto-create client — don't await, don't block redirect
     fetch("/api/notify-intake", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         user_id: userId,
+        request_id: newRequest?.id ?? null,
         studio_name: studioName,
         client_name: form.name.trim(),
         client_email: form.email.trim(),
+        client_phone: form.phone.trim(),
         description: form.description.trim(),
         style: form.style,
         placement: form.placement.trim(),

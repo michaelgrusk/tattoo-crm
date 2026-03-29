@@ -176,10 +176,12 @@ export function BookAppointmentDialog({
   open,
   onOpenChange,
   onSuccess,
+  defaultClient,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSuccess: () => void;
+  defaultClient?: { id: string | number; name: string; email: string };
 }) {
   const [form, setForm] = useState({ ...EMPTY_FORM, date: todayStr() });
   const [clients, setClients] = useState<Client[]>([]);
@@ -209,6 +211,17 @@ export function BookAppointmentDialog({
       });
     }
   }, [open]);
+
+  // Pre-fill defaultClient when dialog opens
+  useEffect(() => {
+    if (open && defaultClient) {
+      setForm((prev) => ({
+        ...prev,
+        mode: "existing" as BookingMode,
+        selectedClient: defaultClient,
+      }));
+    }
+  }, [open, defaultClient]);
 
   // Reset on close
   useEffect(() => {

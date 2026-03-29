@@ -152,10 +152,12 @@ export function NewInvoiceDialog({
   open,
   onOpenChange,
   onSuccess,
+  defaultClient,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSuccess: () => void;
+  defaultClient?: { id: string | number; name: string; email: string };
 }) {
   const [form, setForm] = useState({ ...EMPTY, date: todayStr() });
   const [clients, setClients] = useState<Client[]>([]);
@@ -176,6 +178,13 @@ export function NewInvoiceDialog({
       });
     }
   }, [open]);
+
+  // Pre-fill defaultClient when dialog opens
+  useEffect(() => {
+    if (open && defaultClient) {
+      setForm((prev) => ({ ...prev, selectedClient: defaultClient }));
+    }
+  }, [open, defaultClient]);
 
   useEffect(() => {
     if (!open) {

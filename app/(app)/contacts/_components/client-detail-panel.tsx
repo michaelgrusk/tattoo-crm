@@ -38,6 +38,7 @@ import {
 import type { ClientListItem } from "../page";
 import type { SignedWaiver, WaiverField, WaiverSection } from "../../waivers/types";
 import { BookAppointmentDialog } from "../../calendar/_components/book-appointment-dialog";
+import { NewInvoiceDialog } from "../../invoices/_components/new-invoice-dialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ type TattooRequest = {
   status: string;
   created_at: string;
   reference_image_url: string | null;
+  quote_amount: number | null;
 };
 
 type NextAppointment = {
@@ -484,7 +486,7 @@ function AddRequestDialog({
         status: form.status,
         reference_image_url: imageUrl,
       })
-      .select("id, description, style, status, created_at, reference_image_url")
+      .select("id, description, style, status, created_at, reference_image_url, quote_amount")
       .single();
 
     setSubmitting(false);
@@ -977,6 +979,10 @@ export function ClientDetailPanel({
   const [waMessages, setWaMessages] = useState<WaMessage[]>([]);
   const [aftercareSendingId, setAftercareSendingId] = useState<string | null>(null);
   const [aftercareResult, setAftercareResult] = useState<{ id: string; msg: string } | null>(null);
+  const [quoteSendingId, setQuoteSendingId] = useState<string | null>(null);
+  const [quoteResult, setQuoteResult] = useState<{ id: string; msg: string } | null>(null);
+  const [reminderSendingId, setReminderSendingId] = useState<string | null>(null);
+  const [reminderResult, setReminderResult] = useState<{ id: string; msg: string } | null>(null);
   const [apptBookOpen, setApptBookOpen] = useState(false);
   const [localStatus, setLocalStatus] = useState<string>(client.status ?? "");
   const [statusSaving, setStatusSaving] = useState(false);
@@ -984,9 +990,10 @@ export function ClientDetailPanel({
   const [selectedWaiver, setSelectedWaiver] = useState<SignedWaiver | null>(null);
   const [artistHistory, setArtistHistory] = useState<ArtistHistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
 
   // Toast
   const [toast, setToast] = useState<ToastState>(null);
@@ -1010,19 +1017,18 @@ export function ClientDetailPanel({
   }
 
   async function handleDeleteClient() {
-    if (!deleteConfirm) {
-      setDeleteConfirm(true);
-      return;
-    }
     setDeleting(true);
-    const { error } = await supabase
-      .from("clients")
-      .delete()
-      .eq("id", client.id);
+    // Cascade delete associated records first
+    await supabase.from("tattoo_requests").delete().eq("client_id", String(client.id));
+    await supabase.from("appointments").delete().eq("client_id", String(client.id));
+    await supabase.from("invoices").delete().eq("client_id", String(client.id));
+    await supabase.from("whatsapp_messages").delete().eq("client_id", String(client.id));
+    await supabase.from("signed_waivers").delete().eq("client_id", String(client.id));
+    const { error } = await supabase.from("clients").delete().eq("id", String(client.id));
     setDeleting(false);
+    setDeleteDialogOpen(false);
     if (error) {
       showToast(`Failed to delete client: ${error.message}`, "error");
-      setDeleteConfirm(false);
       return;
     }
     onDeleted(client.id);
@@ -1035,6 +1041,49 @@ export function ClientDetailPanel({
   const [editingRequest, setEditingRequest] = useState<TattooRequest | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleSendQuoteWA(req: TattooRequest) {
+    const phone = client.phone || parseDescription(req.description).phone;
+    if (!phone) { setQuoteResult({ id: req.id, msg: "No phone number on file" }); return; }
+    setQuoteSendingId(req.id);
+    setQuoteResult(null);
+    const res = await sendWhatsAppTemplate({
+      phoneNumber: phone,
+      templateName: "quote",
+      variables: {
+        client_name: client.name.split(" ")[0],
+        studio_name: "your studio",
+        style: req.style,
+        amount: req.quote_amount != null ? `$${req.quote_amount.toLocaleString()}` : "TBD",
+      },
+      clientId: String(client.id),
+      relatedType: "tattoo_request",
+      relatedId: req.id,
+    });
+    setQuoteSendingId(null);
+    setQuoteResult({ id: req.id, msg: res.success ? "Quote sent via WhatsApp!" : `WhatsApp error: ${res.error}` });
+  }
+
+  async function handleSendReminder(appt: ClientAppt) {
+    if (!client.phone) { setReminderResult({ id: appt.id, msg: "No phone number on file" }); return; }
+    setReminderSendingId(appt.id);
+    setReminderResult(null);
+    const [h, m] = appt.time.split(":").map(Number);
+    const timeStr = `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+    const dateStr = new Date(appt.date + "T00:00:00").toLocaleDateString("en-US", {
+      weekday: "long", month: "long", day: "numeric",
+    });
+    const res = await sendWhatsAppTemplate({
+      phoneNumber: client.phone,
+      templateName: "reminder",
+      variables: { client_name: client.name.split(" ")[0], studio_name: "your studio", date: dateStr, time: timeStr },
+      clientId: String(client.id),
+      relatedType: "appointment",
+      relatedId: appt.id,
+    });
+    setReminderSendingId(null);
+    setReminderResult({ id: appt.id, msg: res.success ? "Reminder sent via WhatsApp!" : `WhatsApp error: ${res.error}` });
+  }
 
   async function handleSendAftercare(apptId: string) {
     if (!client.phone) {
@@ -1092,7 +1141,7 @@ export function ClientDetailPanel({
   async function refreshRequests() {
     const { data } = await supabase
       .from("tattoo_requests")
-      .select("id, description, style, status, created_at, reference_image_url")
+      .select("id, description, style, status, created_at, reference_image_url, quote_amount")
       .eq("client_id", String(client.id))
       .order("created_at", { ascending: false });
     setRequests((data as TattooRequest[]) ?? []);
@@ -1100,7 +1149,7 @@ export function ClientDetailPanel({
 
   // Reset confirmation state when switching clients
   useEffect(() => {
-    setDeleteConfirm(false);
+    setDeleteDialogOpen(false);
     setDeleting(false);
   }, [client.id]);
 
@@ -1207,7 +1256,7 @@ export function ClientDetailPanel({
         status: "new request",
         reference_image_url: uploadResult.url,
       })
-      .select("id, description, style, status, created_at, reference_image_url")
+      .select("id, description, style, status, created_at, reference_image_url, quote_amount")
       .single();
 
     if (insertError) {
@@ -1346,7 +1395,30 @@ export function ClientDetailPanel({
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {/* Quick actions */}
+            <button
+              onClick={() => setApptBookOpen(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[var(--nb-text-2)] hover:border-[#7C3AED] hover:text-[#7C3AED] transition-colors"
+            >
+              <Plus size={11} />
+              Book
+            </button>
+            <button
+              onClick={() => setInvoiceOpen(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[var(--nb-text-2)] hover:border-[#7C3AED] hover:text-[#7C3AED] transition-colors"
+            >
+              <Plus size={11} />
+              Invoice
+            </button>
+            <button
+              onClick={() => setAddRequestOpen(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[var(--nb-text-2)] hover:border-[#7C3AED] hover:text-[#7C3AED] transition-colors"
+            >
+              <Plus size={11} />
+              Request
+            </button>
+            {/* Edit / Delete */}
             <button
               onClick={() => setEditOpen(true)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[#7C3AED] hover:bg-[var(--nb-bg)] transition-colors"
@@ -1354,16 +1426,10 @@ export function ClientDetailPanel({
               Edit
             </button>
             <button
-              onClick={handleDeleteClient}
-              disabled={deleting}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
-                deleteConfirm
-                  ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
-                  : "bg-[var(--nb-card)] text-[var(--nb-text-2)] border-[var(--nb-border)] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-              }`}
+              onClick={() => setDeleteDialogOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[var(--nb-text-2)] hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
             >
-              {deleting && <Loader2 size={12} className="animate-spin" />}
-              {deleteConfirm ? "Confirm Delete?" : "Delete"}
+              Delete
             </button>
           </div>
         </div>
@@ -1794,6 +1860,26 @@ export function ClientDetailPanel({
                                 {req.description}
                               </p>
                             )}
+                            {/* Send Quote via WhatsApp for quoted requests */}
+                            {req.status === "quote sent" && (client.phone || parseDescription(req.description).phone) && (
+                              <div className="mt-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSendQuoteWA(req)}
+                                  disabled={quoteSendingId === req.id}
+                                  className="inline-flex items-center gap-1.5 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-50"
+                                >
+                                  {quoteSendingId === req.id ? <Loader2 size={10} className="animate-spin" /> : <MessageCircle size={10} />}
+                                  {quoteSendingId === req.id ? "Sending…" : "Send Quote via WhatsApp"}
+                                </button>
+                                {quoteResult?.id === req.id && (
+                                  <p className={`mt-1.5 text-[10px] rounded px-2 py-1 ${quoteResult.msg.startsWith("Quote") ? "text-emerald-700 bg-emerald-50" : "text-red-600 bg-red-50"}`}>
+                                    {quoteResult.msg}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
                             {/* Edit / Delete actions */}
                             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--nb-border)]">
                               <button
@@ -1895,7 +1981,19 @@ export function ClientDetailPanel({
                                 )}
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                              {/* Send Reminder for upcoming (not completed/cancelled) appointments */}
+                              {!["completed", "cancelled"].includes(appt.status) && client.phone && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSendReminder(appt)}
+                                  disabled={reminderSendingId === appt.id}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-sky-700 bg-sky-50 border border-sky-200 hover:bg-sky-100 transition-colors disabled:opacity-50"
+                                >
+                                  {reminderSendingId === appt.id ? <Loader2 size={10} className="animate-spin" /> : <MessageCircle size={10} />}
+                                  Remind
+                                </button>
+                              )}
                               {appt.status === "completed" && client.phone && (
                                 <button
                                   type="button"
@@ -1913,6 +2011,11 @@ export function ClientDetailPanel({
                               </span>
                             </div>
                           </div>
+                          {reminderResult?.id === appt.id && (
+                            <p className={`text-[10px] rounded px-2 py-1 ${reminderResult.msg.startsWith("Reminder") ? "text-sky-700 bg-sky-50" : "text-red-600 bg-red-50"}`}>
+                              {reminderResult.msg}
+                            </p>
+                          )}
                           {aftercareResult?.id === appt.id && (
                             <p className={`text-xs rounded-lg px-2.5 py-1.5 border ${aftercareResult.msg.startsWith("Aftercare") ? "text-emerald-700 bg-emerald-50 border-emerald-200" : "text-red-600 bg-red-50 border-red-200"}`}>
                               {aftercareResult.msg}
@@ -2015,9 +2118,9 @@ export function ClientDetailPanel({
       <BookAppointmentDialog
         open={apptBookOpen}
         onOpenChange={setApptBookOpen}
+        defaultClient={{ id: client.id, name: client.name, email: client.email }}
         onSuccess={() => {
           setApptBookOpen(false);
-          // re-fetch appointments
           supabase
             .from("appointments")
             .select("id, date, time, type, status, artist_name, artists(name)")
@@ -2025,6 +2128,17 @@ export function ClientDetailPanel({
             .order("date", { ascending: false })
             .then(({ data }) => setClientAppts((data as unknown as ClientAppt[]) ?? []));
           showToast("Appointment booked!", "success");
+        }}
+      />
+
+      {/* New Invoice dialog */}
+      <NewInvoiceDialog
+        open={invoiceOpen}
+        onOpenChange={setInvoiceOpen}
+        defaultClient={{ id: client.id, name: client.name, email: client.email }}
+        onSuccess={() => {
+          setInvoiceOpen(false);
+          showToast("Invoice created!", "success");
         }}
       />
 
@@ -2046,6 +2160,31 @@ export function ClientDetailPanel({
           onClose={() => setSelectedWaiver(null)}
         />
       )}
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={(v) => { if (!deleting) setDeleteDialogOpen(v); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete {client.name}?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete <strong>{client.name}</strong> and all their appointments, invoices, tattoo requests, WhatsApp messages, and signed waivers. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteClient}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 text-white gap-1.5"
+            >
+              {deleting && <Loader2 size={13} className="animate-spin" />}
+              {deleting ? "Deleting…" : `Delete ${client.name.split(" ")[0]}`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Toast */}
       {toast && <Toast message={toast.message} type={toast.type} />}

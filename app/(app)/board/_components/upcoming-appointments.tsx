@@ -1,5 +1,10 @@
+"use client";
+
+import { useState } from "react";
 import { CalendarX2 } from "lucide-react";
 import type { Appointment } from "../page";
+
+type DateFilter = "all" | "7d" | "30d";
 
 const STATUS_CONFIG: Record<
   string,
@@ -59,18 +64,43 @@ export function UpcomingAppointments({
 }: {
   appointments: Appointment[];
 }) {
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+
+  const now = Date.now();
+  const filtered = appointments.filter((a) => {
+    if (dateFilter === "all") return true;
+    const cutoff = dateFilter === "7d" ? 7 : 30;
+    return new Date(a.date + "T00:00:00").getTime() - now <= cutoff * 24 * 60 * 60 * 1000;
+  });
+
   return (
     <section>
-      <div className="flex items-center gap-2.5 mb-4">
+      <div className="flex flex-wrap items-center gap-2.5 mb-4">
         <h2 className="text-base font-semibold text-[var(--nb-text)]">
           Upcoming Appointments
         </h2>
         <span className="text-xs font-medium text-[var(--nb-text-2)] bg-[var(--nb-border)] rounded-full px-2.5 py-0.5">
-          {appointments.length}
+          {filtered.length}
         </span>
+        <div className="ml-auto flex rounded-lg border border-[var(--nb-border)] bg-[var(--nb-bg)] p-0.5 gap-0.5">
+          {([["all", "All time"], ["30d", "Next 30d"], ["7d", "Next 7d"]] as const).map(([f, label]) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setDateFilter(f)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                dateFilter === f
+                  ? "bg-[var(--nb-card)] text-[#7C3AED] shadow-sm border border-[var(--nb-border)]"
+                  : "text-[var(--nb-text-2)] hover:text-[var(--nb-text)]"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] overflow-hidden shadow-sm">
-        {appointments.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="py-12 flex flex-col items-center text-center">
             <CalendarX2 size={32} className="text-[var(--nb-border)] mb-3" />
             <p className="text-sm font-medium text-[var(--nb-text-2)]">No upcoming appointments</p>
@@ -80,7 +110,7 @@ export function UpcomingAppointments({
           <>
             {/* Mobile card list */}
             <div className="sm:hidden divide-y divide-[var(--nb-border)]">
-              {appointments.map((appt) => {
+              {filtered.map((appt) => {
                 const cfg = getStatusConfig(appt.status);
                 return (
                   <div key={appt.id} className="px-4 py-3.5 flex items-center justify-between gap-3">
@@ -115,7 +145,7 @@ export function UpcomingAppointments({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--nb-card)]">
-                  {appointments.map((appt) => {
+                  {filtered.map((appt) => {
                     const cfg = getStatusConfig(appt.status);
                     return (
                       <tr key={appt.id} className="hover:bg-[var(--nb-card)] transition-colors">
