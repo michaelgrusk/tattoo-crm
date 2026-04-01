@@ -17,6 +17,7 @@ import {
   Eye,
   Copy,
   Check,
+  Palette,
 } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -39,6 +40,8 @@ import type { ClientListItem } from "../page";
 import type { SignedWaiver, WaiverField, WaiverSection } from "../../waivers/types";
 import { BookAppointmentDialog } from "../../calendar/_components/book-appointment-dialog";
 import { NewInvoiceDialog } from "../../invoices/_components/new-invoice-dialog";
+import { CompletedTattooModal } from "./completed-tattoo-modal";
+import type { CompletedTattoo } from "./completed-tattoo-modal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1001,7 +1004,7 @@ export function ClientDetailPanel({
   const [nextAppt, setNextAppt] = useState<NextAppointment>(null);
   const [apptDialogOpen, setApptDialogOpen] = useState(false);
   const [clientAppts, setClientAppts] = useState<ClientAppt[]>([]);
-  const [apptTab, setApptTab] = useState<"requests" | "appointments" | "messages">("requests");
+  const [apptTab, setApptTab] = useState<"requests" | "appointments" | "completed" | "messages">("requests");
   const [waMessages, setWaMessages] = useState<WaMessage[]>([]);
   const [copiedQuoteId, setCopiedQuoteId] = useState<string | null>(null);
   const [apptBookOpen, setApptBookOpen] = useState(false);
@@ -1015,6 +1018,13 @@ export function ClientDetailPanel({
   const [deleting, setDeleting] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+
+  // Completed tattoos
+  const [completedTattoos, setCompletedTattoos] = useState<CompletedTattoo[]>([]);
+  const [tattooModalOpen, setTattooModalOpen] = useState(false);
+  const [editingTattoo, setEditingTattoo] = useState<CompletedTattoo | null>(null);
+  const [confirmDeleteTattooId, setConfirmDeleteTattooId] = useState<number | null>(null);
+  const [deletingTattooId, setDeletingTattooId] = useState<number | null>(null);
 
   // Toast
   const [toast, setToast] = useState<ToastState>(null);
@@ -1074,6 +1084,21 @@ export function ClientDetailPanel({
     setConfirmDeleteId(null);
     if (!error) {
       setRequests((prev) => prev.filter((r) => r.id !== id));
+    }
+  }
+
+  async function handleDeleteCompletedTattoo(id: number) {
+    if (confirmDeleteTattooId !== id) {
+      setConfirmDeleteTattooId(id);
+      return;
+    }
+    setDeletingTattooId(id);
+    const { error } = await supabase.from("completed_tattoos").delete().eq("id", id);
+    setDeletingTattooId(null);
+    setConfirmDeleteTattooId(null);
+    if (!error) {
+      setCompletedTattoos((prev) => prev.filter((t) => t.id !== id));
+      showToast("Tattoo record deleted", "success");
     }
   }
 
@@ -1153,12 +1178,18 @@ export function ClientDetailPanel({
         .select("id, direction, template_name, message_text, status, status_updated_at")
         .eq("client_id", String(client.id))
         .order("status_updated_at", { ascending: false }),
-    ]).then(([{ data: reqs }, { data: appts }, { data: waivers }, { data: artistAppts }, { data: apptRows }, { data: waMsgs }]) => {
+      supabase
+        .from("completed_tattoos")
+        .select("*, artists(name), tattoo_requests(description, style)")
+        .eq("client_id", String(client.id))
+        .order("session_date", { ascending: false }),
+    ]).then(([{ data: reqs }, { data: appts }, { data: waivers }, { data: artistAppts }, { data: apptRows }, { data: waMsgs }, { data: completedData }]) => {
       setRequests((reqs as TattooRequest[]) ?? []);
       setNextAppt((appts?.[0] as NextAppointment) ?? null);
       setSignedWaivers((waivers as unknown as SignedWaiver[]) ?? []);
       setClientAppts((apptRows as unknown as ClientAppt[]) ?? []);
       setWaMessages((waMsgs as WaMessage[]) ?? []);
+      setCompletedTattoos((completedData as unknown as CompletedTattoo[]) ?? []);
       // Aggregate artist history
       const map: Record<number, ArtistHistoryRow> = {};
       for (const row of (artistAppts ?? []) as unknown as { artist_id: number; artists: { id: number; name: string; avatar_url: string | null } | null }[]) {
@@ -1707,7 +1738,7 @@ export function ClientDetailPanel({
 
             {/* ── Section tabs ──────────────────────────────────────── */}
             <div className="flex rounded-lg border border-[var(--nb-border)] bg-[var(--nb-bg)] p-0.5 gap-0.5 mb-6">
-              {(["requests","appointments","messages"] as const).map((t) => (
+              {(["requests","appointments","completed","messages"] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setApptTab(t)}
@@ -1722,6 +1753,8 @@ export function ClientDetailPanel({
                     ? `Requests (${requests.length})`
                     : t === "appointments"
                     ? `Appts (${clientAppts.length})`
+                    : t === "completed"
+                    ? `Completed${completedTattoos.length > 0 ? ` (${completedTattoos.length})` : ""}`
                     : `Messages${waMessages.length > 0 ? ` (${waMessages.length})` : ""}`}
                 </button>
               ))}
@@ -1956,6 +1989,159 @@ export function ClientDetailPanel({
               </section>
             )}
 
+            {/* ── Completed Tattoos ─────────────────────────────────────── */}
+            {apptTab === "completed" && (
+              <section>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-[var(--nb-text)] flex items-center gap-2">
+                    <Palette size={14} className="text-[var(--nb-text-2)]" />
+                    Completed Tattoos
+                    {completedTattoos.length > 0 && (
+                      <span className="text-xs font-medium text-[var(--nb-text-2)]">
+                        {completedTattoos.length}
+                      </span>
+                    )}
+                  </h3>
+                  <Button
+                    size="sm"
+                    onClick={() => { setEditingTattoo(null); setTattooModalOpen(true); }}
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
+                  >
+                    <Plus size={13} />
+                    Add
+                  </Button>
+                </div>
+
+                {completedTattoos.length === 0 ? (
+                  <div className="bg-[var(--nb-card)] rounded-xl border border-dashed border-[var(--nb-border)] p-8 text-center">
+                    <Palette size={24} className="text-[var(--nb-border)] mx-auto mb-2" />
+                    <p className="text-sm text-[var(--nb-text-2)]">No completed tattoos logged yet</p>
+                    <p className="text-xs text-[var(--nb-text-2)] mt-1">Log finished work to build this client&apos;s tattoo history</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {completedTattoos.map((ct) => (
+                      <div
+                        key={ct.id}
+                        className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] overflow-hidden"
+                      >
+                        {/* Photo */}
+                        {ct.photo_url ? (
+                          <button
+                            type="button"
+                            onClick={() => setLightboxUrl(ct.photo_url!)}
+                            className="group relative w-full h-36 block overflow-hidden border-b border-[var(--nb-border)]"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={ct.photo_url}
+                              alt="Completed tattoo"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                              <Expand size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+                            </div>
+                          </button>
+                        ) : (
+                          <div className="w-full h-20 flex items-center justify-center border-b border-[var(--nb-border)] bg-[var(--nb-bg)]">
+                            <Palette size={20} className="text-[var(--nb-border)]" />
+                          </div>
+                        )}
+
+                        {/* Body */}
+                        <div className="px-4 py-3 space-y-2">
+                          {/* Badges row */}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {ct.style && (
+                              <span className="inline-flex items-center rounded-full bg-[var(--nb-active-bg)] px-2.5 py-0.5 text-xs font-medium text-[#7C3AED]">
+                                {ct.style}
+                              </span>
+                            )}
+                            {ct.is_walk_in ? (
+                              <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                                Walk-in
+                              </span>
+                            ) : ct.tattoo_requests ? (
+                              <span className="inline-flex items-center rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700 max-w-[140px] truncate">
+                                {ct.tattoo_requests.style}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          {/* Meta */}
+                          <div className="space-y-0.5">
+                            {ct.placement && (
+                              <p className="text-xs text-[var(--nb-text-2)]">{ct.placement}</p>
+                            )}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {ct.session_date && (
+                                <p className="text-xs text-[var(--nb-text-2)]">
+                                  {new Date(ct.session_date + "T00:00:00").toLocaleDateString("en-US", {
+                                    month: "short", day: "numeric", year: "numeric",
+                                  })}
+                                </p>
+                              )}
+                              {ct.artists?.name && (
+                                <p className="text-xs text-[var(--nb-text-2)]">· {ct.artists.name}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Notes preview */}
+                          {ct.notes && (
+                            <p className="text-xs text-[var(--nb-text)] leading-relaxed line-clamp-2">
+                              {ct.notes}
+                            </p>
+                          )}
+
+                          {/* Actions */}
+                          <div className="flex items-center gap-1.5 pt-1 border-t border-[var(--nb-border)]">
+                            <button
+                              type="button"
+                              onClick={() => { setConfirmDeleteTattooId(null); setEditingTattoo(ct); setTattooModalOpen(true); }}
+                              className="text-xs font-medium text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors px-2 py-1 rounded-lg hover:bg-[var(--nb-active-bg)]"
+                            >
+                              Edit
+                            </button>
+                            <div className="ml-auto flex items-center gap-1.5">
+                              {confirmDeleteTattooId === ct.id ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteTattooId(null)}
+                                    className="text-xs text-[var(--nb-text-2)] hover:text-[var(--nb-text)] px-2 py-1 rounded-lg transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteCompletedTattoo(ct.id)}
+                                    disabled={deletingTattooId === ct.id}
+                                    className="inline-flex items-center gap-1 text-xs font-medium bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-50"
+                                  >
+                                    {deletingTattooId === ct.id && <Loader2 size={11} className="animate-spin" />}
+                                    Confirm delete?
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCompletedTattoo(ct.id)}
+                                  className="text-xs font-medium text-[var(--nb-text-2)] hover:text-red-600 transition-colors px-2 py-1 rounded-lg hover:bg-red-50"
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
             {/* ── Generated Quotes ──────────────────────────────────────── */}
             {apptTab === "messages" && (() => {
               const quotedRequests = requests.filter((r) => r.generated_quote_message);
@@ -2134,6 +2320,32 @@ export function ClientDetailPanel({
         onSuccess={(updated) => {
           onUpdated(updated);
           showToast("Client updated!", "success");
+        }}
+      />
+
+      {/* Completed Tattoo modal (add + edit) */}
+      <CompletedTattooModal
+        open={tattooModalOpen}
+        onOpenChange={(v) => {
+          setTattooModalOpen(v);
+          if (!v) setEditingTattoo(null);
+        }}
+        clientId={String(client.id)}
+        tattoo={editingTattoo}
+        requests={requests.map((r) => ({ id: r.id, description: r.description, style: r.style }))}
+        onSaved={(saved) => {
+          const wasEdit = !!editingTattoo;
+          setCompletedTattoos((prev) => {
+            const idx = prev.findIndex((t) => t.id === saved.id);
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = saved;
+              return next;
+            }
+            return [saved, ...prev];
+          });
+          setEditingTattoo(null);
+          showToast(wasEdit ? "Tattoo record updated!" : "Tattoo logged!", "success");
         }}
       />
 
