@@ -262,111 +262,117 @@ export function InvoicesView({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead>
-              <tr className="border-b border-[var(--nb-border)] bg-[var(--nb-card)]">
-                {[
-                  "Invoice",
-                  "Client",
-                  "Description",
-                  "Date",
-                  "Amount",
-                  "Status",
-                  "",
-                ].map((col, i) => (
-                  <th
-                    key={i}
-                    className={`px-5 py-3 text-xs font-semibold text-[var(--nb-text-2)] uppercase tracking-wide ${
-                      i === 0 || i === 4 || i === 5 || i === 6
-                        ? "text-right"
-                        : "text-left"
-                    } ${i === 4 ? "tabular-nums" : ""}`}
-                  >
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--nb-card)]">
-              {filtered.map((inv) => {
-                const cfg = STATUS_CONFIG[inv.status] ?? STATUS_CONFIG.pending;
-                return (
-                  <tr
-                    key={inv.id}
-                    className="hover:bg-[var(--nb-card)] transition-colors group"
-                  >
-                    {/* Invoice # */}
-                    <td className="px-5 py-3.5 text-right">
-                      <span className="font-mono text-xs font-medium text-[var(--nb-text-2)]">
-                        {invoiceNumber(inv.id)}
-                      </span>
-                    </td>
-
-                    {/* Client */}
-                    <td className="px-5 py-3.5">
-                      <p className="font-medium text-[var(--nb-text)]">
-                        {inv.clients?.name ?? "—"}
-                      </p>
-                      {inv.clients?.email && (
-                        <p className="text-xs text-[var(--nb-text-2)] mt-0.5">
-                          {inv.clients.email}
-                        </p>
-                      )}
-                    </td>
-
-                    {/* Description */}
-                    <td className="px-5 py-3.5 text-[var(--nb-text-2)] max-w-[200px] truncate">
-                      {inv.type}
-                    </td>
-
-                    {/* Date */}
-                    <td className="px-5 py-3.5 text-[var(--nb-text-2)] whitespace-nowrap">
-                      {formatDate(inv.date)}
-                    </td>
-
-                    {/* Amount */}
-                    <td className="px-5 py-3.5 text-right font-semibold text-[var(--nb-text)] tabular-nums whitespace-nowrap">
-                      {format(inv.amount)}
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-5 py-3.5 text-right">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${cfg.text} ${cfg.bg}`}
+          <div className="relative">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[380px] md:min-w-[640px] text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--nb-border)] bg-[var(--nb-card)]">
+                    {[
+                      "Invoice",
+                      "Client",
+                      "Description",
+                      "Date",
+                      "Amount",
+                      "Status",
+                      "",
+                    ].map((col, i) => (
+                      <th
+                        key={i}
+                        className={`px-5 py-3 text-xs font-semibold text-[var(--nb-text-2)] uppercase tracking-wide ${
+                          i === 0 || i === 4 || i === 5 || i === 6
+                            ? "text-right"
+                            : "text-left"
+                        } ${i === 4 ? "tabular-nums" : ""} ${
+                          i === 2 || i === 3 ? "hidden md:table-cell" : ""
+                        }`}
                       >
-                        <span className={`size-1.5 rounded-full ${cfg.dot}`} />
-                        {cfg.label}
-                      </span>
-                    </td>
-
-                    {/* Action */}
-                    <td className="px-5 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {(inv.status === "pending" || inv.status === "overdue" || inv.status === "deposit") && (
-                          <button
-                            onClick={() => handleMarkPaid(inv.id)}
-                            disabled={markingPaid === inv.id}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors disabled:opacity-60"
-                          >
-                            <CheckCircle2 size={12} />
-                            {markingPaid === inv.id ? "…" : "Mark Paid"}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setSelectedInvoice(inv)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--nb-text-2)] bg-[var(--nb-card)] hover:bg-[var(--nb-bg)] border border-[var(--nb-border)] transition-colors"
-                        >
-                          <Eye size={12} />
-                          View
-                        </button>
-                      </div>
-                    </td>
+                        {col}
+                      </th>
+                    ))}
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                </thead>
+                <tbody className="divide-y divide-[var(--nb-card)]">
+                  {filtered.map((inv) => {
+                    const cfg = STATUS_CONFIG[inv.status] ?? STATUS_CONFIG.pending;
+                    return (
+                      <tr
+                        key={inv.id}
+                        className="hover:bg-[var(--nb-card)] transition-colors group"
+                      >
+                        {/* Invoice # */}
+                        <td className="px-5 py-3.5 text-right">
+                          <span className="font-mono text-xs font-medium text-[var(--nb-text-2)]">
+                            {invoiceNumber(inv.id)}
+                          </span>
+                        </td>
+
+                        {/* Client */}
+                        <td className="px-5 py-3.5">
+                          <p className="font-medium text-[var(--nb-text)]">
+                            {inv.clients?.name ?? "—"}
+                          </p>
+                          {inv.clients?.email && (
+                            <p className="text-xs text-[var(--nb-text-2)] mt-0.5 hidden md:block">
+                              {inv.clients.email}
+                            </p>
+                          )}
+                        </td>
+
+                        {/* Description — hidden on mobile */}
+                        <td className="hidden md:table-cell px-5 py-3.5 text-[var(--nb-text-2)] max-w-[200px] truncate">
+                          {inv.type}
+                        </td>
+
+                        {/* Date — hidden on mobile */}
+                        <td className="hidden md:table-cell px-5 py-3.5 text-[var(--nb-text-2)] whitespace-nowrap">
+                          {formatDate(inv.date)}
+                        </td>
+
+                        {/* Amount */}
+                        <td className="px-5 py-3.5 text-right font-semibold text-[var(--nb-text)] tabular-nums whitespace-nowrap">
+                          {format(inv.amount)}
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-5 py-3.5 text-right">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${cfg.text} ${cfg.bg}`}
+                          >
+                            <span className={`size-1.5 rounded-full ${cfg.dot}`} />
+                            {cfg.label}
+                          </span>
+                        </td>
+
+                        {/* Action */}
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {(inv.status === "pending" || inv.status === "overdue" || inv.status === "deposit") && (
+                              <button
+                                onClick={() => handleMarkPaid(inv.id)}
+                                disabled={markingPaid === inv.id}
+                                className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors disabled:opacity-60"
+                              >
+                                <CheckCircle2 size={12} />
+                                {markingPaid === inv.id ? "…" : "Mark Paid"}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setSelectedInvoice(inv)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--nb-text-2)] bg-[var(--nb-card)] hover:bg-[var(--nb-bg)] border border-[var(--nb-border)] transition-colors"
+                            >
+                              <Eye size={12} />
+                              View
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {/* Right-edge fade — scroll hint on mobile */}
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[var(--nb-card)] to-transparent md:hidden" />
           </div>
         )}
 

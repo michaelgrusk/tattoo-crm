@@ -1505,7 +1505,7 @@ export function ClientDetailPanel({
                   <Button variant="outline">Close</Button>
                 </DialogClose>
                 <Button
-                  onClick={() => { setApptDialogOpen(false); router.push("/calendar"); }}
+                  onClick={() => { setApptDialogOpen(false); router.push(`/calendar?date=${nextAppt!.date}`); }}
                   className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
                 >
                   View on Calendar

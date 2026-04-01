@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus, Loader2, CheckCircle2, X, Banknote } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -186,9 +187,15 @@ function DayColumn({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function CalendarView() {
-  const [weekStart, setWeekStart] = useState<Date>(() =>
-    getMonday(new Date())
-  );
+  const searchParams = useSearchParams();
+  const [weekStart, setWeekStart] = useState<Date>(() => {
+    const dateParam = searchParams.get("date");
+    if (dateParam) {
+      const parsed = new Date(dateParam + "T00:00:00");
+      if (!isNaN(parsed.getTime())) return getMonday(parsed);
+    }
+    return getMonday(new Date());
+  });
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);

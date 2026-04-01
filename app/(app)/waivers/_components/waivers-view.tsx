@@ -329,7 +329,7 @@ export function WaiversView({
 
   return (
     <>
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -428,53 +428,59 @@ export function WaiversView({
                 </p>
               </div>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[var(--nb-border)]">
-                    {["Client", "Template", "Date signed", ""].map((col, i) => (
-                      <th
-                        key={i}
-                        className={`px-5 py-3 text-xs font-semibold text-[var(--nb-text-2)] uppercase tracking-wide ${
-                          i === 3 ? "text-right" : "text-left"
-                        }`}
-                      >
-                        {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--nb-border)]">
-                  {signedWaivers.map((sw) => (
-                    <tr key={sw.id} className="hover:bg-[var(--nb-bg)] transition-colors">
-                      <td className="px-5 py-3.5">
-                        <p className="font-medium text-[var(--nb-text)]">
-                          {sw.client_name}
-                        </p>
-                        {sw.client_email && (
-                          <p className="text-xs text-[var(--nb-text-2)] mt-0.5">
-                            {sw.client_email}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 text-[var(--nb-text-2)]">
-                        {sw.waiver_templates?.name ?? "—"}
-                      </td>
-                      <td className="px-5 py-3.5 text-[var(--nb-text-2)] whitespace-nowrap">
-                        {formatDate(sw.signed_at)}
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <button
-                          onClick={() => setSelectedSigned(sw)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--nb-text-2)] bg-[var(--nb-bg)] border border-[var(--nb-border)] hover:text-[var(--nb-text)] transition-colors"
-                        >
-                          <Eye size={12} />
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="relative">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[480px] text-sm">
+                    <thead>
+                      <tr className="border-b border-[var(--nb-border)]">
+                        {["Client", "Template", "Date signed", ""].map((col, i) => (
+                          <th
+                            key={i}
+                            className={`px-5 py-3 text-xs font-semibold text-[var(--nb-text-2)] uppercase tracking-wide ${
+                              i === 3 ? "text-right" : "text-left"
+                            }`}
+                          >
+                            {col}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--nb-border)]">
+                      {signedWaivers.map((sw) => (
+                        <tr key={sw.id} className="hover:bg-[var(--nb-bg)] transition-colors">
+                          <td className="px-5 py-3.5">
+                            <p className="font-medium text-[var(--nb-text)]">
+                              {sw.client_name}
+                            </p>
+                            {sw.client_email && (
+                              <p className="text-xs text-[var(--nb-text-2)] mt-0.5 hidden md:block">
+                                {sw.client_email}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-5 py-3.5 text-[var(--nb-text-2)]">
+                            {sw.waiver_templates?.name ?? "—"}
+                          </td>
+                          <td className="px-5 py-3.5 text-[var(--nb-text-2)] whitespace-nowrap">
+                            {formatDate(sw.signed_at)}
+                          </td>
+                          <td className="px-5 py-3.5 text-right">
+                            <button
+                              onClick={() => setSelectedSigned(sw)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--nb-text-2)] bg-[var(--nb-bg)] border border-[var(--nb-border)] hover:text-[var(--nb-text)] transition-colors"
+                            >
+                              <Eye size={12} />
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Right-edge fade — scroll hint on mobile */}
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[var(--nb-card)] to-transparent md:hidden" />
+              </div>
             )}
           </div>
         )}
