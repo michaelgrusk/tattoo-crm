@@ -6,6 +6,7 @@ export type ClientListItem = {
   name: string;
   email: string;
   phone: string | null;
+  instagram: string | null;
   created_at: string;
   notes: string | null;
   skin_notes: string | null;

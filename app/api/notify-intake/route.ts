@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
       client_name,
       client_email,
       client_phone,
+      client_instagram,
       description,
       style,
       placement,
@@ -24,6 +25,7 @@ export async function POST(req: NextRequest) {
       client_name: string;
       client_email: string;
       client_phone?: string;
+      client_instagram?: string;
       description: string;
       style: string;
       placement: string;
@@ -97,6 +99,7 @@ export async function POST(req: NextRequest) {
             name: client_name,
             email: client_email,
             phone: client_phone || null,
+            instagram: client_instagram || null,
             status: "new_lead",
           })
           .select("id")

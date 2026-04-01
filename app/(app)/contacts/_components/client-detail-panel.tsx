@@ -15,10 +15,10 @@ import {
   AlertCircle,
   ScrollText,
   Eye,
-  MessageCircle,
+  Copy,
+  Check,
 } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
-import { sendWhatsAppTemplate } from "@/lib/whatsapp";
 import { useRouter } from "next/navigation";
 import { STATUS_CONFIG } from "./contacts-view";
 import { useCurrency } from "@/components/currency-provider";
@@ -50,6 +50,7 @@ type TattooRequest = {
   created_at: string;
   reference_image_url: string | null;
   quote_amount: number | null;
+  generated_quote_message: string | null;
 };
 
 type NextAppointment = {
@@ -115,7 +116,7 @@ function getStatusStyle(status: string) {
 const TATTOO_STYLES = ["Traditional", "Neo-Traditional", "Realism", "Watercolor", "Blackwork", "Tribal", "Japanese", "Geometric", "Minimalist", "Illustrative", "Dotwork", "Surrealism", "Other"];
 
 function parseDescription(raw: string) {
-  const FIELD_RE = /^(Placement|Size|Preferred date|Phone):\s*(.+)$/;
+  const FIELD_RE = /^(Placement|Size|Preferred date|Phone|Instagram):\s*(.+)$/;
   const lines = raw.split("\n");
   const structured: Record<string, string> = {};
   const descLines: string[] = [];
@@ -130,6 +131,7 @@ function parseDescription(raw: string) {
     size: structured["Size"] ?? "",
     preferredDate: structured["Preferred date"] ?? "",
     phone: structured["Phone"] ?? "",
+    instagram: structured["Instagram"] ?? "",
   };
 }
 
@@ -648,6 +650,7 @@ type EditClientForm = {
   name: string;
   email: string;
   phone: string;
+  instagram: string;
   notes: string;
   skin_notes: string;
 };
@@ -667,6 +670,7 @@ function EditClientDialog({
     name: client.name,
     email: client.email,
     phone: client.phone ?? "",
+    instagram: client.instagram ?? "",
     notes: client.notes ?? "",
     skin_notes: client.skin_notes ?? "",
   });
@@ -681,6 +685,7 @@ function EditClientDialog({
         name: client.name,
         email: client.email,
         phone: client.phone ?? "",
+        instagram: client.instagram ?? "",
         notes: client.notes ?? "",
         skin_notes: client.skin_notes ?? "",
       });
@@ -716,6 +721,7 @@ function EditClientDialog({
         name: form.name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim() || null,
+        instagram: form.instagram.trim() || null,
         notes: form.notes.trim() || null,
         skin_notes: form.skin_notes.trim() || null,
       })
@@ -734,6 +740,7 @@ function EditClientDialog({
       name: form.name.trim(),
       email: form.email.trim(),
       phone: form.phone.trim() || null,
+      instagram: form.instagram.trim() || null,
       notes: form.notes.trim() || null,
       skin_notes: form.skin_notes.trim() || null,
     });
@@ -784,6 +791,25 @@ function EditClientDialog({
               value={form.phone}
               onChange={setField("phone")}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="ec-instagram">Instagram</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none pointer-events-none">@</span>
+              <Input
+                id="ec-instagram"
+                type="text"
+                className="pl-7"
+                value={form.instagram.replace(/^@/, "")}
+                onChange={(e) => {
+                  const stripped = e.target.value.replace(/^@+/, "");
+                  setForm((p) => ({ ...p, instagram: stripped }));
+                  if (errors.instagram) setErrors((p) => ({ ...p, instagram: undefined }));
+                }}
+                placeholder="yourhandle"
+              />
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -977,12 +1003,7 @@ export function ClientDetailPanel({
   const [clientAppts, setClientAppts] = useState<ClientAppt[]>([]);
   const [apptTab, setApptTab] = useState<"requests" | "appointments" | "messages">("requests");
   const [waMessages, setWaMessages] = useState<WaMessage[]>([]);
-  const [aftercareSendingId, setAftercareSendingId] = useState<string | null>(null);
-  const [aftercareResult, setAftercareResult] = useState<{ id: string; msg: string } | null>(null);
-  const [quoteSendingId, setQuoteSendingId] = useState<string | null>(null);
-  const [quoteResult, setQuoteResult] = useState<{ id: string; msg: string } | null>(null);
-  const [reminderSendingId, setReminderSendingId] = useState<string | null>(null);
-  const [reminderResult, setReminderResult] = useState<{ id: string; msg: string } | null>(null);
+  const [copiedQuoteId, setCopiedQuoteId] = useState<string | null>(null);
   const [apptBookOpen, setApptBookOpen] = useState(false);
   const [localStatus, setLocalStatus] = useState<string>(client.status ?? "");
   const [statusSaving, setStatusSaving] = useState(false);
@@ -1041,71 +1062,6 @@ export function ClientDetailPanel({
   const [editingRequest, setEditingRequest] = useState<TattooRequest | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  async function handleSendQuoteWA(req: TattooRequest) {
-    const phone = client.phone || parseDescription(req.description).phone;
-    if (!phone) { setQuoteResult({ id: req.id, msg: "No phone number on file" }); return; }
-    setQuoteSendingId(req.id);
-    setQuoteResult(null);
-    const res = await sendWhatsAppTemplate({
-      phoneNumber: phone,
-      templateName: "quote",
-      variables: {
-        client_name: client.name.split(" ")[0],
-        studio_name: "your studio",
-        style: req.style,
-        amount: req.quote_amount != null ? `$${req.quote_amount.toLocaleString()}` : "TBD",
-      },
-      clientId: String(client.id),
-      relatedType: "tattoo_request",
-      relatedId: req.id,
-    });
-    setQuoteSendingId(null);
-    setQuoteResult({ id: req.id, msg: res.success ? "Quote sent via WhatsApp!" : `WhatsApp error: ${res.error}` });
-  }
-
-  async function handleSendReminder(appt: ClientAppt) {
-    if (!client.phone) { setReminderResult({ id: appt.id, msg: "No phone number on file" }); return; }
-    setReminderSendingId(appt.id);
-    setReminderResult(null);
-    const [h, m] = appt.time.split(":").map(Number);
-    const timeStr = `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
-    const dateStr = new Date(appt.date + "T00:00:00").toLocaleDateString("en-US", {
-      weekday: "long", month: "long", day: "numeric",
-    });
-    const res = await sendWhatsAppTemplate({
-      phoneNumber: client.phone,
-      templateName: "reminder",
-      variables: { client_name: client.name.split(" ")[0], studio_name: "your studio", date: dateStr, time: timeStr },
-      clientId: String(client.id),
-      relatedType: "appointment",
-      relatedId: appt.id,
-    });
-    setReminderSendingId(null);
-    setReminderResult({ id: appt.id, msg: res.success ? "Reminder sent via WhatsApp!" : `WhatsApp error: ${res.error}` });
-  }
-
-  async function handleSendAftercare(apptId: string) {
-    if (!client.phone) {
-      setAftercareResult({ id: apptId, msg: "No phone number on file" });
-      return;
-    }
-    setAftercareSendingId(apptId);
-    setAftercareResult(null);
-    const res = await sendWhatsAppTemplate({
-      phoneNumber: client.phone,
-      templateName: "aftercare",
-      variables: { client_name: client.name.split(" ")[0] },
-      clientId: String(client.id),
-      relatedType: "appointment",
-      relatedId: apptId,
-    });
-    setAftercareSendingId(null);
-    setAftercareResult({
-      id: apptId,
-      msg: res.success ? "Aftercare sent via WhatsApp!" : `WhatsApp error: ${res.error}`,
-    });
-  }
 
   async function handleDeleteRequest(id: string) {
     if (confirmDeleteId !== id) {
@@ -1166,7 +1122,7 @@ export function ClientDetailPanel({
       supabase
         .from("tattoo_requests")
         .select(
-          "id, description, style, status, created_at, reference_image_url"
+          "id, description, style, status, created_at, reference_image_url, quote_amount, generated_quote_message"
         )
         .eq("client_id", String(client.id))
         .order("created_at", { ascending: false }),
@@ -1355,6 +1311,30 @@ export function ClientDetailPanel({
                     <Phone size={13} className="text-[var(--nb-text-2)]" />
                     {client.phone}
                   </span>
+                )}
+                {client.instagram ? (
+                  <a
+                    href={`https://instagram.com/${client.instagram.replace(/^@/, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                    </svg>
+                    {client.instagram.startsWith("@") ? client.instagram : `@${client.instagram}`}
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditOpen(true)}
+                    className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors group"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40 group-hover:opacity-100">
+                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                    </svg>
+                    <span className="opacity-50 group-hover:opacity-100">Add Instagram</span>
+                  </button>
                 )}
                 <span className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)]">
                   <Calendar size={13} className="text-[var(--nb-text-2)]" />
@@ -1860,26 +1840,6 @@ export function ClientDetailPanel({
                                 {req.description}
                               </p>
                             )}
-                            {/* Send Quote via WhatsApp for quoted requests */}
-                            {req.status === "quote sent" && (client.phone || parseDescription(req.description).phone) && (
-                              <div className="mt-2">
-                                <button
-                                  type="button"
-                                  onClick={() => handleSendQuoteWA(req)}
-                                  disabled={quoteSendingId === req.id}
-                                  className="inline-flex items-center gap-1.5 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-50"
-                                >
-                                  {quoteSendingId === req.id ? <Loader2 size={10} className="animate-spin" /> : <MessageCircle size={10} />}
-                                  {quoteSendingId === req.id ? "Sending…" : "Send Quote via WhatsApp"}
-                                </button>
-                                {quoteResult?.id === req.id && (
-                                  <p className={`mt-1.5 text-[10px] rounded px-2 py-1 ${quoteResult.msg.startsWith("Quote") ? "text-emerald-700 bg-emerald-50" : "text-red-600 bg-red-50"}`}>
-                                    {quoteResult.msg}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-
                             {/* Edit / Delete actions */}
                             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--nb-border)]">
                               <button
@@ -1982,45 +1942,12 @@ export function ClientDetailPanel({
                               </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                              {/* Send Reminder for upcoming (not completed/cancelled) appointments */}
-                              {!["completed", "cancelled"].includes(appt.status) && client.phone && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleSendReminder(appt)}
-                                  disabled={reminderSendingId === appt.id}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-sky-700 bg-sky-50 border border-sky-200 hover:bg-sky-100 transition-colors disabled:opacity-50"
-                                >
-                                  {reminderSendingId === appt.id ? <Loader2 size={10} className="animate-spin" /> : <MessageCircle size={10} />}
-                                  Remind
-                                </button>
-                              )}
-                              {appt.status === "completed" && client.phone && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleSendAftercare(appt.id)}
-                                  disabled={aftercareSendingId === appt.id}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-50"
-                                >
-                                  {aftercareSendingId === appt.id ? <Loader2 size={10} className="animate-spin" /> : <MessageCircle size={10} />}
-                                  Aftercare
-                                </button>
-                              )}
                               <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${ss.text} ${ss.bg}`}>
                                 <span className={`size-1.5 rounded-full ${ss.dot}`} />
                                 {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
                               </span>
                             </div>
                           </div>
-                          {reminderResult?.id === appt.id && (
-                            <p className={`text-[10px] rounded px-2 py-1 ${reminderResult.msg.startsWith("Reminder") ? "text-sky-700 bg-sky-50" : "text-red-600 bg-red-50"}`}>
-                              {reminderResult.msg}
-                            </p>
-                          )}
-                          {aftercareResult?.id === appt.id && (
-                            <p className={`text-xs rounded-lg px-2.5 py-1.5 border ${aftercareResult.msg.startsWith("Aftercare") ? "text-emerald-700 bg-emerald-50 border-emerald-200" : "text-red-600 bg-red-50 border-red-200"}`}>
-                              {aftercareResult.msg}
-                            </p>
-                          )}
                         </div>
                       );
                     })}
@@ -2028,6 +1955,63 @@ export function ClientDetailPanel({
                 )}
               </section>
             )}
+
+            {/* ── Generated Quotes ──────────────────────────────────────── */}
+            {apptTab === "messages" && (() => {
+              const quotedRequests = requests.filter((r) => r.generated_quote_message);
+              if (quotedRequests.length === 0) return null;
+              return (
+                <section className="mb-6">
+                  <h3 className="text-sm font-semibold text-[var(--nb-text)] mb-3">
+                    Generated Quotes
+                    <span className="ml-2 text-xs font-medium text-[var(--nb-text-2)]">
+                      {quotedRequests.length}
+                    </span>
+                  </h3>
+                  <div className="space-y-3">
+                    {quotedRequests.map((req) => (
+                      <div key={req.id} className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] overflow-hidden">
+                        {/* Header */}
+                        <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-[var(--nb-border)]">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-xs font-medium text-[var(--nb-text)] truncate">
+                              {req.style} · {new Date(req.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            </span>
+                            {req.quote_amount != null && (
+                              <span className="shrink-0 text-xs font-semibold text-[#7C3AED] bg-[var(--nb-active-bg)] px-2 py-0.5 rounded-full">
+                                {format(req.quote_amount)}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await navigator.clipboard.writeText(req.generated_quote_message!);
+                              setCopiedQuoteId(req.id);
+                              setTimeout(() => setCopiedQuoteId(null), 2000);
+                            }}
+                            className={`shrink-0 inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg transition-colors ${
+                              copiedQuoteId === req.id
+                                ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                                : "bg-[var(--nb-bg)] text-[var(--nb-text-2)] border border-[var(--nb-border)] hover:text-[#7C3AED] hover:border-[#7C3AED]/40"
+                            }`}
+                          >
+                            {copiedQuoteId === req.id ? <Check size={11} /> : <Copy size={11} />}
+                            {copiedQuoteId === req.id ? "Copied!" : "Copy"}
+                          </button>
+                        </div>
+                        {/* Message body */}
+                        <div className="px-4 py-3">
+                          <p className="text-xs text-[var(--nb-text-2)] whitespace-pre-line leading-relaxed line-clamp-4">
+                            {req.generated_quote_message}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              );
+            })()}
 
             {/* ── WhatsApp Messages ─────────────────────────────────────── */}
             {apptTab === "messages" && (

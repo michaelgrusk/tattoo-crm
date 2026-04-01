@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ChevronLeft, Loader2, MessageCircle } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { ChevronLeft, Loader2, Copy, Check, MessageCircle } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
-import { sendWhatsAppTemplate } from "@/lib/whatsapp";
+import { useCurrency } from "@/components/currency-provider";
+import { CURRENCY_OPTIONS } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,9 +19,18 @@ import type { TattooRequest } from "../page";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ModalView = "detail" | "send-quote" | "deposit" | "schedule";
+type ModalView = "detail" | "generate-quote" | "deposit" | "schedule";
 type Working = "" | "quote" | "deposit" | "decline" | "schedule";
+type QuoteTemplate = { id: string; category: string; body_text: string };
 type MatchedArtist = { id: number; name: string; avatar_url: string | null };
+
+// ─── Default quote template (fallback when no DB templates exist) ─────────────
+
+const DEFAULT_QUOTE_TEMPLATE: QuoteTemplate = {
+  id: "__default__",
+  category: "quote",
+  body_text: "Hi {{client_name}}! 🖋️ Thanks for reaching out to {{studio_name}}.\n\nWe'd love to work on your tattoo — {{tattoo_description}} sounds awesome, we'd love to get this going!\n\nHere's our estimated quote:\n💰 *{{total_amount}}*\n\nTo secure your spot, a deposit of {{deposit_amount}} is required.\nAccepted payment methods: BIT, Bank Transfer.\n\nWe're excited to work with you — reply if you have any questions! 🙏",
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -127,6 +137,9 @@ export function RequestDetailModal({
   onOpenChange: (v: boolean) => void;
   onSuccess: (message: string) => void;
 }) {
+  const { format: formatCurrency, currency } = useCurrency();
+  const currencySymbol = CURRENCY_OPTIONS.find((c) => c.value === currency)?.symbol ?? "$";
+
   const [view, setView] = useState<ModalView>("detail");
   const [working, setWorking] = useState<Working>("");
   const [declineConfirm, setDeclineConfirm] = useState(false);
@@ -134,15 +147,19 @@ export function RequestDetailModal({
   const [matchedArtists, setMatchedArtists] = useState<MatchedArtist[]>([]);
   const [assignedArtistId, setAssignedArtistId] = useState<number | null>(null);
   const [assigning, setAssigning] = useState(false);
-  const [waSending, setWaSending] = useState(false);
-  const [waResult, setWaResult] = useState<string | null>(null);
   const [archiving, setArchiving] = useState(false);
 
-  // Send-quote form
-  const [sqAmount, setSqAmount] = useState("");
-  const [sqNote, setSqNote] = useState("");
+  // Generate-quote form
+  const [gqTotal, setGqTotal] = useState("");
+  const [gqDeposit, setGqDeposit] = useState("");
+  const [gqTemplates, setGqTemplates] = useState<QuoteTemplate[]>([]);
+  const [gqTemplateId, setGqTemplateId] = useState<string>("");
+  const [gqCopied, setGqCopied] = useState(false);
+  const [clientInstagram, setClientInstagram] = useState<string | null>(null);
+  const [studioName, setStudioName] = useState("");
 
   // Deposit form
+
   const [dpAmount, setDpAmount] = useState("");
 
   // Schedule form
@@ -159,28 +176,54 @@ export function RequestDetailModal({
       setDeclineConfirm(false);
       setServerError(null);
       setWorking("");
-      setSqAmount(request.quote_amount != null ? String(request.quote_amount) : "");
-      setSqNote("");
+      setGqTotal(request.quote_amount != null ? String(request.quote_amount) : "");
+      setGqDeposit("");
+      setGqCopied(false);
+      setClientInstagram(null);
       setDpAmount(request.quote_amount != null ? String(request.quote_amount) : "");
       setScDate(p.preferredDate);
       setScTime("10:00");
       setScType("Full session");
       setScStatus("confirmed");
       setAssignedArtistId(request.artist_id ?? null);
-      setWaResult(null);
-      // Fetch artists whose styles include this request's style
-      if (request.style) {
-        getUserId().then((userId) => {
-          if (!userId) return;
-          supabase
-            .from("artists")
-            .select("id, name, avatar_url")
+      getUserId().then(async (userId) => {
+        if (!userId) return;
+
+        // Fetch matched artists, quote templates, studio name in parallel
+        const [artistsRes, templatesRes, profileRes] = await Promise.all([
+          request.style
+            ? supabase.from("artists").select("id, name, avatar_url")
+                .eq("user_id", userId).eq("is_active", true)
+                .contains("styles", [request.style])
+            : Promise.resolve({ data: [] }),
+          supabase.from("whatsapp_templates")
+            .select("id, category, body_text")
             .eq("user_id", userId)
-            .eq("is_active", true)
-            .contains("styles", [request.style])
-            .then(({ data }) => setMatchedArtists((data as MatchedArtist[]) ?? []));
-        });
-      }
+            .eq("category", "quote"),
+          supabase.from("profiles")
+            .select("studio_name")
+            .eq("id", userId)
+            .single(),
+        ]);
+
+        setMatchedArtists((artistsRes.data as MatchedArtist[]) ?? []);
+        setStudioName(profileRes.data?.studio_name ?? "");
+
+        const dbTemplates = (templatesRes.data ?? []) as QuoteTemplate[];
+        const templates = dbTemplates.length > 0 ? dbTemplates : [DEFAULT_QUOTE_TEMPLATE];
+        setGqTemplates(templates);
+        setGqTemplateId(templates[0].id);
+
+        // Fetch client instagram if client_id is present
+        if (request.client_id) {
+          const { data: clientRow } = await supabase
+            .from("clients")
+            .select("instagram")
+            .eq("id", request.client_id)
+            .single();
+          setClientInstagram(clientRow?.instagram ?? null);
+        }
+      });
     }
   }, [open, request?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -198,10 +241,24 @@ export function RequestDetailModal({
 
   // ── Actions ─────────────────────────────────────────────────────────────────
 
-  async function handleSendQuote() {
-    const amount = parseFloat(sqAmount);
-    if (!sqAmount || isNaN(amount) || amount <= 0) {
-      setServerError("A valid quote amount is required");
+  // Build live preview by substituting known variables into the template body
+  const buildPreview = useCallback((bodyText: string) => {
+    if (!request) return bodyText;
+    const p = parseDescription(request.description);
+    const totalFmt = gqTotal ? formatCurrency(parseFloat(gqTotal)) : "{{total_amount}}";
+    const depositFmt = gqDeposit ? formatCurrency(parseFloat(gqDeposit)) : "{{deposit_amount}}";
+    return bodyText
+      .replace(/\{\{client_name\}\}/g, request.client_name)
+      .replace(/\{\{studio_name\}\}/g, studioName || "{{studio_name}}")
+      .replace(/\{\{tattoo_description\}\}/g, p.tattooDescription || "{{tattoo_description}}")
+      .replace(/\{\{total_amount\}\}/g, totalFmt)
+      .replace(/\{\{deposit_amount\}\}/g, depositFmt);
+  }, [request, gqTotal, gqDeposit, studioName, formatCurrency]);
+
+  async function handleConfirmQuote() {
+    const amount = parseFloat(gqTotal);
+    if (!gqTotal || isNaN(amount) || amount <= 0) {
+      setServerError("A valid total amount is required");
       return;
     }
     setWorking("quote");
@@ -210,7 +267,10 @@ export function RequestDetailModal({
     const userId = await getUserId();
     if (!userId) { setWorking(""); setServerError("Not authenticated"); return; }
 
-    // Update client status to reflect quote stage
+    // Build final message to save alongside the quote
+    const template = gqTemplates.find((t) => t.id === gqTemplateId);
+    const generatedMessage = template ? buildPreview(template.body_text) : null;
+
     if (request!.client_id) {
       await supabase
         .from("clients")
@@ -218,19 +278,27 @@ export function RequestDetailModal({
         .eq("id", request!.client_id);
     }
 
-    // Update the request
     const { error: reqErr } = await supabase
       .from("tattoo_requests")
       .update({
         status: "quote sent",
         quote_amount: amount,
+        generated_quote_message: generatedMessage,
       })
       .eq("id", request!.id);
 
     setWorking("");
     if (reqErr) { setServerError(reqErr.message); return; }
     close();
-    onSuccess("Quote sent!");
+    onSuccess("Quote ready!");
+  }
+
+  async function handleCopyPreview() {
+    const template = gqTemplates.find((t) => t.id === gqTemplateId);
+    if (!template) return;
+    await navigator.clipboard.writeText(buildPreview(template.body_text));
+    setGqCopied(true);
+    setTimeout(() => setGqCopied(false), 2000);
   }
 
   async function handleConfirmDeposit() {
@@ -342,28 +410,6 @@ export function RequestDetailModal({
     onSuccess("Request archived");
   }
 
-  async function handleSendQuoteWhatsApp() {
-    const p = parseDescription(request!.description);
-    if (!p.phone) { setWaResult("No phone number found for this client"); return; }
-    setWaSending(true);
-    setWaResult(null);
-    const res = await sendWhatsAppTemplate({
-      phoneNumber: p.phone,
-      templateName: "quote",
-      variables: {
-        client_name: request!.client_name,
-        studio_name: "your studio",
-        style: request!.style,
-        amount: request!.quote_amount != null ? `$${request!.quote_amount.toLocaleString()}` : "TBD",
-      },
-      clientId: request!.client_id ?? undefined,
-      relatedType: "tattoo_request",
-      relatedId: request!.id,
-    });
-    setWaSending(false);
-    setWaResult(res.success ? "Sent via WhatsApp!" : `WhatsApp error: ${res.error}`);
-  }
-
   // ── Derived ──────────────────────────────────────────────────────────────────
 
   if (!request) return null;
@@ -374,7 +420,7 @@ export function RequestDetailModal({
 
   const titleMap: Record<ModalView, string> = {
     "detail": "Request Details",
-    "send-quote": "Send Quote",
+    "generate-quote": "Generate Quote",
     "deposit": "Record Deposit",
     "schedule": "Schedule Appointment",
   };
@@ -533,23 +579,17 @@ export function RequestDetailModal({
                 {serverError}
               </p>
             )}
-            {waResult && (
-              <p className={`text-xs rounded-lg px-3 py-2 border ${waResult.startsWith("Sent") ? "text-emerald-700 bg-emerald-50 border-emerald-200" : "text-red-600 bg-red-50 border-red-200"}`}>
-                {waResult}
-              </p>
-            )}
-
             {/* Action footer */}
             <div className="border-t border-[var(--nb-border)] pt-4">
 
               {request.status === "new request" && (
                 <div className="flex items-center justify-between gap-2">
                   <Button
-                    onClick={() => setView("send-quote")}
+                    onClick={() => setView("generate-quote")}
                     disabled={busy}
                     className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
                   >
-                    Send Quote
+                    Generate Quote
                   </Button>
                   <DeclineButton
                     confirm={declineConfirm}
@@ -561,33 +601,20 @@ export function RequestDetailModal({
               )}
 
               {request.status === "quote sent" && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <Button
-                      onClick={() => setView("deposit")}
-                      disabled={busy}
-                      className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
-                    >
-                      Mark Deposit Paid
-                    </Button>
-                    <DeclineButton
-                      confirm={declineConfirm}
-                      busy={busy}
-                      working={working}
-                      onClick={handleDecline}
-                    />
-                  </div>
-                  {(request.whatsapp_opt_in || !!parsed.phone) && (
-                    <button
-                      type="button"
-                      onClick={handleSendQuoteWhatsApp}
-                      disabled={waSending || busy}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors disabled:opacity-50"
-                    >
-                      {waSending ? <Loader2 size={12} className="animate-spin" /> : <MessageCircle size={12} />}
-                      {waSending ? "Sending…" : "Send Quote via WhatsApp"}
-                    </button>
-                  )}
+                <div className="flex items-center justify-between gap-2">
+                  <Button
+                    onClick={() => setView("deposit")}
+                    disabled={busy}
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
+                  >
+                    Mark Deposit Paid
+                  </Button>
+                  <DeclineButton
+                    confirm={declineConfirm}
+                    busy={busy}
+                    working={working}
+                    onClick={handleDecline}
+                  />
                 </div>
               )}
 
@@ -628,9 +655,9 @@ export function RequestDetailModal({
         )}
 
         {/* ════════════════════════════════════════════════════
-            SEND QUOTE VIEW
+            GENERATE QUOTE VIEW
         ════════════════════════════════════════════════════ */}
-        {view === "send-quote" && (
+        {view === "generate-quote" && (
           <div className="space-y-4 pt-1">
             <button
               onClick={backToDetail}
@@ -640,37 +667,138 @@ export function RequestDetailModal({
               Back to details
             </button>
 
-            <p className="text-sm text-[var(--nb-text-2)] leading-relaxed">
-              Set a quote for{" "}
-              <span className="font-medium text-[var(--nb-text)]">{request.client_name}</span>.
-            </p>
-
-            <div className="space-y-3">
+            {/* Amounts */}
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="sq-amount">
-                  Quote amount ($) <span className="text-[#7C3AED]">*</span>
+                <Label htmlFor="gq-total">
+                  Total ({currencySymbol}) <span className="text-[#7C3AED]">*</span>
                 </Label>
                 <Input
-                  id="sq-amount"
+                  id="gq-total"
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder="e.g. 450"
-                  value={sqAmount}
-                  onChange={(e) => setSqAmount(e.target.value)}
+                  placeholder="e.g. 600"
+                  value={gqTotal}
+                  onChange={(e) => setGqTotal(e.target.value)}
                   autoFocus
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="sq-note">Note to client (optional)</Label>
-                <textarea
-                  id="sq-note"
-                  rows={3}
-                  placeholder="Any notes about the quote…"
-                  value={sqNote}
-                  onChange={(e) => setSqNote(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 transition-colors resize-none placeholder:text-muted-foreground"
+                <Label htmlFor="gq-deposit">Deposit ({currencySymbol})</Label>
+                <Input
+                  id="gq-deposit"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="e.g. 150"
+                  value={gqDeposit}
+                  onChange={(e) => setGqDeposit(e.target.value)}
                 />
+              </div>
+            </div>
+
+            {/* Template selector */}
+            {gqTemplates.length > 0 && (
+              <div className="space-y-1.5">
+                <Label htmlFor="gq-template">Template</Label>
+                <select
+                  id="gq-template"
+                  value={gqTemplateId}
+                  onChange={(e) => setGqTemplateId(e.target.value)}
+                  className={selectCls}
+                >
+                  {gqTemplates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.category === "quote" ? "Quote" : t.category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Live preview */}
+            {(() => {
+              const template = gqTemplates.find((t) => t.id === gqTemplateId);
+              const preview = template ? buildPreview(template.body_text) : null;
+              return (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label>Message Preview</Label>
+                    {preview && (
+                      <button
+                        type="button"
+                        onClick={handleCopyPreview}
+                        className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg transition-colors ${
+                          gqCopied
+                            ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                            : "bg-[var(--nb-active-bg)] text-[#7C3AED] border border-[#C4B5FD]/50 hover:bg-[#7C3AED]/10"
+                        }`}
+                      >
+                        {gqCopied ? <Check size={11} /> : <Copy size={11} />}
+                        {gqCopied ? "Copied!" : "Copy"}
+                      </button>
+                    )}
+                  </div>
+                  <div className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-3 max-h-52 overflow-y-auto">
+                    {preview ? (
+                      <p className="text-sm text-[var(--nb-text)] whitespace-pre-line leading-relaxed">
+                        {preview}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-[var(--nb-text-2)] italic">
+                        No template saved yet — add one in Settings → Quote Templates.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Outreach buttons */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Instagram */}
+              <div className="relative group">
+                <button
+                  type="button"
+                  disabled={!clientInstagram}
+                  onClick={() => {
+                    if (!clientInstagram) return;
+                    window.open(`https://instagram.com/${clientInstagram.replace(/^@/, "")}`, "_blank");
+                  }}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--nb-border)] bg-[var(--nb-card)] px-3 py-2.5 text-sm font-medium text-[var(--nb-text-2)] hover:border-pink-300 hover:text-pink-600 hover:bg-pink-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                  </svg>
+                  Open Instagram
+                </button>
+                {!clientInstagram && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 rounded-lg bg-[var(--nb-text)] text-[var(--nb-card)] text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                    No Instagram handle on this client
+                  </div>
+                )}
+              </div>
+              {/* WhatsApp */}
+              <div className="relative group">
+                <button
+                  type="button"
+                  disabled={!parsed.phone}
+                  onClick={() => {
+                    if (!parsed.phone) return;
+                    const digits = parsed.phone.replace(/\D/g, "");
+                    window.open(`https://wa.me/${digits}`, "_blank");
+                  }}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--nb-border)] bg-[var(--nb-card)] px-3 py-2.5 text-sm font-medium text-[var(--nb-text-2)] hover:border-emerald-300 hover:text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <MessageCircle size={15} />
+                  Open WhatsApp
+                </button>
+                {!parsed.phone && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 rounded-lg bg-[var(--nb-text)] text-[var(--nb-card)] text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                    No phone number for this client
+                  </div>
+                )}
               </div>
             </div>
 
@@ -685,12 +813,12 @@ export function RequestDetailModal({
                 Cancel
               </Button>
               <Button
-                onClick={handleSendQuote}
+                onClick={handleConfirmQuote}
                 disabled={busy}
                 className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
               >
                 {working === "quote" && <Loader2 size={13} className="animate-spin" />}
-                {working === "quote" ? "Sending…" : "Confirm & Send Quote"}
+                {working === "quote" ? "Saving…" : "Confirm Quote"}
               </Button>
             </div>
           </div>

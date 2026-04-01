@@ -11,6 +11,7 @@ type FormData = {
   name: string;
   email: string;
   phone: string;
+  instagram: string;
   whatsappOptIn: boolean;
   description: string;
   style: string;
@@ -42,6 +43,7 @@ const EMPTY: FormData = {
   name: "",
   email: "",
   phone: "",
+  instagram: "",
   whatsappOptIn: false,
   description: "",
   style: "Blackwork",
@@ -178,6 +180,7 @@ export function SlugIntakeForm({
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
         errs.email = "Enter a valid email address";
       if (!form.phone.trim()) errs.phone = "Phone number is required";
+      if (!form.instagram.trim()) errs.instagram = "Instagram handle is required — we'll use this to send your quote";
     }
     if (s === 1) {
       if (!form.description.trim()) errs.description = "Please describe your tattoo idea";
@@ -235,6 +238,7 @@ export function SlugIntakeForm({
     if (form.size.trim()) lines.push(`Size: ${form.size.trim()}`);
     if (form.preferredDate) lines.push(`Preferred date: ${form.preferredDate}`);
     lines.push(`Phone: ${form.phone.trim()}`);
+    if (form.instagram.trim()) lines.push(`Instagram: @${form.instagram.trim()}`);
     const fullDescription = lines.join("\n");
 
     const { data: newRequest, error } = await supabase.from("tattoo_requests").insert({
@@ -267,6 +271,7 @@ export function SlugIntakeForm({
         client_name: form.name.trim(),
         client_email: form.email.trim(),
         client_phone: form.phone.trim(),
+        client_instagram: form.instagram.trim() ? `@${form.instagram.trim()}` : undefined,
         description: form.description.trim(),
         style: form.style,
         placement: form.placement.trim(),
@@ -322,6 +327,14 @@ export function SlugIntakeForm({
             <Field label="Phone number" required error={errors.phone}>
               <input type="tel" placeholder="+1 (555) 000-0000" value={form.phone}
                 onChange={(e) => set("phone", e.target.value)} className={inputCls} autoComplete="tel" />
+            </Field>
+            <Field label="Instagram handle" required error={errors.instagram}>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-[var(--nb-text-2)] select-none pointer-events-none">@</span>
+                <input type="text" placeholder="yourusername" value={form.instagram}
+                  onChange={(e) => set("instagram", e.target.value.replace(/^@+/, ""))} className={`${inputCls} pl-8`} autoComplete="off" />
+              </div>
+              <p className="mt-1.5 text-xs text-[var(--nb-text-2)]">We&apos;ll use this to send you your quote.</p>
             </Field>
 
             <label className="flex items-start gap-3 cursor-pointer group mt-1">

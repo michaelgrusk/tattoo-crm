@@ -102,14 +102,28 @@ export function SettingsView({
   const [waTestMode, setWaTestMode] = useState(false);
   const [waTestModeSaving, setWaTestModeSaving] = useState(false);
   const [waConnected] = useState(false); // will be fetched from whatsapp_connections
-  const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
-  const [templateBodies, setTemplateBodies] = useState<Record<string, string>>({
-    quote: "Hi {{client_name}}! 🖋️ Thanks for reaching out to {{studio_name}}.\n\nWe'd love to work on your {{style}} tattoo. Here's our quote:\n\n💰 *{{amount}}*\n\nReply *YES* to move forward or ask any questions. We're excited to work with you!",
-    deposit_followup: "Hi {{client_name}}! Just a reminder that your deposit of *{{amount}}* is due to secure your appointment on {{date}}.\n\nReply here or contact us to arrange payment. We look forward to seeing you! 🖤",
-    reminder: "Hi {{client_name}}! 👋 Reminder for your upcoming tattoo appointment at {{studio_name}}:\n\n📅 *{{date}}* at *{{time}}*\n\nPlease arrive 10 minutes early. See you soon! 🖋️",
-    aftercare: "Hi {{client_name}}! Your new tattoo looks incredible 🖤\n\nAftercare tips:\n• Wash gently with unscented soap\n• Apply thin unscented moisturiser 2–3× daily\n• Avoid sunlight, swimming, and soaking for 2 weeks\n• Don't pick or scratch — let it peel naturally\n\nAny questions? Reply here anytime! 🙏",
-  });
-  const [editingBody, setEditingBody] = useState("");
+
+  // Quote templates (persisted to whatsapp_templates table)
+  const QT_DEFAULTS: Record<string, { label: string; body: string }> = {
+    quote: {
+      label: "Quote",
+      body: "Hi {{client_name}}! 🖋️ Thanks for reaching out to {{studio_name}}.\n\nWe'd love to work on your tattoo — {{tattoo_description}} sounds awesome, we'd love to get this going!\n\nHere's our estimated quote:\n💰 *{{total_amount}}*\n\nTo secure your spot, a deposit of {{deposit_amount}} is required.\nAccepted payment methods: BIT, Bank Transfer.\n\nWe're excited to work with you — reply if you have any questions! 🙏",
+    },
+    deposit_followup: {
+      label: "Deposit Follow-up",
+      body: "Hey {{client_name}}! 👋 Just following up on the quote we sent for your tattoo.\n\nTo confirm your booking, we need the deposit of {{deposit_amount}}.\nPayment methods: BIT, Bank Transfer.\n\nLet us know if you have any questions — we'd love to get you booked in! 🖋️",
+    },
+    aftercare: {
+      label: "Aftercare",
+      body: "Hey {{client_name}}! 🖋️ Thanks so much for coming in today — it was a pleasure working on your piece!\n\nHere are your aftercare instructions:\n- Keep it clean and moisturised\n- Avoid sun, swimming and picking for 2 weeks\n- If you have any concerns, don't hesitate to reach out\n\nLooking forward to seeing the healed result! 💜",
+    },
+  };
+  const [qtBodies, setQtBodies] = useState<Record<string, string>>(
+    Object.fromEntries(Object.entries(QT_DEFAULTS).map(([k, v]) => [k, v.body]))
+  );
+  const [qtEditing, setQtEditing] = useState<string | null>(null);
+  const [qtEditingBody, setQtEditingBody] = useState("");
+  const [qtSaving, setQtSaving] = useState(false);
 
   // Toast
   const [toast, setToast] = useState<ToastState>(null);
@@ -145,6 +159,55 @@ export function SettingsView({
         .eq("id", user.id);
     }
     setWaTestModeSaving(false);
+  }
+
+  // Load quote templates from DB on mount
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("whatsapp_templates")
+        .select("category, body_text")
+        .eq("user_id", user.id)
+        .in("category", ["quote", "deposit_followup", "aftercare"]);
+      if (data && data.length > 0) {
+        const loaded: Record<string, string> = {};
+        for (const row of data) if (row.body_text) loaded[row.category] = row.body_text;
+        setQtBodies((prev) => ({ ...prev, ...loaded }));
+      }
+    });
+  }, []);
+
+  async function handleSaveQtTemplate(category: string) {
+    setQtSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setQtSaving(false); return; }
+
+    // Select first, then update or insert — avoids relying on a DB unique constraint
+    const { data: existing } = await supabase
+      .from("whatsapp_templates")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("category", category)
+      .maybeSingle();
+
+    let error;
+    if (existing?.id) {
+      ({ error } = await supabase
+        .from("whatsapp_templates")
+        .update({ body_text: qtEditingBody, name: category })
+        .eq("id", existing.id));
+    } else {
+      ({ error } = await supabase
+        .from("whatsapp_templates")
+        .insert({ user_id: user.id, category, body_text: qtEditingBody, name: category }));
+    }
+
+    setQtSaving(false);
+    if (error) { showToast(error.message, "error"); return; }
+    setQtBodies((prev) => ({ ...prev, [category]: qtEditingBody }));
+    setQtEditing(null);
+    showToast("Template saved");
   }
 
   function showToast(msg: string, type: "success" | "error" = "success") {
@@ -610,84 +673,87 @@ export function SettingsView({
           </div>
         </SectionCard>
 
-        {/* ── Message Templates ───────────────────────────────────────────── */}
+        {/* ── Quote Templates ─────────────────────────────────────────────── */}
         <SectionCard
-          title="Message Templates"
-          description="Customise the WhatsApp messages sent to clients at each stage."
+          title="Quote Templates"
+          description="Customise the message templates used when generating quotes for clients."
         >
-          {(() => {
-            const TEMPLATES: { key: string; label: string; category: string; variables: string[] }[] = [
-              { key: "quote",            label: "Quote",                category: "quote",            variables: ["client_name","studio_name","style","amount"] },
-              { key: "deposit_followup", label: "Deposit Follow-up",    category: "deposit_followup", variables: ["client_name","amount","date"] },
-              { key: "reminder",         label: "Appointment Reminder", category: "reminder",         variables: ["client_name","studio_name","date","time"] },
-              { key: "aftercare",        label: "Aftercare",            category: "aftercare",        variables: ["client_name"] },
-            ];
-            return (
-              <div className="space-y-4">
-                {TEMPLATES.map((t) => (
-                  <div key={t.key} className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--nb-border)]">
-                      <div>
-                        <p className="text-sm font-semibold text-[var(--nb-text)]">{t.label}</p>
-                        <div className="flex flex-wrap gap-1.5 mt-1.5">
-                          {t.variables.map((v) => (
-                            <span key={v} className="rounded-full bg-[var(--nb-active-bg)] text-[#7C3AED] px-2 py-0.5 text-[10px] font-medium">
-                              {`{{${v}}}`}
-                            </span>
-                          ))}
-                        </div>
+          <div className="space-y-4">
+            {(Object.keys(QT_DEFAULTS) as string[]).map((key) => {
+              const label = QT_DEFAULTS[key].label;
+              const body = qtBodies[key] ?? QT_DEFAULTS[key].body;
+              // Auto-detect variables from the current body
+              const vars = Array.from(new Set([...body.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1])));
+              const isEditing = qtEditing === key;
+              return (
+                <div key={key} className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] overflow-hidden">
+                  <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-[var(--nb-border)]">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-[var(--nb-text)]">{label}</p>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {vars.map((v) => (
+                          <span key={v} className="rounded-full bg-[var(--nb-active-bg)] text-[#7C3AED] px-2 py-0.5 text-[10px] font-medium">
+                            {`{{${v}}}`}
+                          </span>
+                        ))}
                       </div>
-                      <button
-                        onClick={() => {
-                          setEditingTemplate(t.key);
-                          setEditingBody(templateBodies[t.key] ?? "");
-                        }}
-                        className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] text-[var(--nb-text-2)] hover:text-[#7C3AED] hover:border-[#7C3AED]/40 transition-colors"
-                      >
-                        Edit
-                      </button>
                     </div>
+                    <button
+                      onClick={() => {
+                        if (isEditing) {
+                          setQtEditing(null);
+                        } else {
+                          setQtEditing(key);
+                          setQtEditingBody(body);
+                        }
+                      }}
+                      className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] text-[var(--nb-text-2)] hover:text-[#7C3AED] hover:border-[#7C3AED]/40 transition-colors"
+                    >
+                      {isEditing ? "Cancel" : "Edit"}
+                    </button>
+                  </div>
+
+                  {!isEditing && (
                     <div className="px-4 py-3">
-                      <p className="text-xs text-[var(--nb-text-2)] whitespace-pre-line leading-relaxed line-clamp-3">
-                        {templateBodies[t.key]}
+                      <p className="text-xs text-[var(--nb-text-2)] whitespace-pre-line leading-relaxed line-clamp-4">
+                        {body}
                       </p>
                     </div>
+                  )}
 
-                    {/* Inline editor */}
-                    {editingTemplate === t.key && (
-                      <div className="border-t border-[var(--nb-border)] px-4 py-4 space-y-3 bg-[var(--nb-card)]">
-                        <p className="text-xs font-medium text-[var(--nb-text-2)]">Editing template body</p>
-                        <textarea
-                          value={editingBody}
-                          onChange={(e) => setEditingBody(e.target.value)}
-                          rows={6}
-                          className="w-full rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-3 py-2.5 text-sm text-[var(--nb-text)] outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors resize-none font-mono"
-                        />
-                        <div className="flex items-center gap-2 justify-end">
-                          <button
-                            onClick={() => setEditingTemplate(null)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] text-[var(--nb-text-2)] hover:bg-[var(--nb-bg)] transition-colors"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => {
-                              setTemplateBodies((prev) => ({ ...prev, [t.key]: editingBody }));
-                              setEditingTemplate(null);
-                              showToast("Template saved");
-                            }}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#7C3AED] hover:bg-[#6D28D9] text-white transition-colors"
-                          >
-                            Save Template
-                          </button>
-                        </div>
+                  {isEditing && (
+                    <div className="px-4 py-4 space-y-3 bg-[var(--nb-card)]">
+                      <textarea
+                        value={qtEditingBody}
+                        onChange={(e) => setQtEditingBody(e.target.value)}
+                        rows={8}
+                        className="w-full rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-3 py-2.5 text-sm text-[var(--nb-text)] outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors resize-none font-mono"
+                      />
+                      <p className="text-[11px] text-[var(--nb-text-2)]">
+                        Use <span className="font-mono text-[#7C3AED]">{"{{variable}}"}</span> syntax — e.g. <span className="font-mono text-[#7C3AED]">{"{{client_name}}"}</span>, <span className="font-mono text-[#7C3AED]">{"{{total_amount}}"}</span>
+                      </p>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => setQtEditing(null)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] text-[var(--nb-text-2)] hover:bg-[var(--nb-bg)] transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleSaveQtTemplate(key)}
+                          disabled={qtSaving}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#7C3AED] hover:bg-[#6D28D9] text-white transition-colors disabled:opacity-60"
+                        >
+                          {qtSaving && <Loader2 size={11} className="animate-spin" />}
+                          Save Template
+                        </button>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </SectionCard>
 
         {/* ── Danger Zone ────────────────────────────────────────────────── */}

@@ -13,6 +13,7 @@ export type TattooRequest = {
   status: "new request" | "quote sent" | "deposit paid" | "declined" | "archived";
   reference_image_url: string | null;
   quote_amount: number | null;
+  generated_quote_message: string | null;
   artist_id: number | null;
   whatsapp_opt_in: boolean;
 };

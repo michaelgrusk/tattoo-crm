@@ -26,7 +26,10 @@
       "Bash(head -5 grep -A 30 \"declare type ClientOptions\\\\|interface ClientOptions\" C:/Users/fxckc/OneDrive/Documents/Projects/tattoo-crm/node_modules/inngest/components/InngestCommHandler.d.ts)",
       "Bash(ls -la /c/Users/fxckc/OneDrive/Documents/Projects/tattoo-crm/app/\\\\\\(app\\\\\\)/_components/)",
       "Bash(wc:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(head -20 grep -n \"quote_template\\\\|Quote Template\" app/\\\\\\(app\\\\\\)/settings/_components/settings-view.tsx -i)",
+      "Bash(head -20 grep -n \"quote_template\\\\|Quote Template\\\\|Generate Quote\\\\|whatsapp.*soon\\\\|coming soon\" app/\\\\\\(app\\\\\\)/board/_components/request-detail-modal.tsx -i)",
+      "Bash(head -10 grep -rn \"ClientListItem\" app/\\\\\\(app\\\\\\)/ --include=\"*.tsx\" --include=\"*.ts\")"
     ]
   }
 }
