@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { STATUS_CONFIG } from "./contacts-view";
 import { useCurrency } from "@/components/currency-provider";
 import { Button } from "@/components/ui/button";
@@ -2103,6 +2104,12 @@ export function ClientDetailPanel({
                             >
                               Edit
                             </button>
+                            <Link
+                              href={`/portfolio?highlight=${ct.id}`}
+                              className="text-xs font-medium text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors px-2 py-1 rounded-lg hover:bg-[var(--nb-active-bg)]"
+                            >
+                              Portfolio ↗
+                            </Link>
                             <div className="ml-auto flex items-center gap-1.5">
                               {confirmDeleteTattooId === ct.id ? (
                                 <>

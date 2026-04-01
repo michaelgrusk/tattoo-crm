@@ -20,6 +20,7 @@ import {
   Sun,
   Moon,
   X,
+  Images,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useTheme } from "@/components/theme-provider";
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/board", label: "Board", icon: LayoutDashboard },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/artists", label: "Artists", icon: Users2 },
+  { href: "/portfolio", label: "Portfolio", icon: Images },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/analytics", label: "Analytics", icon: BarChart2 },
