@@ -140,7 +140,7 @@ export function Sidebar({
         </button>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto min-h-0">
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/");
 
@@ -184,6 +184,9 @@ export function Sidebar({
           );
         })}
       </nav>
+
+      {/* Bottom section — always visible */}
+      <div className="shrink-0">
 
       {/* Theme toggle */}
       <div className="px-3 mb-2">
@@ -253,6 +256,8 @@ export function Sidebar({
           </button>
         </div>
       </div>
+
+      </div>{/* end bottom section */}
     </aside>
   );
 }
