@@ -10,7 +10,7 @@ export type TattooRequest = {
   client_email: string;
   description: string;
   style: string;
-  status: "new request" | "quote sent" | "deposit paid" | "declined" | "archived";
+  status: "new request" | "quote sent" | "deposit paid" | "booked" | "completed" | "declined" | "archived";
   reference_image_url: string | null;
   quote_amount: number | null;
   generated_quote_message: string | null;
@@ -50,7 +50,7 @@ export default async function BoardPage() {
   const userId = user?.id;
   const today = new Date().toISOString().split("T")[0];
 
-  const [{ data: requests }, { data: rawAppointments }] = await Promise.all([
+  const [{ data: requests }, { data: rawAppointments }, { data: bookedAppts }] = await Promise.all([
     supabase
       .from("tattoo_requests")
       .select("*")
@@ -64,6 +64,15 @@ export default async function BoardPage() {
       .order("date", { ascending: true })
       .order("time", { ascending: true })
       .limit(20),
+    // All non-completed appointments for the Booked column (no date cutoff)
+    supabase
+      .from("appointments")
+      .select("id, client_id, date, time, type, status, artist_id, artists(name)")
+      .eq("user_id", userId)
+      .neq("status", "completed")
+      .neq("status", "cancelled")
+      .order("date", { ascending: true })
+      .order("time", { ascending: true }),
   ]);
 
   const appointments = (rawAppointments ?? []).filter(
@@ -80,7 +89,10 @@ export default async function BoardPage() {
         </p>
       </div>
 
-      <IntakeQueue requests={(requests as TattooRequest[]) ?? []} />
+      <IntakeQueue
+        requests={(requests as TattooRequest[]) ?? []}
+        appointments={(bookedAppts as unknown as Appointment[]) ?? []}
+      />
 
       <UpcomingAppointments
         appointments={(appointments as Appointment[]) ?? []}

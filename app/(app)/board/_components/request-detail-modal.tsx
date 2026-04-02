@@ -68,10 +68,11 @@ function formatDate(dateStr: string) {
 }
 
 const STATUS_CFG = {
-  "new request": { dot: "bg-sky-400", text: "text-sky-700", bg: "bg-sky-50", label: "New Request" },
-  "quote sent": { dot: "bg-amber-400", text: "text-amber-700", bg: "bg-amber-50", label: "Quote Sent" },
-  "deposit paid": { dot: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50", label: "Deposit Paid" },
-  declined: { dot: "bg-red-400", text: "text-red-700", bg: "bg-red-50", label: "Declined" },
+  "new request":  { dot: "bg-sky-400",    text: "text-sky-700",    bg: "bg-sky-50",    label: "New Request" },
+  "quote sent":   { dot: "bg-amber-400",  text: "text-amber-700",  bg: "bg-amber-50",  label: "Quote Sent" },
+  "deposit paid": { dot: "bg-emerald-400",text: "text-emerald-700",bg: "bg-emerald-50",label: "Deposit Paid" },
+  "booked":       { dot: "bg-violet-400", text: "text-violet-700", bg: "bg-violet-50", label: "Booked" },
+  declined:       { dot: "bg-red-400",    text: "text-red-700",    bg: "bg-red-50",    label: "Declined" },
 } as const;
 
 const APPOINTMENT_TYPES = [
@@ -423,8 +424,17 @@ export function RequestDetailModal({
       status: scStatus,
     });
 
+    if (apptErr) { setWorking(""); setServerError(apptErr.message); return; }
+
+    // Move request to "booked" stage and update client status
+    await Promise.all([
+      supabase.from("tattoo_requests").update({ status: "booked" }).eq("id", request!.id),
+      request!.client_id
+        ? supabase.from("clients").update({ status: "consultation_booked" }).eq("id", request!.client_id)
+        : Promise.resolve(),
+    ]);
+
     setWorking("");
-    if (apptErr) { setServerError(apptErr.message); return; }
     close();
     onSuccess("Appointment scheduled!");
   }
@@ -1016,7 +1026,7 @@ export function RequestDetailModal({
 
             <div className="space-y-1.5">
               <Label htmlFor="dp-amount">
-                Deposit amount ($) <span className="text-[#7C3AED]">*</span>
+                Deposit amount ({currencySymbol}) <span className="text-[#7C3AED]">*</span>
               </Label>
               <Input
                 id="dp-amount"

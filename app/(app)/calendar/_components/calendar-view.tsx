@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Plus, Loader2, CheckCircle2, X } from "lucid
 import { supabase, getUserId } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { BookAppointmentDialog } from "./book-appointment-dialog";
+import { useCurrency } from "@/components/currency-provider";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -113,7 +114,10 @@ function formatApptTime(timeStr: string): string {
 function AppointmentBlock({ appt, onClick }: { appt: Appointment; onClick: () => void }) {
   const top = timeToTop(appt.time);
   if (top < 0 || top >= HOURS.length * HOUR_HEIGHT) return null;
-  const color = getTypeColor(appt.type);
+  const isCompleted = appt.status === "completed";
+  const color = isCompleted
+    ? { bg: "bg-emerald-100", border: "border-emerald-300", text: "text-emerald-800" }
+    : getTypeColor(appt.type);
   const artistName = appt.artists?.name ?? appt.artist_name ?? null;
   const artistInitials = artistName
     ? artistName.trim().split(/\s+/).map((p: string) => p[0]).slice(0, 2).join("").toUpperCase()
@@ -128,16 +132,22 @@ function AppointmentBlock({ appt, onClick }: { appt: Appointment; onClick: () =>
       <p className={`text-xs font-semibold leading-tight truncate ${color.text}`}>
         {appt.clients?.name ?? appt.artist_name ?? "Appointment"}
       </p>
-      <div className={`flex items-center justify-between mt-0.5`}>
-        <p className={`text-[11px] leading-tight truncate opacity-60 ${color.text}`}>
-          {formatApptTime(appt.time)}
+      {isCompleted ? (
+        <p className={`text-[10px] leading-tight truncate font-medium opacity-70 ${color.text}`}>
+          Completed
         </p>
-        {artistInitials && (
-          <span className="shrink-0 size-[14px] rounded-full bg-black/25 flex items-center justify-center text-[8px] font-bold text-white leading-none ml-1">
-            {artistInitials}
-          </span>
-        )}
-      </div>
+      ) : (
+        <div className="flex items-center justify-between mt-0.5">
+          <p className={`text-[11px] leading-tight truncate opacity-60 ${color.text}`}>
+            {formatApptTime(appt.time)}
+          </p>
+          {artistInitials && (
+            <span className="shrink-0 size-[14px] rounded-full bg-black/25 flex items-center justify-center text-[8px] font-bold text-white leading-none ml-1">
+              {artistInitials}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -214,6 +224,7 @@ export function CalendarView() {
   const [completePayType, setCompletePayType] = useState("Full payment");
   const [completeNotes, setCompleteNotes] = useState("");
   const [completing, setCompleting] = useState(false);
+  const [linkedInvoice, setLinkedInvoice] = useState<{ id: string; amount: number; type: string } | null>(null);
   const [calTab, setCalTab] = useState<"calendar" | "appointments">("calendar");
   const [allAppts, setAllAppts] = useState<Appointment[]>([]);
   const [allApptsLoading, setAllApptsLoading] = useState(false);
@@ -222,8 +233,23 @@ export function CalendarView() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
+  const { format: formatCurrency } = useCurrency();
   const weekDays = getWeekDays(weekStart);
   const todayStr = toDateStr(new Date());
+
+  // Fetch linked invoice when a completed appointment is opened
+  useEffect(() => {
+    if (!selectedAppt || selectedAppt.status !== "completed") {
+      setLinkedInvoice(null);
+      return;
+    }
+    supabase
+      .from("invoices")
+      .select("id, amount, type")
+      .eq("appointment_id", selectedAppt.id)
+      .maybeSingle()
+      .then(({ data }) => setLinkedInvoice((data as { id: string; amount: number; type: string } | null) ?? null));
+  }, [selectedAppt?.id, selectedAppt?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Stable fetch function — useCallback with weekStart dep so it always
   // fetches the right week and can safely be called from anywhere.
@@ -334,11 +360,11 @@ export function CalendarView() {
     setSelectedAppt(null);
     setDeleteConfirm(false);
     setEditMode(false);
-
     setCompleteView(false);
     setCompleteAmount("");
     setCompletePayType("Full payment");
     setCompleteNotes("");
+    setLinkedInvoice(null);
   }
 
   async function handleSaveEdit() {
@@ -723,6 +749,23 @@ export function CalendarView() {
               <>
                 {/* Body — detail view */}
                 <div className="px-5 py-4 space-y-3">
+
+                  {/* Completed banner */}
+                  {selectedAppt.status === "completed" && (
+                    <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2.5">
+                      <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-emerald-700">Session completed</p>
+                        {linkedInvoice && (
+                          <p className="text-xs text-emerald-600 mt-0.5">
+                            {formatCurrency(linkedInvoice.amount)} charged
+                            {linkedInvoice.type ? ` · ${linkedInvoice.type.split(" — ")[0]}` : ""}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <p className="text-[11px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-0.5">Client</p>
                     <p className="text-sm font-medium text-[var(--nb-text)]">
@@ -760,25 +803,27 @@ export function CalendarView() {
                       <p className="text-sm text-[var(--nb-text)]">{selectedAppt.artists?.name ?? selectedAppt.artist_name}</p>
                     </div>
                   )}
-                  <div>
-                    <p className="text-[11px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-0.5">Status</p>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                      selectedAppt.status === "confirmed"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : selectedAppt.status === "cancelled"
-                        ? "bg-red-50 text-red-700"
-                        : "bg-amber-50 text-amber-700"
-                    }`}>
-                      <span className={`size-1.5 rounded-full ${
+                  {selectedAppt.status !== "completed" && (
+                    <div>
+                      <p className="text-[11px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-0.5">Status</p>
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
                         selectedAppt.status === "confirmed"
-                          ? "bg-emerald-400"
+                          ? "bg-emerald-50 text-emerald-700"
                           : selectedAppt.status === "cancelled"
-                          ? "bg-red-400"
-                          : "bg-amber-400"
-                      }`} />
-                      {selectedAppt.status.charAt(0).toUpperCase() + selectedAppt.status.slice(1)}
-                    </span>
-                  </div>
+                          ? "bg-red-50 text-red-700"
+                          : "bg-amber-50 text-amber-700"
+                      }`}>
+                        <span className={`size-1.5 rounded-full ${
+                          selectedAppt.status === "confirmed"
+                            ? "bg-emerald-400"
+                            : selectedAppt.status === "cancelled"
+                            ? "bg-red-400"
+                            : "bg-amber-400"
+                        }`} />
+                        {selectedAppt.status.charAt(0).toUpperCase() + selectedAppt.status.slice(1)}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 {/* Footer — detail */}
                 <div className="px-5 py-3 border-t border-[var(--nb-border)] space-y-2">
@@ -796,13 +841,23 @@ export function CalendarView() {
                       {deleteConfirm ? "Confirm Delete?" : "Delete"}
                     </button>
                     <div className="flex items-center gap-2 flex-wrap justify-end">
-                      {/* Reminder button removed — use Generate Quote flow for outreach */}
-                      <button
-                        onClick={() => setCompleteView(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors"
-                      >
-                        Complete Session
-                      </button>
+                      {selectedAppt.status === "completed" ? (
+                        linkedInvoice && (
+                          <a
+                            href="/invoices"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#7C3AED] rounded-lg border border-[var(--nb-border)] hover:bg-[var(--nb-bg)] transition-colors"
+                          >
+                            View Invoice →
+                          </a>
+                        )
+                      ) : (
+                        <button
+                          onClick={() => setCompleteView(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                        >
+                          Complete Session
+                        </button>
+                      )}
                       <button
                         onClick={openEditMode}
                         className="px-3 py-1.5 text-xs font-medium text-[#7C3AED] rounded-lg border border-[var(--nb-border)] hover:bg-[var(--nb-bg)] transition-colors"
