@@ -6,7 +6,7 @@ import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { CURRENCY_OPTIONS, formatCurrency } from "@/lib/currency";
 import type { CurrencyCode } from "@/lib/currency";
-import { Calendar, Copy, CheckCircle2 as CopyCheck, ExternalLink } from "lucide-react";
+import { Calendar, Copy, CheckCircle2 as CopyCheck, ExternalLink, Globe } from "lucide-react";
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
@@ -66,16 +66,37 @@ export function SettingsView({
   initialStudioName,
   initialSlug,
   initialCurrency,
+  initialBio,
+  initialLocation,
+  initialShowPortfolio,
+  initialPortfolioLimit,
+  initialShowPricingInfo,
+  initialPricingNote,
 }: {
   initialStudioName: string;
   initialSlug: string;
   initialCurrency: string;
+  initialBio: string;
+  initialLocation: string;
+  initialShowPortfolio: boolean;
+  initialPortfolioLimit: number;
+  initialShowPricingInfo: boolean;
+  initialPricingNote: string;
 }) {
   const router = useRouter();
 
   // Studio profile
   const [studioName, setStudioName] = useState(initialStudioName);
   const [slug, setSlug] = useState(initialSlug);
+
+  // Public studio page
+  const [bio, setBio] = useState(initialBio);
+  const [location, setLocation] = useState(initialLocation);
+  const [showPortfolio, setShowPortfolio] = useState(initialShowPortfolio);
+  const [portfolioLimit, setPortfolioLimit] = useState(initialPortfolioLimit);
+  const [showPricingInfo, setShowPricingInfo] = useState(initialShowPricingInfo);
+  const [pricingNote, setPricingNote] = useState(initialPricingNote);
+  const [studioPageSaving, setStudioPageSaving] = useState(false);
 
   // Currency
   const [currency, setCurrency] = useState<CurrencyCode>(
@@ -291,6 +312,29 @@ export function SettingsView({
     }
   }
 
+  // ── Save studio page settings ────────────────────────────────────────────
+
+  async function handleSaveStudioPage() {
+    setStudioPageSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { showToast("Not authenticated", "error"); setStudioPageSaving(false); return; }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        bio: bio.trim() || null,
+        location: location.trim() || null,
+        show_portfolio: showPortfolio,
+        portfolio_limit: portfolioLimit,
+        show_pricing_info: showPricingInfo,
+        pricing_note: pricingNote.trim() || null,
+      })
+      .eq("id", user.id);
+
+    setStudioPageSaving(false);
+    if (error) { showToast(error.message, "error"); } else { showToast("Studio page saved!"); }
+  }
+
   // ── Save currency ────────────────────────────────────────────────────────
 
   async function handleSaveCurrency() {
@@ -396,6 +440,9 @@ export function SettingsView({
     : `${host}/intake/your-slug`;
   const calFeedUrl = slug.trim()
     ? `${protocol}//${host}/api/calendar/${slug.trim()}`
+    : null;
+  const studioPageUrl = slug.trim()
+    ? `${protocol}//${host}/studio/${slug.trim()}`
     : null;
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -803,6 +850,126 @@ export function SettingsView({
                 }`}
               />
             </button>
+          </div>
+        </SectionCard>
+
+        {/* ── Public Studio Page ─────────────────────────────────────────── */}
+        <SectionCard
+          title="Public Studio Page"
+          description="Customise the public page clients see when they visit your studio link."
+        >
+          <div className="space-y-5">
+            {/* View link */}
+            {studioPageUrl && (
+              <a
+                href={studioPageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#7C3AED]/30 bg-[#7C3AED]/5 text-sm font-medium text-[#7C3AED] hover:bg-[#7C3AED]/10 transition-colors"
+              >
+                <Globe size={14} />
+                View your studio page
+                <ExternalLink size={12} className="opacity-70" />
+              </a>
+            )}
+
+            {/* Bio */}
+            <div>
+              <label className={labelCls}>Bio</label>
+              <textarea
+                rows={3}
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="e.g. Auckland-based tattoo artist specializing in Japanese and blackwork…"
+                className={`${inputCls} resize-none`}
+              />
+            </div>
+
+            {/* Location */}
+            <div>
+              <label className={labelCls}>Location</label>
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="e.g. Tel Aviv, Israel"
+                className={inputCls}
+              />
+            </div>
+
+            {/* Show portfolio toggle */}
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-[var(--nb-text)]">Show portfolio</p>
+                <p className="text-xs text-[var(--nb-text-2)] mt-0.5">Display recent work photos on your studio page</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPortfolio((v) => !v)}
+                role="switch"
+                aria-checked={showPortfolio}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors ${showPortfolio ? "bg-[#7C3AED]" : "bg-[var(--nb-border)]"}`}
+              >
+                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${showPortfolio ? "translate-x-5" : "translate-x-0"}`} />
+              </button>
+            </div>
+
+            {/* Portfolio limit */}
+            {showPortfolio && (
+              <div>
+                <label className={labelCls}>Portfolio pieces to show</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={48}
+                  value={portfolioLimit}
+                  onChange={(e) => setPortfolioLimit(Math.max(1, parseInt(e.target.value) || 12))}
+                  className={`${inputCls} max-w-[120px]`}
+                />
+              </div>
+            )}
+
+            {/* Show pricing toggle */}
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-[var(--nb-text)]">Show pricing info</p>
+                <p className="text-xs text-[var(--nb-text-2)] mt-0.5">Display a pricing note on your studio page</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPricingInfo((v) => !v)}
+                role="switch"
+                aria-checked={showPricingInfo}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors ${showPricingInfo ? "bg-[#7C3AED]" : "bg-[var(--nb-border)]"}`}
+              >
+                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${showPricingInfo ? "translate-x-5" : "translate-x-0"}`} />
+              </button>
+            </div>
+
+            {/* Pricing note */}
+            {showPricingInfo && (
+              <div>
+                <label className={labelCls}>Pricing note</label>
+                <textarea
+                  rows={3}
+                  value={pricingNote}
+                  onChange={(e) => setPricingNote(e.target.value)}
+                  placeholder="e.g. Starting from ₪300 for small pieces. Larger pieces priced by session."
+                  className={`${inputCls} resize-none`}
+                />
+              </div>
+            )}
+
+            <div className="pt-1">
+              <button
+                onClick={handleSaveStudioPage}
+                disabled={studioPageSaving}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-medium transition-colors disabled:opacity-60"
+              >
+                {studioPageSaving && <Loader2 size={14} className="animate-spin" />}
+                {studioPageSaving ? "Saving…" : "Save Changes"}
+              </button>
+            </div>
           </div>
         </SectionCard>
 
