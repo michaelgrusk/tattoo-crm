@@ -103,6 +103,10 @@ export function SettingsView({
   const [waTestModeSaving, setWaTestModeSaving] = useState(false);
   const [waConnected] = useState(false); // will be fetched from whatsapp_connections
 
+  // AI
+  const [aiAutoAnalyze, setAiAutoAnalyze] = useState(true);
+  const [aiSaving, setAiSaving] = useState(false);
+
   // Quote templates (persisted to whatsapp_templates table)
   const QT_DEFAULTS: Record<string, { label: string; body: string }> = {
     quote: {
@@ -138,11 +142,12 @@ export function SettingsView({
       if (!user) return;
       supabase
         .from("profiles")
-        .select("whatsapp_test_mode")
+        .select("whatsapp_test_mode, ai_auto_analyze")
         .eq("id", user.id)
         .single()
         .then(({ data }) => {
           if (data?.whatsapp_test_mode != null) setWaTestMode(data.whatsapp_test_mode);
+          if (data?.ai_auto_analyze != null) setAiAutoAnalyze(data.ai_auto_analyze);
         });
     });
   }, []);
@@ -159,6 +164,20 @@ export function SettingsView({
         .eq("id", user.id);
     }
     setWaTestModeSaving(false);
+  }
+
+  async function handleAiAutoAnalyzeToggle() {
+    const next = !aiAutoAnalyze;
+    setAiAutoAnalyze(next);
+    setAiSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from("profiles")
+        .update({ ai_auto_analyze: next })
+        .eq("id", user.id);
+    }
+    setAiSaving(false);
   }
 
   // Load quote templates from DB on mount
@@ -753,6 +772,37 @@ export function SettingsView({
                 </div>
               );
             })}
+          </div>
+        </SectionCard>
+
+        {/* ── AI Settings ──────────────────────────────────────────────── */}
+        <SectionCard
+          title="AI Brief Intelligence"
+          description="Automatically analyze new tattoo intake requests using AI to score fit, estimate session length, and flag issues."
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-[var(--nb-text)]">Auto-analyze new requests</p>
+              <p className="text-xs text-[var(--nb-text-2)] mt-0.5">
+                When enabled, every incoming intake request is automatically analyzed by AI. You can also trigger analysis manually from the request detail view.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleAiAutoAnalyzeToggle}
+              disabled={aiSaving}
+              role="switch"
+              aria-checked={aiAutoAnalyze}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C3AED] disabled:cursor-not-allowed disabled:opacity-50 ${
+                aiAutoAnalyze ? "bg-[#7C3AED]" : "bg-[var(--nb-border)]"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                  aiAutoAnalyze ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
           </div>
         </SectionCard>
 

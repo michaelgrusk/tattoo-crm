@@ -34,6 +34,7 @@ const STYLES = [
   "Geometric",
   "Traditional",
   "Realism",
+  "Anime",
   "Other",
 ];
 

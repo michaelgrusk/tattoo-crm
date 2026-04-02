@@ -16,6 +16,18 @@ export type TattooRequest = {
   generated_quote_message: string | null;
   artist_id: number | null;
   whatsapp_opt_in: boolean;
+  ai_analysis: {
+    effort_score: number;
+    fit_score: number;
+    overall_rating: "Great fit" | "Good fit" | "Needs more info" | "Low effort";
+    session_length: "1-2 hours" | "2-3 hours" | "2-4 hours" | "4-8 hours" | "Multiple sessions";
+    recommended_style: string;
+    suggested_artist: string | null;
+    structured_brief: string;
+    red_flags: string[];
+    suggested_questions: string[];
+  } | null;
+  ai_analyzed_at: string | null;
 };
 
 export type Appointment = {

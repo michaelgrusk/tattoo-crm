@@ -18,7 +18,7 @@ import {
 
 export const COMPLETED_TATTOO_STYLES = [
   "Blackwork", "Japanese", "Fine line", "Watercolor", "Geometric",
-  "Traditional", "Realism", "Neo-traditional", "Tribal", "Portrait", "Other",
+  "Traditional", "Realism", "Neo-traditional", "Tribal", "Portrait", "Anime", "Other",
 ];
 
 function todayStr() {

@@ -8,6 +8,7 @@ import { formatDistanceToNow } from "@/lib/date-utils";
 import { RequestDetailModal } from "./request-detail-modal";
 import { useCurrency } from "@/components/currency-provider";
 import { supabase, getUserId } from "@/lib/supabase/client";
+import { analyzeBrief } from "@/lib/ai/analyze-brief";
 import {
   Dialog,
   DialogContent,
@@ -134,11 +135,26 @@ function RequestCard({
         <span className="text-xs text-[var(--nb-text-2)]">
           {formatDistanceToNow(request.created_at)}
         </span>
-        {request.quote_amount != null && (
-          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">
-            {format(request.quote_amount)} quoted
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {request.ai_analysis && (() => {
+            const RATING_COLORS: Record<string, string> = {
+              "Great fit": "bg-emerald-50 text-emerald-700 border-emerald-200",
+              "Good fit": "bg-sky-50 text-sky-700 border-sky-200",
+              "Needs more info": "bg-amber-50 text-amber-700 border-amber-200",
+              "Low effort": "bg-red-50 text-red-600 border-red-200",
+            };
+            return (
+              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${RATING_COLORS[request.ai_analysis!.overall_rating] ?? ""}`}>
+                {request.ai_analysis!.overall_rating}
+              </span>
+            );
+          })()}
+          {request.quote_amount != null && (
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5">
+              {format(request.quote_amount)} quoted
+            </span>
+          )}
+        </div>
         <span className="text-xs text-[#7C3AED] font-medium">View →</span>
       </div>
     </button>
@@ -147,7 +163,7 @@ function RequestCard({
 
 // ── New Request Modal ─────────────────────────────────────────────────────────
 
-const STYLES = ["Blackwork", "Japanese", "Fine line", "Watercolor", "Geometric", "Traditional", "Realism", "Neo-traditional", "Tribal", "Portrait"];
+const STYLES = ["Blackwork", "Japanese", "Fine line", "Watercolor", "Geometric", "Traditional", "Realism", "Neo-traditional", "Tribal", "Portrait", "Anime"];
 
 type ArtistOption = { id: number; name: string };
 
@@ -267,6 +283,28 @@ function NewRequestModal({ open, onOpenChange, onSuccess }: {
     window.dispatchEvent(new CustomEvent("nb:board-badge"));
     handleOpenChange(false);
     onSuccess();
+
+    // Fire-and-forget AI analysis (non-blocking, runs client-side)
+    if (newReq?.id) {
+      const analysis = analyzeBrief({
+        client_name: name.trim(),
+        description: parts.join("\n"),
+        style: Array.from(selectedStyles).join(", "),
+        placement: placement.trim() || null,
+        size: size.trim() || null,
+        preferred_date: preferredDate || null,
+        has_reference_image: false,
+        has_phone: !!phone.trim(),
+        has_instagram: false,
+        artists,
+      });
+      const now = new Date().toISOString();
+      supabase
+        .from("tattoo_requests")
+        .update({ ai_analysis: analysis, ai_analyzed_at: now })
+        .eq("id", newReq.id)
+        .then(() => {});
+    }
   }
 
   const inputCls = "w-full h-9 rounded-lg border border-[var(--nb-border)] bg-[var(--nb-card)] px-3 text-sm text-[var(--nb-text)] outline-none placeholder:text-[var(--nb-text-2)] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors";

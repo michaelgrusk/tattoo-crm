@@ -26,6 +26,7 @@ const TATTOO_STYLES = [
   "Neo-traditional",
   "Tribal",
   "Portrait",
+  "Anime",
 ];
 
 const INPUT_CLASS =

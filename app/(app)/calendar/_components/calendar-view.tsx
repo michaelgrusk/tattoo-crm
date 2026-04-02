@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus, Loader2, CheckCircle2, X, Banknote } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Loader2, CheckCircle2, X } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { BookAppointmentDialog } from "./book-appointment-dialog";
-import { DepositModal } from "./deposit-modal";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -210,7 +209,6 @@ export function CalendarView() {
   const [editType, setEditType] = useState("");
   const [editStatus, setEditStatus] = useState("");
   const [saving, setSaving] = useState(false);
-  const [depositOpen, setDepositOpen] = useState(false);
   const [completeView, setCompleteView] = useState(false);
   const [completeAmount, setCompleteAmount] = useState("");
   const [completePayType, setCompletePayType] = useState("Full payment");
@@ -336,7 +334,7 @@ export function CalendarView() {
     setSelectedAppt(null);
     setDeleteConfirm(false);
     setEditMode(false);
-    setDepositOpen(false);
+
     setCompleteView(false);
     setCompleteAmount("");
     setCompletePayType("Full payment");
@@ -800,13 +798,6 @@ export function CalendarView() {
                     <div className="flex items-center gap-2 flex-wrap justify-end">
                       {/* Reminder button removed — use Generate Quote flow for outreach */}
                       <button
-                        onClick={() => setDepositOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors"
-                      >
-                        <Banknote size={12} />
-                        Deposit
-                      </button>
-                      <button
                         onClick={() => setCompleteView(true)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors"
                       >
@@ -956,17 +947,6 @@ export function CalendarView() {
             )}
           </div>
         </div>
-      )}
-
-      {/* Deposit modal */}
-      {depositOpen && selectedAppt && (
-        <DepositModal
-          appointmentId={selectedAppt.id}
-          clientName={selectedAppt.clients?.name ?? selectedAppt.artist_name ?? "Client"}
-          clientEmail={undefined}
-          defaultDescription={`${selectedAppt.type} deposit — ${selectedAppt.clients?.name ?? selectedAppt.artist_name ?? "Client"}`}
-          onClose={() => setDepositOpen(false)}
-        />
       )}
 
       {/* Book Appointment dialog */}

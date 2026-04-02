@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resend } from "@/lib/resend";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { analyzeBrief } from "@/lib/ai/analyze-brief";
 
 export async function POST(req: NextRequest) {
   try {
@@ -112,6 +113,50 @@ export async function POST(req: NextRequest) {
           .from("tattoo_requests")
           .update({ client_id: clientId })
           .eq("id", request_id);
+      }
+
+      // Auto-analyze the brief if the profile has ai_auto_analyze enabled (default true)
+      try {
+        const { data: profile } = await admin
+          .from("profiles")
+          .select("ai_auto_analyze")
+          .eq("id", user_id)
+          .single();
+
+        const shouldAnalyze = profile?.ai_auto_analyze !== false;
+
+        if (shouldAnalyze) {
+          const { data: artists } = await admin
+            .from("artists")
+            .select("name")
+            .eq("user_id", user_id)
+            .eq("is_active", true)
+            .order("name");
+
+          const analysis = analyzeBrief({
+            client_name,
+            description,
+            style,
+            placement,
+            size,
+            preferred_date,
+            has_reference_image: false,
+            has_phone: !!client_phone,
+            has_instagram: !!client_instagram,
+            artists: (artists as { name: string }[]) ?? [],
+          });
+
+          await admin
+            .from("tattoo_requests")
+            .update({
+              ai_analysis: analysis,
+              ai_analyzed_at: new Date().toISOString(),
+            })
+            .eq("id", request_id);
+        }
+      } catch (aiErr) {
+        // Non-fatal: log but don't fail the intake
+        console.error("[notify-intake] AI analysis failed:", aiErr);
       }
     }
 

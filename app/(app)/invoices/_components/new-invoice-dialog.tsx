@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Search, Loader2 } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
+import { useCurrency } from "@/components/currency-provider";
+import { CURRENCY_OPTIONS } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -159,6 +161,8 @@ export function NewInvoiceDialog({
   onSuccess: () => void;
   defaultClient?: { id: string | number; name: string; email: string };
 }) {
+  const { currency } = useCurrency();
+  const currencySymbol = CURRENCY_OPTIONS.find((c) => c.value === currency)?.symbol ?? "$";
   const [form, setForm] = useState({ ...EMPTY, date: todayStr() });
   const [clients, setClients] = useState<Client[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -317,7 +321,7 @@ export function NewInvoiceDialog({
               </Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--nb-text-2)] text-sm pointer-events-none">
-                  $
+                  {currencySymbol}
                 </span>
                 <Input
                   id="inv-amount"

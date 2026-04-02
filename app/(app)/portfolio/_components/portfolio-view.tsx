@@ -36,7 +36,7 @@ type PortfolioTattoo = {
 
 const STYLE_FILTERS = [
   "Blackwork", "Japanese", "Fine line", "Watercolor", "Geometric",
-  "Traditional", "Realism", "Neo-traditional", "Tribal", "Portrait", "Other",
+  "Traditional", "Realism", "Neo-traditional", "Tribal", "Portrait", "Anime", "Other",
 ];
 
 const STYLE_COLORS: Record<string, { text: string; bg: string }> = {
@@ -50,6 +50,7 @@ const STYLE_COLORS: Record<string, { text: string; bg: string }> = {
   "Neo-traditional": { text: "text-orange-700",   bg: "bg-orange-50" },
   "Tribal":          { text: "text-stone-700",    bg: "bg-stone-100" },
   "Portrait":        { text: "text-rose-700",     bg: "bg-rose-50" },
+  "Anime":           { text: "text-pink-700",     bg: "bg-pink-50" },
 };
 
 // Placeholder gradient backgrounds for no-photo cards

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, Loader2, Copy, Check, MessageCircle } from "lucide-react";
+import { ChevronLeft, Loader2, Copy, Check, MessageCircle, Sparkles, RefreshCw, AlertTriangle, HelpCircle } from "lucide-react";
+import { analyzeBrief, type AiBriefAnalysis } from "@/lib/ai/analyze-brief";
 import { supabase, getUserId } from "@/lib/supabase/client";
 import { useCurrency } from "@/components/currency-provider";
 import { CURRENCY_OPTIONS } from "@/lib/currency";
@@ -124,6 +125,29 @@ function DeclineButton({
   );
 }
 
+function ScoreBar({ label, score }: { label: string; score: number }) {
+  const pct = Math.round((score / 10) * 100);
+  const color = score >= 8 ? "bg-emerald-500" : score >= 6 ? "bg-sky-500" : score >= 4 ? "bg-amber-400" : "bg-red-400";
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-[var(--nb-text-2)]">{label}</span>
+        <span className="font-semibold text-[var(--nb-text)]">{score}/10</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-[var(--nb-border)] overflow-hidden">
+        <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+const RATING_STYLES = {
+  "Great fit":      { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  "Good fit":       { bg: "bg-sky-50",     text: "text-sky-700",     border: "border-sky-200" },
+  "Needs more info":{ bg: "bg-amber-50",   text: "text-amber-700",   border: "border-amber-200" },
+  "Low effort":     { bg: "bg-red-50",     text: "text-red-600",     border: "border-red-200" },
+} as const;
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function RequestDetailModal({
@@ -148,6 +172,9 @@ export function RequestDetailModal({
   const [assignedArtistId, setAssignedArtistId] = useState<number | null>(null);
   const [assigning, setAssigning] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<AiBriefAnalysis | null>(null);
+  const [aiAnalyzedAt, setAiAnalyzedAt] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   // Generate-quote form
   const [gqTotal, setGqTotal] = useState("");
@@ -186,6 +213,8 @@ export function RequestDetailModal({
       setScType("Full session");
       setScStatus("confirmed");
       setAssignedArtistId(request.artist_id ?? null);
+      setAiAnalysis(request.ai_analysis ?? null);
+      setAiAnalyzedAt(request.ai_analyzed_at ?? null);
       getUserId().then(async (userId) => {
         if (!userId) return;
 
@@ -410,6 +439,37 @@ export function RequestDetailModal({
     onSuccess("Request archived");
   }
 
+  async function runAnalysis() {
+    if (!request) return;
+    setAiLoading(true);
+    try {
+      const parsed = parseDescription(request.description);
+      const analysis = analyzeBrief({
+        client_name: request.client_name,
+        description: request.description,
+        style: request.style,
+        placement: parsed.placement || null,
+        size: parsed.size || null,
+        preferred_date: parsed.preferredDate || null,
+        has_reference_image: !!request.reference_image_url,
+        has_phone: !!parsed.phone,
+        has_instagram: !!clientInstagram,
+        artists: matchedArtists,
+      });
+      const now = new Date().toISOString();
+      setAiAnalysis(analysis);
+      setAiAnalyzedAt(now);
+      // Persist to DB (fire-and-forget, non-blocking)
+      supabase
+        .from("tattoo_requests")
+        .update({ ai_analysis: analysis, ai_analyzed_at: now })
+        .eq("id", request.id)
+        .then(() => {});
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   // ── Derived ──────────────────────────────────────────────────────────────────
 
   if (!request) return null;
@@ -441,6 +501,117 @@ export function RequestDetailModal({
         {view === "detail" && (
           <div className="space-y-5 pt-1">
 
+            {/* AI Analysis card */}
+            <div className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-card)] overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--nb-border)] bg-[var(--nb-bg)]">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles size={13} className="text-[#7C3AED]" />
+                  <span className="text-xs font-semibold text-[var(--nb-text)]">AI Brief Analysis</span>
+                  {aiAnalysis && (() => {
+                    const r = RATING_STYLES[aiAnalysis.overall_rating];
+                    return (
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${r.bg} ${r.text} ${r.border}`}>
+                        {aiAnalysis.overall_rating}
+                      </span>
+                    );
+                  })()}
+                </div>
+                <button
+                  type="button"
+                  onClick={runAnalysis}
+                  disabled={aiLoading}
+                  className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors disabled:opacity-50"
+                >
+                  {aiLoading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                  {aiAnalysis ? "Re-analyze" : "Analyze"}
+                </button>
+              </div>
+
+              {aiLoading && !aiAnalysis && (
+                <div className="flex items-center justify-center gap-2 py-6 text-sm text-[var(--nb-text-2)]">
+                  <Loader2 size={15} className="animate-spin" />
+                  Analyzing brief…
+                </div>
+              )}
+
+              {!aiLoading && !aiAnalysis && (
+                <div className="px-4 py-4 text-center">
+                  <p className="text-xs text-[var(--nb-text-2)]">No analysis yet — click Analyze to generate insights.</p>
+                </div>
+              )}
+
+              {aiAnalysis && (
+                <div className="px-4 py-3 space-y-3">
+                  {/* Score bars */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <ScoreBar label="Fit score" score={aiAnalysis.fit_score} />
+                    <ScoreBar label="Effort score" score={aiAnalysis.effort_score} />
+                  </div>
+
+                  {/* Structured brief */}
+                  <div>
+                    <p className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-1">Brief</p>
+                    <p className="text-xs text-[var(--nb-text)] leading-relaxed">{aiAnalysis.structured_brief}</p>
+                  </div>
+
+                  {/* Session + style row */}
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--nb-active-bg)] px-2 py-0.5 text-[#7C3AED] font-medium">
+                      {aiAnalysis.session_length}
+                    </span>
+                    {aiAnalysis.recommended_style && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--nb-border)] px-2 py-0.5 text-[var(--nb-text-2)]">
+                        Style: {aiAnalysis.recommended_style}
+                      </span>
+                    )}
+                    {aiAnalysis.suggested_artist && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--nb-border)] px-2 py-0.5 text-[var(--nb-text-2)]">
+                        Artist: {aiAnalysis.suggested_artist}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Red flags */}
+                  {aiAnalysis.red_flags.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide flex items-center gap-1">
+                        <AlertTriangle size={10} className="text-amber-500" /> Red flags
+                      </p>
+                      <ul className="space-y-0.5">
+                        {aiAnalysis.red_flags.map((f, i) => (
+                          <li key={i} className="text-xs text-amber-700 flex items-start gap-1.5">
+                            <span className="mt-0.5 shrink-0">•</span>{f}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Suggested questions */}
+                  {aiAnalysis.suggested_questions.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide flex items-center gap-1">
+                        <HelpCircle size={10} className="text-sky-500" /> Ask the client
+                      </p>
+                      <ul className="space-y-0.5">
+                        {aiAnalysis.suggested_questions.map((q, i) => (
+                          <li key={i} className="text-xs text-[var(--nb-text)] flex items-start gap-1.5">
+                            <span className="mt-0.5 shrink-0 text-sky-500">?</span>{q}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {aiAnalyzedAt && (
+                    <p className="text-[10px] text-[var(--nb-text-2)]">
+                      Analyzed {new Date(aiAnalyzedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Client card */}
             <div className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-card)] px-4 py-4">
               <div className="flex items-start justify-between gap-3 mb-2">
@@ -464,7 +635,7 @@ export function RequestDetailModal({
                 <p className="text-xs text-[var(--nb-text-2)] mt-1">
                   Quote:{" "}
                   <span className="font-semibold text-[var(--nb-text)]">
-                    ${request.quote_amount.toLocaleString()}
+                    {formatCurrency(request.quote_amount)}
                   </span>
                 </p>
               )}
@@ -859,7 +1030,7 @@ export function RequestDetailModal({
               />
               {request.quote_amount != null && (
                 <p className="text-xs text-[var(--nb-text-2)]">
-                  Full quote was ${request.quote_amount.toLocaleString()}
+                  Full quote was {formatCurrency(request.quote_amount)}
                 </p>
               )}
             </div>
