@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createBrowserClient } from "@supabase/ssr";
 import { StudioLightbox } from "./_components/studio-lightbox";
 
 export const revalidate = 60;
@@ -29,17 +29,24 @@ export default async function StudioPage({
 }) {
   try {
     const { slug } = await params;
-    const supabase = await createSupabaseServerClient();
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    );
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select(
-        "id, studio_name, slug, brand_logo_url, brand_color, bio, location, show_portfolio, portfolio_limit, show_pricing_info, pricing_note"
-      )
+      .select("*")
       .eq("slug", slug)
       .single();
 
-    if (!profile) notFound();
+    console.log("[studio] profile:", JSON.stringify(profile));
+    console.log("[studio] profileError:", JSON.stringify(profileError));
+
+    if (!profile) {
+      console.log("[studio] profile is null — calling notFound()");
+      notFound();
+    }
 
     const accent = profile.brand_color ?? "#7C3AED";
     const intakeUrl = `/intake/${slug}`;
@@ -67,7 +74,7 @@ export default async function StudioPage({
         .not("photo_url", "is", null)
         .order("created_at", { ascending: false })
         .limit(portfolioLimit);
-      portfolioItems = (photos ?? []).filter((p) => p.photo_url);
+      portfolioItems = (photos ?? []).filter((p: { id: number; photo_url: string | null; style: string | null }) => p.photo_url);
     }
 
     return (
