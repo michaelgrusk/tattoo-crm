@@ -26,17 +26,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${geistMono.variable} h-full antialiased dark`}
+      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head>
-        {/* Set theme class before first paint to avoid flash */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('nb-theme');document.documentElement.classList.toggle('dark',t!=='light')}catch(e){}`,
-          }}
-        />
-      </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>{children}</ThemeProvider>
       </body>

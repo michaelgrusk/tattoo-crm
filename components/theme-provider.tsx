@@ -16,10 +16,11 @@ export function useTheme() {
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
 
-  // Read stored preference after mount (inline script already set the class)
+  // Read stored preference after mount and apply class
   useEffect(() => {
     const stored = (localStorage.getItem("nb-theme") as Theme | null) ?? "dark";
     setTheme(stored);
+    document.documentElement.classList.toggle("dark", stored === "dark");
   }, []);
 
   function toggle() {
