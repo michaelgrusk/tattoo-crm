@@ -40,9 +40,7 @@ export function StudioLightbox({
               className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
               unoptimized
             />
-            {/* Overlay on hover */}
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
-            {/* Style badge */}
             {item.style && (
               <span
                 className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity ${
@@ -62,7 +60,6 @@ export function StudioLightbox({
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
           onClick={() => setLightboxIndex(null)}
         >
-          {/* Close */}
           <button
             className="absolute top-4 right-4 size-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
             onClick={() => setLightboxIndex(null)}
@@ -71,7 +68,6 @@ export function StudioLightbox({
             <X size={20} />
           </button>
 
-          {/* Prev */}
           {items.length > 1 && (
             <button
               className="absolute left-4 top-1/2 -translate-y-1/2 size-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
@@ -82,7 +78,6 @@ export function StudioLightbox({
             </button>
           )}
 
-          {/* Image */}
           <div
             className="relative max-h-[85vh] max-w-[90vw]"
             onClick={(e) => e.stopPropagation()}
@@ -106,7 +101,6 @@ export function StudioLightbox({
             )}
           </div>
 
-          {/* Next */}
           {items.length > 1 && (
             <button
               className="absolute right-4 top-1/2 -translate-y-1/2 size-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
@@ -117,7 +111,6 @@ export function StudioLightbox({
             </button>
           )}
 
-          {/* Counter */}
           {items.length > 1 && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-sm">
               {lightboxIndex + 1} / {items.length}

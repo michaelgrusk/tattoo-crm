@@ -126,7 +126,6 @@ export default async function StudioPage({
             </p>
           )}
 
-
           {/* Book Now CTA */}
           <Link
             href={intakeUrl}
