@@ -67,13 +67,15 @@ export default async function StudioPage({
     const showPortfolio = profile.show_portfolio !== false;
     let portfolioItems: { id: number; photo_url: string; style: string | null }[] = [];
     if (showPortfolio) {
-      const { data: photos } = await supabase
+      const { data: photos, error: photosError } = await supabase
         .from("completed_tattoos")
         .select("id, photo_url, style")
         .eq("user_id", profile.id)
         .not("photo_url", "is", null)
         .order("created_at", { ascending: false })
         .limit(portfolioLimit);
+      console.log("[studio] photos count:", photos?.length ?? 0);
+      console.log("[studio] photos error:", JSON.stringify(photosError));
       portfolioItems = (photos ?? []).filter((p: { id: number; photo_url: string | null; style: string | null }) => p.photo_url);
     }
 
