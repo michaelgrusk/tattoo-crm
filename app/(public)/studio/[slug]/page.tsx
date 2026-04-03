@@ -93,22 +93,22 @@ export default async function StudioPage({
 
           <div className="relative mx-auto max-w-3xl px-5 py-14 sm:py-20 text-center">
             <div className="flex justify-center mb-6">
-              {profile.brand_logo_url ? (
+              {profile.avatar_url ? (
                 <Image
-                  src={profile.brand_logo_url}
-                  alt={profile.studio_name ?? "Studio logo"}
-                  width={120}
-                  height={120}
-                  className="rounded-2xl object-contain"
+                  src={profile.avatar_url}
+                  alt={profile.studio_name ?? "Studio avatar"}
+                  width={80}
+                  height={80}
+                  className="size-20 rounded-full object-cover ring-4 ring-white/10"
+                  unoptimized
                 />
               ) : (
-                <Image
-                  src="/logo.png"
-                  alt="Needlebook"
-                  width={160}
-                  height={54}
-                  className="opacity-60"
-                />
+                <div
+                  className="size-20 rounded-full flex items-center justify-center text-3xl font-bold text-white ring-4 ring-white/10"
+                  style={{ backgroundColor: accent }}
+                >
+                  {profile.studio_name ? profile.studio_name[0].toUpperCase() : "?"}
+                </div>
               )}
             </div>
 

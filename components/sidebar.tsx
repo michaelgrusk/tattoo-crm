@@ -49,6 +49,7 @@ export function Sidebar({
   const { theme, toggle } = useTheme();
   const [studioName, setStudioName] = useState<string | null>(null);
   const [slug, setSlug] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [todayCount, setTodayCount] = useState<number>(0);
@@ -80,7 +81,7 @@ export function Sidebar({
       const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 
       const [{ data: profile }, { count: calCount }, { count: boardC }, { count: leadsCount }] = await Promise.all([
-        supabase.from("profiles").select("slug").eq("id", user.id).single(),
+        supabase.from("profiles").select("slug, avatar_url").eq("id", user.id).single(),
         // Calendar: only today's appointments, not completed or cancelled
         supabase.from("appointments").select("id", { count: "exact", head: true })
           .eq("user_id", user.id)
@@ -98,6 +99,7 @@ export function Sidebar({
       ]);
 
       setSlug(profile?.slug ?? null);
+      setAvatarUrl(profile?.avatar_url ?? null);
       setTodayCount(calCount ?? 0);
       setBoardCount(boardC ?? 0);
       setContactsBadge(leadsCount ?? 0);
@@ -239,8 +241,10 @@ export function Sidebar({
       {/* Studio identity + sign out */}
       <div className="border-t border-[var(--nb-border)]">
         <div className="flex items-center gap-2.5 px-4 py-3">
-          <div className="size-8 rounded-full bg-[var(--nb-active-bg)] flex items-center justify-center text-sm font-semibold text-[#7C3AED] shrink-0">
-            {initial}
+          <div className="size-8 rounded-full bg-[var(--nb-active-bg)] flex items-center justify-center text-sm font-semibold text-[#7C3AED] shrink-0 overflow-hidden">
+            {avatarUrl ? (
+              <Image src={avatarUrl} alt={studioName ?? "Avatar"} width={32} height={32} className="size-8 rounded-full object-cover" unoptimized />
+            ) : initial}
           </div>
           <p className="text-sm font-medium text-[var(--nb-text)] truncate flex-1">
             {studioName ?? "My Studio"}

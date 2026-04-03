@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, Camera, X } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { CURRENCY_OPTIONS, formatCurrency } from "@/lib/currency";
 import type { CurrencyCode } from "@/lib/currency";
@@ -72,6 +73,8 @@ export function SettingsView({
   initialPortfolioLimit,
   initialShowPricingInfo,
   initialPricingNote,
+  initialAvatarUrl,
+  userId,
 }: {
   initialStudioName: string;
   initialSlug: string;
@@ -82,12 +85,19 @@ export function SettingsView({
   initialPortfolioLimit: number;
   initialShowPricingInfo: boolean;
   initialPricingNote: string;
+  initialAvatarUrl: string | null;
+  userId: string;
 }) {
   const router = useRouter();
 
   // Studio profile
   const [studioName, setStudioName] = useState(initialStudioName);
   const [slug, setSlug] = useState(initialSlug);
+
+  // Avatar
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Public studio page
   const [bio, setBio] = useState(initialBio);
@@ -312,6 +322,51 @@ export function SettingsView({
     }
   }
 
+  // ── Avatar upload / remove ───────────────────────────────────────────────
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const path = `${userId}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true, contentType: file.type });
+
+    if (uploadError) {
+      showToast(uploadError.message, "error");
+      setAvatarUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    const { error: dbError } = await supabase
+      .from("profiles")
+      .update({ avatar_url: publicUrl })
+      .eq("id", userId);
+
+    setAvatarUploading(false);
+    if (dbError) { showToast(dbError.message, "error"); return; }
+    setAvatarUrl(publicUrl);
+    showToast("Profile photo saved!");
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
+  }
+
+  async function handleAvatarRemove() {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_url: null })
+      .eq("id", userId);
+    if (error) { showToast(error.message, "error"); return; }
+    setAvatarUrl(null);
+    showToast("Profile photo removed");
+  }
+
   // ── Save studio page settings ────────────────────────────────────────────
 
   async function handleSaveStudioPage() {
@@ -457,6 +512,59 @@ export function SettingsView({
             Manage your studio profile and account
           </p>
         </div>
+
+        {/* ── Profile Photo ──────────────────────────────────────────────── */}
+        <SectionCard
+          title="Profile Photo"
+          description="Your studio avatar shown in the sidebar and on your public studio page."
+        >
+          <div className="flex items-center gap-5">
+            {/* Avatar preview */}
+            <div className="relative shrink-0">
+              <div className="size-16 rounded-full bg-[var(--nb-active-bg)] flex items-center justify-center text-2xl font-semibold text-[#7C3AED] overflow-hidden">
+                {avatarUrl ? (
+                  <Image src={avatarUrl} alt="Profile photo" width={64} height={64} className="size-16 rounded-full object-cover" unoptimized />
+                ) : (
+                  <span>{initialStudioName ? initialStudioName[0].toUpperCase() : "?"}</span>
+                )}
+              </div>
+              {avatarUploading && (
+                <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                  <Loader2 size={18} className="animate-spin text-white" />
+                </div>
+              )}
+            </div>
+
+            {/* Buttons */}
+            <div className="flex flex-col gap-2">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={handleAvatarUpload}
+              />
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--nb-border)] bg-[var(--nb-card)] text-sm font-medium text-[var(--nb-text)] hover:bg-[var(--nb-bg)] transition-colors disabled:opacity-60"
+              >
+                <Camera size={14} />
+                {avatarUrl ? "Change Photo" : "Upload Photo"}
+              </button>
+              {avatarUrl && (
+                <button
+                  onClick={handleAvatarRemove}
+                  disabled={avatarUploading}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors disabled:opacity-60"
+                >
+                  <X size={14} />
+                  Remove Photo
+                </button>
+              )}
+            </div>
+          </div>
+        </SectionCard>
 
         {/* ── Studio Profile ─────────────────────────────────────────────── */}
         <SectionCard
