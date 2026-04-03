@@ -37,7 +37,8 @@
       "Bash(ls \"C:/Users/fxckc/OneDrive/Documents/Projects/tattoo-crm/app/\\(public\\)/\")",
       "Bash(ls \"app/\\(public\\)/\")",
       "Bash(head -5 \"app/\\(public\\)/studio/[slug]/page.tsx\")",
-      "Bash(head -5 \"app/\\(public\\)/layout.tsx\")"
+      "Bash(head -5 \"app/\\(public\\)/layout.tsx\")",
+      "Bash(Remove-Item -Recurse -Force 'C:\\\\Users\\\\fxckc\\\\OneDrive\\\\Documents\\\\Projects\\\\tattoo-crm\\\\.next')"
     ]
   }
 }

@@ -3,12 +3,24 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Loader2, CheckCircle2, AlertCircle, Camera, X, Plus, Pencil, Trash2, GripVertical, Zap } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, Camera, X, Plus, Pencil, Trash2, GripVertical, Zap, Star } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { CURRENCY_OPTIONS, formatCurrency } from "@/lib/currency";
 import { FlashPieceModal, type FlashPiece } from "./flash-piece-modal";
 import type { CurrencyCode } from "@/lib/currency";
 import { Calendar, Copy, CheckCircle2 as CopyCheck, ExternalLink, Globe } from "lucide-react";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type ReviewRow = {
+  id: number;
+  created_at: string;
+  rating: number;
+  comment: string | null;
+  reviewer_name: string | null;
+  is_anonymous: boolean;
+  is_displayed: boolean;
+};
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
@@ -59,6 +71,29 @@ function Toast({ toast }: { toast: ToastState }) {
       )}
       {toast.msg}
     </div>
+  );
+}
+
+// ─── Copy review link button ──────────────────────────────────────────────────
+
+function CopyReviewLinkButton({ slug, mounted }: { slug: string; mounted: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const url = mounted
+    ? `${window.location.origin}/review/${slug}`
+    : `https://needlebook-crm.vercel.app/review/${slug}`;
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}
+      className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[var(--nb-border)] text-sm font-medium text-[var(--nb-text-2)] hover:bg-[var(--nb-bg)] transition-colors"
+    >
+      {copied ? <CopyCheck size={14} className="text-emerald-500" /> : <Copy size={14} />}
+      {copied ? "Copied" : "Copy"}
+    </button>
   );
 }
 
@@ -122,6 +157,11 @@ export function SettingsView({
   const [flashModalOpen, setFlashModalOpen] = useState(false);
   const [flashModalPiece, setFlashModalPiece] = useState<FlashPiece | null>(null);
   const [flashDeleting, setFlashDeleting] = useState<string | null>(null);
+
+  // Reviews
+  const [reviews, setReviews] = useState<ReviewRow[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewToggling, setReviewToggling] = useState<number | null>(null);
 
   // Currency
   const [currency, setCurrency] = useState<CurrencyCode>(
@@ -242,6 +282,29 @@ export function SettingsView({
       }
     });
   }, []);
+
+  // Load reviews
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) { setReviewsLoading(false); return; }
+      const { data } = await supabase
+        .from("reviews")
+        .select("id, created_at, rating, comment, reviewer_name, is_anonymous, is_displayed")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      setReviews((data as ReviewRow[]) ?? []);
+      setReviewsLoading(false);
+    });
+  }, []);
+
+  async function handleToggleReview(id: number, current: boolean) {
+    setReviewToggling(id);
+    await supabase.from("reviews").update({ is_displayed: !current }).eq("id", id);
+    setReviews((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, is_displayed: !current } : r))
+    );
+    setReviewToggling(null);
+  }
 
   async function handleSaveQtTemplate(category: string) {
     setQtSaving(true);
@@ -1290,6 +1353,122 @@ export function SettingsView({
               )}
             </div>
           </div>
+        </SectionCard>
+
+        {/* ── Reviews ────────────────────────────────────────────────────── */}
+        <SectionCard
+          title="Reviews"
+          description="Manage client reviews. Toggle which ones appear on your public studio page."
+        >
+          {/* Review link */}
+          <div className="mb-6">
+            <label className={labelCls}>Your review link</label>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-2.5 text-sm text-[var(--nb-text-2)] truncate select-all font-mono">
+                {mounted
+                  ? `${window.location.origin}/review/${slug}`
+                  : `https://needlebook-crm.vercel.app/review/${slug}`}
+              </div>
+              <CopyReviewLinkButton slug={slug} mounted={mounted} />
+            </div>
+          </div>
+
+          {/* Stats */}
+          {reviews.length > 0 && (
+            <div className="flex items-center gap-4 mb-5 px-4 py-3 rounded-xl bg-[var(--nb-bg)] border border-[var(--nb-border)]">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-[var(--nb-text)]">{reviews.length}</p>
+                <p className="text-xs text-[var(--nb-text-2)] mt-0.5">Total</p>
+              </div>
+              <div className="w-px h-8 bg-[var(--nb-border)]" />
+              <div className="text-center">
+                <p className="text-2xl font-bold text-[var(--nb-text)]">
+                  {(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)}
+                </p>
+                <p className="text-xs text-[var(--nb-text-2)] mt-0.5">Avg rating</p>
+              </div>
+              <div className="w-px h-8 bg-[var(--nb-border)]" />
+              <div className="text-center">
+                <p className="text-2xl font-bold text-emerald-600">
+                  {reviews.filter((r) => r.is_displayed).length}
+                </p>
+                <p className="text-xs text-[var(--nb-text-2)] mt-0.5">Shown</p>
+              </div>
+            </div>
+          )}
+
+          {/* List */}
+          {reviewsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 size={18} className="animate-spin text-[var(--nb-text-2)]" />
+            </div>
+          ) : reviews.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 rounded-xl border-2 border-dashed border-[var(--nb-border)] text-center">
+              <div className="size-10 rounded-xl bg-[var(--nb-bg)] flex items-center justify-center mb-3">
+                <Star size={18} className="text-[var(--nb-text-2)]" />
+              </div>
+              <p className="text-sm font-medium text-[var(--nb-text)]">No reviews yet</p>
+              <p className="text-xs text-[var(--nb-text-2)] mt-1">
+                Share your review link with clients after their appointment
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {reviews.map((review) => {
+                const name = review.is_anonymous
+                  ? "Anonymous"
+                  : review.reviewer_name || "Anonymous";
+                const date = new Date(review.created_at).toLocaleDateString("en-US", {
+                  month: "short", day: "numeric", year: "numeric",
+                });
+                return (
+                  <div
+                    key={review.id}
+                    className={`flex items-start gap-3 rounded-xl border px-4 py-3 transition-colors ${
+                      review.is_displayed
+                        ? "border-[#7C3AED]/20 bg-[#7C3AED]/5"
+                        : "border-[var(--nb-border)] bg-[var(--nb-bg)]"
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <svg key={s} width="13" height="13" viewBox="0 0 24 24" fill={s <= review.rating ? "#f59e0b" : "none"} stroke={s <= review.rating ? "#f59e0b" : "rgba(0,0,0,0.15)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                          ))}
+                        </div>
+                        <span className="text-xs font-medium text-[var(--nb-text)]">{name}</span>
+                        <span className="text-xs text-[var(--nb-text-2)]">· {date}</span>
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm text-[var(--nb-text-2)] leading-relaxed line-clamp-3">
+                          {review.comment}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleToggleReview(review.id, review.is_displayed)}
+                      disabled={reviewToggling === review.id}
+                      title={review.is_displayed ? "Hide from studio page" : "Show on studio page"}
+                      className={`shrink-0 mt-0.5 size-8 flex items-center justify-center rounded-lg border transition-all disabled:opacity-50 ${
+                        review.is_displayed
+                          ? "border-[#7C3AED]/30 bg-[#7C3AED] text-white hover:bg-[#6D28D9]"
+                          : "border-[var(--nb-border)] bg-[var(--nb-card)] text-[var(--nb-text-2)] hover:border-[#7C3AED]/40 hover:text-[#7C3AED]"
+                      }`}
+                    >
+                      {reviewToggling === review.id ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Globe size={13} />
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </SectionCard>
 
         {/* ── Danger Zone ────────────────────────────────────────────────── */}

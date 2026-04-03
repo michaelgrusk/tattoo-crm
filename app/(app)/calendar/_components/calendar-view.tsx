@@ -7,6 +7,7 @@ import { supabase, getUserId } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { BookAppointmentDialog } from "./book-appointment-dialog";
 import { useCurrency } from "@/components/currency-provider";
+import { AvailabilityManager } from "./availability-manager";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -225,7 +226,7 @@ export function CalendarView() {
   const [completeNotes, setCompleteNotes] = useState("");
   const [completing, setCompleting] = useState(false);
   const [linkedInvoice, setLinkedInvoice] = useState<{ id: string; amount: number; type: string } | null>(null);
-  const [calTab, setCalTab] = useState<"calendar" | "appointments">("calendar");
+  const [calTab, setCalTab] = useState<"calendar" | "appointments" | "availability">("calendar");
   const [allAppts, setAllAppts] = useState<Appointment[]>([]);
   const [allApptsLoading, setAllApptsLoading] = useState(false);
   const [apptSearch, setApptSearch] = useState("");
@@ -447,6 +448,16 @@ export function CalendarView() {
           }`}
         >
           All Appointments
+        </button>
+        <button
+          onClick={() => setCalTab("availability")}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            calTab === "availability"
+              ? "bg-[#7C3AED] text-white"
+              : "text-[var(--nb-text-2)] hover:bg-[var(--nb-bg)] hover:text-[var(--nb-text)]"
+          }`}
+        >
+          Availability
         </button>
       </div>
 
@@ -721,6 +732,8 @@ export function CalendarView() {
           })()}
         </div>
       )}
+
+      {calTab === "availability" && <AvailabilityManager />}
 
       {/* Appointment detail dialog */}
       {selectedAppt && (

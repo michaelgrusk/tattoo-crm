@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, ChevronLeft, Upload, X, ImageIcon, Loader2, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import type { FlashPiecePreview } from "../page";
+import { AvailabilityDatePicker, type IntakeAvailabilityBlock } from "./availability-date-picker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -162,12 +163,14 @@ export function SlugIntakeForm({
   userId,
   flashPieces = [],
   preselectedFlashId = null,
+  availabilityBlocks = [],
 }: {
   studioName: string;
   slug: string;
   userId: string;
   flashPieces?: FlashPiecePreview[];
   preselectedFlashId?: string | null;
+  availabilityBlocks?: IntakeAvailabilityBlock[];
 }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -458,8 +461,11 @@ export function SlugIntakeForm({
                 </div>
 
                 <Field label="Preferred appointment date">
-                  <input type="date" value={form.preferredDate}
-                    onChange={(e) => set("preferredDate", e.target.value)} className={inputCls} />
+                  <AvailabilityDatePicker
+                    value={form.preferredDate}
+                    onChange={(date) => set("preferredDate", date)}
+                    blocks={availabilityBlocks}
+                  />
                 </Field>
               </>
             )}
@@ -511,8 +517,11 @@ export function SlugIntakeForm({
                 </Field>
 
                 <Field label="Preferred appointment date">
-                  <input type="date" value={form.preferredDate}
-                    onChange={(e) => set("preferredDate", e.target.value)} className={inputCls} />
+                  <AvailabilityDatePicker
+                    value={form.preferredDate}
+                    onChange={(date) => set("preferredDate", date)}
+                    blocks={availabilityBlocks}
+                  />
                 </Field>
               </div>
             )}

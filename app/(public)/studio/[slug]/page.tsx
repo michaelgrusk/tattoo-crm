@@ -60,6 +60,28 @@ export default async function StudioPage({
       }
     }
 
+    // Fetch upcoming availability blocks for the hint
+    const todayIso = new Date().toISOString().split("T")[0];
+    const { data: upcomingBlocks } = await supabase
+      .from("availability_blocks")
+      .select("start_date, end_date, block_type, label")
+      .eq("user_id", profile.id)
+      .gte("end_date", todayIso)
+      .order("start_date", { ascending: true });
+
+    const availBlocks = (upcomingBlocks ?? []) as { start_date: string; end_date: string; block_type: string; label: string | null }[];
+    const upcomingAvailable = availBlocks.filter((b) => b.block_type === "available");
+    const upcomingBlocked = availBlocks.filter((b) => b.block_type === "blocked");
+
+    // Availability hint
+    let availabilityHint: { type: "open"; fromDate: string } | { type: "booked" } | null = null;
+    if (upcomingAvailable.length > 0) {
+      const earliest = upcomingAvailable[0];
+      availabilityHint = { type: "open", fromDate: earliest.start_date };
+    } else if (upcomingBlocked.length > 0) {
+      availabilityHint = { type: "booked" };
+    }
+
     const flashEnabled = profile.flash_enabled === true;
     const flashPreviewCount = profile.flash_preview_count ?? 6;
     let flashPieces: { id: string; title: string; description: string | null; price: number | null; size_guidance: string | null; image_url: string | null; status: string; repeatable: boolean }[] = [];
@@ -74,6 +96,23 @@ export default async function StudioPage({
         .limit(flashPreviewCount);
       flashPieces = flashData ?? [];
     }
+
+    // Fetch displayed reviews
+    const { data: reviewsData } = await supabase
+      .from("reviews")
+      .select("id, rating, comment, reviewer_name, is_anonymous, created_at")
+      .eq("user_id", profile.id)
+      .eq("is_displayed", true)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    const displayedReviews = (reviewsData ?? []) as {
+      id: number;
+      rating: number;
+      comment: string | null;
+      reviewer_name: string | null;
+      is_anonymous: boolean;
+      created_at: string;
+    }[];
 
     const showPortfolio = profile.show_portfolio !== false;
     let portfolioItems: { id: number; photo_url: string; style: string | null }[] = [];
@@ -136,6 +175,25 @@ export default async function StudioPage({
               <p className="text-white/70 text-base sm:text-lg leading-relaxed max-w-xl mx-auto mb-6">
                 {profile.bio}
               </p>
+            )}
+
+            {/* Availability hint */}
+            {availabilityHint && (
+              <div className="mb-5">
+                {availabilityHint.type === "open" ? (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/15 text-sm text-white/80">
+                    <span className="size-2 rounded-full bg-emerald-400 shrink-0" />
+                    {availabilityHint.fromDate <= new Date().toISOString().split("T")[0]
+                      ? "Currently taking bookings"
+                      : `Taking bookings from ${new Date(availabilityHint.fromDate + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}`}
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/15 text-sm text-white/70">
+                    <span className="size-2 rounded-full bg-red-400 shrink-0" />
+                    Currently fully booked — join the waitlist
+                  </div>
+                )}
+              </div>
             )}
 
             <Link
@@ -256,6 +314,56 @@ export default async function StudioPage({
             </Link>
           </section>
         )}
+
+        {/* ── REVIEWS ────────────────────────────────────────────────────────── */}
+        {displayedReviews.length > 0 && (() => {
+          const avg = displayedReviews.reduce((s, r) => s + r.rating, 0) / displayedReviews.length;
+          return (
+            <section className="mx-auto max-w-3xl px-5 py-12 border-t border-white/8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-white/40">
+                  What clients say
+                </h2>
+                <span className="text-sm text-white/50">
+                  ⭐ {avg.toFixed(1)} · {displayedReviews.length} review{displayedReviews.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {displayedReviews.map((review) => {
+                  const name = review.is_anonymous
+                    ? "Anonymous"
+                    : review.reviewer_name || "Anonymous";
+                  const date = new Date(review.created_at).toLocaleDateString("en-US", {
+                    month: "short", day: "numeric", year: "numeric",
+                  });
+                  return (
+                    <div
+                      key={review.id}
+                      className="rounded-2xl bg-white/5 border border-white/10 px-5 py-4"
+                    >
+                      <div className="flex gap-0.5 mb-2">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <svg key={s} width="14" height="14" viewBox="0 0 24 24" fill={s <= review.rating ? "#f59e0b" : "none"} stroke={s <= review.rating ? "#f59e0b" : "rgba(255,255,255,0.15)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                          </svg>
+                        ))}
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm text-white/75 leading-relaxed mb-3">
+                          &ldquo;{review.comment}&rdquo;
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-white/50">{name}</span>
+                        <span className="text-xs text-white/30">{date}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })()}
 
         {/* ── FOOTER CTA ─────────────────────────────────────────────────────── */}
         <section

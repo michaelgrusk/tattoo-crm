@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SlugIntakeForm } from "./_components/slug-intake-form";
+import type { IntakeAvailabilityBlock } from "./_components/availability-date-picker";
 
 export type FlashPiecePreview = {
   id: string;
@@ -32,6 +33,16 @@ export default async function SlugIntakePage({
 
   if (!profile) notFound();
 
+  // Fetch availability blocks for date picker
+  const today = new Date().toISOString().split("T")[0];
+  const { data: availabilityData } = await supabase
+    .from("availability_blocks")
+    .select("start_date, end_date, block_type, label")
+    .eq("user_id", profile.id)
+    .gte("end_date", today)
+    .order("start_date", { ascending: true });
+  const availabilityBlocks: IntakeAvailabilityBlock[] = (availabilityData as IntakeAvailabilityBlock[]) ?? [];
+
   let flashPieces: FlashPiecePreview[] = [];
   if (profile.flash_enabled) {
     const { data } = await supabase
@@ -51,6 +62,7 @@ export default async function SlugIntakePage({
       userId={profile.id}
       flashPieces={flashPieces}
       preselectedFlashId={preselectedFlashId}
+      availabilityBlocks={availabilityBlocks}
     />
   );
 }
