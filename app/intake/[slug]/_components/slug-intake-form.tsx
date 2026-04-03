@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, ChevronLeft, Upload, X, ImageIcon, Loader2 } from "lucide-react";
+import { ChevronRight, ChevronLeft, Upload, X, ImageIcon, Loader2, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import type { FlashPiecePreview } from "../page";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -13,6 +14,8 @@ type FormData = {
   phone: string;
   instagram: string;
   whatsappOptIn: boolean;
+  inquiryType: "custom" | "flash";
+  selectedFlashId: string | null;
   description: string;
   style: string;
   placement: string;
@@ -46,6 +49,8 @@ const EMPTY: FormData = {
   phone: "",
   instagram: "",
   whatsappOptIn: false,
+  inquiryType: "custom",
+  selectedFlashId: null,
   description: "",
   style: "Blackwork",
   placement: "",
@@ -155,14 +160,22 @@ export function SlugIntakeForm({
   studioName,
   slug,
   userId,
+  flashPieces = [],
+  preselectedFlashId = null,
 }: {
   studioName: string;
   slug: string;
   userId: string;
+  flashPieces?: FlashPiecePreview[];
+  preselectedFlashId?: string | null;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState<FormData>(EMPTY);
+  const [form, setForm] = useState<FormData>(() => ({
+    ...EMPTY,
+    inquiryType: preselectedFlashId ? "flash" : "custom",
+    selectedFlashId: preselectedFlashId ?? null,
+  }));
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -184,8 +197,12 @@ export function SlugIntakeForm({
       if (!form.instagram.trim()) errs.instagram = "Instagram handle is required — we'll use this to send your quote";
     }
     if (s === 1) {
-      if (!form.description.trim()) errs.description = "Please describe your tattoo idea";
-      if (!form.placement.trim()) errs.placement = "Placement is required";
+      if (form.inquiryType === "flash") {
+        if (!form.selectedFlashId) errs.description = "Please select a flash design";
+      } else {
+        if (!form.description.trim()) errs.description = "Please describe your tattoo idea";
+        if (!form.placement.trim()) errs.placement = "Placement is required";
+      }
     }
     return errs;
   }
@@ -234,13 +251,24 @@ export function SlugIntakeForm({
       imageUrl = data.publicUrl;
     }
 
-    const lines: string[] = [form.description.trim()];
-    if (form.placement.trim()) lines.push(`Placement: ${form.placement.trim()}`);
-    if (form.size.trim()) lines.push(`Size: ${form.size.trim()}`);
-    if (form.preferredDate) lines.push(`Preferred date: ${form.preferredDate}`);
-    lines.push(`Phone: ${form.phone.trim()}`);
-    if (form.instagram.trim()) lines.push(`Instagram: @${form.instagram.trim()}`);
-    const fullDescription = lines.join("\n");
+    let fullDescription = "";
+    if (form.inquiryType === "flash" && form.selectedFlashId) {
+      const flashPiece = flashPieces.find((p) => p.id === form.selectedFlashId);
+      const lines: string[] = [`Flash booking: ${flashPiece?.title ?? "Flash design"}`];
+      if (form.placement.trim()) lines.push(`Placement: ${form.placement.trim()}`);
+      if (form.preferredDate) lines.push(`Preferred date: ${form.preferredDate}`);
+      lines.push(`Phone: ${form.phone.trim()}`);
+      if (form.instagram.trim()) lines.push(`Instagram: @${form.instagram.trim()}`);
+      fullDescription = lines.join("\n");
+    } else {
+      const lines: string[] = [form.description.trim()];
+      if (form.placement.trim()) lines.push(`Placement: ${form.placement.trim()}`);
+      if (form.size.trim()) lines.push(`Size: ${form.size.trim()}`);
+      if (form.preferredDate) lines.push(`Preferred date: ${form.preferredDate}`);
+      lines.push(`Phone: ${form.phone.trim()}`);
+      if (form.instagram.trim()) lines.push(`Instagram: @${form.instagram.trim()}`);
+      fullDescription = lines.join("\n");
+    }
 
     const { data: newRequest, error } = await supabase.from("tattoo_requests").insert({
       user_id: userId,
@@ -248,10 +276,13 @@ export function SlugIntakeForm({
       client_name: form.name.trim(),
       client_email: form.email.trim(),
       description: fullDescription,
-      style: form.style,
+      style: form.inquiryType === "flash" ? "Flash" : form.style,
       status: "new request",
       reference_image_url: imageUrl,
       whatsapp_opt_in: form.whatsappOptIn,
+      inquiry_type: form.inquiryType,
+      flash_piece_id: form.inquiryType === "flash" ? form.selectedFlashId : null,
+      source_type: "intake_form",
     }).select("id").single();
 
     setSubmitting(false);
@@ -366,35 +397,125 @@ export function SlugIntakeForm({
         {step === 1 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-[var(--nb-text)] mb-1">Your tattoo</h2>
-            <p className="text-sm text-[var(--nb-text-2)] mb-5">Share your vision — the more detail, the better.</p>
+            <p className="text-sm text-[var(--nb-text-2)] mb-5">Tell us what you&apos;re looking for.</p>
 
-            <Field label="Tattoo description" required error={errors.description}>
-              <textarea placeholder="Describe your idea — subject matter, mood, any specific elements…"
-                value={form.description} onChange={(e) => set("description", e.target.value)}
-                rows={4} className={`${inputCls} resize-none`} />
-            </Field>
+            {/* Type selector — only show if flash pieces exist */}
+            {flashPieces.length > 0 && (
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => { set("inquiryType", "custom"); set("selectedFlashId", null); }}
+                  className={`flex flex-col items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                    form.inquiryType === "custom"
+                      ? "border-[#7C3AED] bg-[#7C3AED]/5 text-[#7C3AED]"
+                      : "border-[var(--nb-border)] text-[var(--nb-text-2)] hover:border-[#7C3AED]/40"
+                  }`}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                  </svg>
+                  Custom tattoo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => set("inquiryType", "flash")}
+                  className={`flex flex-col items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                    form.inquiryType === "flash"
+                      ? "border-[#7C3AED] bg-[#7C3AED]/5 text-[#7C3AED]"
+                      : "border-[var(--nb-border)] text-[var(--nb-text-2)] hover:border-[#7C3AED]/40"
+                  }`}
+                >
+                  <Zap size={20} />
+                  Flash design
+                </button>
+              </div>
+            )}
 
-            <Field label="Style">
-              <select value={form.style} onChange={(e) => set("style", e.target.value)} className={inputCls}>
-                {STYLES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </Field>
+            {/* Custom tattoo fields */}
+            {form.inquiryType === "custom" && (
+              <>
+                <Field label="Tattoo description" required error={errors.description}>
+                  <textarea placeholder="Describe your idea — subject matter, mood, any specific elements…"
+                    value={form.description} onChange={(e) => set("description", e.target.value)}
+                    rows={4} className={`${inputCls} resize-none`} />
+                </Field>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Placement" required error={errors.placement}>
-                <input type="text" placeholder="e.g. Left forearm" value={form.placement}
-                  onChange={(e) => set("placement", e.target.value)} className={inputCls} />
-              </Field>
-              <Field label="Rough size">
-                <input type="text" placeholder='e.g. "palm sized"' value={form.size}
-                  onChange={(e) => set("size", e.target.value)} className={inputCls} />
-              </Field>
-            </div>
+                <Field label="Style">
+                  <select value={form.style} onChange={(e) => set("style", e.target.value)} className={inputCls}>
+                    {STYLES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </Field>
 
-            <Field label="Preferred appointment date">
-              <input type="date" value={form.preferredDate}
-                onChange={(e) => set("preferredDate", e.target.value)} className={inputCls} />
-            </Field>
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Placement" required error={errors.placement}>
+                    <input type="text" placeholder="e.g. Left forearm" value={form.placement}
+                      onChange={(e) => set("placement", e.target.value)} className={inputCls} />
+                  </Field>
+                  <Field label="Rough size">
+                    <input type="text" placeholder='e.g. "palm sized"' value={form.size}
+                      onChange={(e) => set("size", e.target.value)} className={inputCls} />
+                  </Field>
+                </div>
+
+                <Field label="Preferred appointment date">
+                  <input type="date" value={form.preferredDate}
+                    onChange={(e) => set("preferredDate", e.target.value)} className={inputCls} />
+                </Field>
+              </>
+            )}
+
+            {/* Flash picker */}
+            {form.inquiryType === "flash" && (
+              <div className="space-y-4">
+                <div>
+                  <label className={labelCls}>
+                    Select a design <span className="text-[#7C3AED]">*</span>
+                  </label>
+                  {errors.description && (
+                    <p className="mb-2 text-xs text-red-500">{errors.description}</p>
+                  )}
+                  <div className="grid grid-cols-2 gap-3">
+                    {flashPieces.map((piece) => (
+                      <button
+                        key={piece.id}
+                        type="button"
+                        onClick={() => set("selectedFlashId", piece.id)}
+                        className={`rounded-xl border-2 overflow-hidden text-left transition-all ${
+                          form.selectedFlashId === piece.id
+                            ? "border-[#7C3AED] ring-2 ring-[#7C3AED]/20"
+                            : "border-[var(--nb-border)] hover:border-[#7C3AED]/40"
+                        }`}
+                      >
+                        {piece.image_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={piece.image_url} alt={piece.title} className="w-full aspect-square object-cover" />
+                        ) : (
+                          <div className="w-full aspect-square bg-[var(--nb-active-bg)] flex items-center justify-center">
+                            <Zap size={24} className="text-[#7C3AED]" />
+                          </div>
+                        )}
+                        <div className="p-2.5">
+                          <p className="text-xs font-semibold text-[var(--nb-text)] truncate">{piece.title}</p>
+                          {piece.price != null && (
+                            <p className="text-xs text-[var(--nb-text-2)] mt-0.5">${piece.price}</p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Field label="Placement">
+                  <input type="text" placeholder="e.g. Left forearm" value={form.placement}
+                    onChange={(e) => set("placement", e.target.value)} className={inputCls} />
+                </Field>
+
+                <Field label="Preferred appointment date">
+                  <input type="date" value={form.preferredDate}
+                    onChange={(e) => set("preferredDate", e.target.value)} className={inputCls} />
+                </Field>
+              </div>
+            )}
           </div>
         )}
 
@@ -439,8 +560,21 @@ export function SlugIntakeForm({
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
                 <span className="text-[var(--nb-text-2)]">Name</span>
                 <span className="text-[var(--nb-text)] font-medium truncate">{form.name || "—"}</span>
-                <span className="text-[var(--nb-text-2)]">Style</span>
-                <span className="text-[var(--nb-text)] font-medium">{form.style}</span>
+                <span className="text-[var(--nb-text-2)]">Type</span>
+                <span className="text-[var(--nb-text)] font-medium capitalize">{form.inquiryType}</span>
+                {form.inquiryType === "flash" && form.selectedFlashId ? (
+                  <>
+                    <span className="text-[var(--nb-text-2)]">Design</span>
+                    <span className="text-[var(--nb-text)] font-medium truncate">
+                      {flashPieces.find((p) => p.id === form.selectedFlashId)?.title ?? "—"}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-[var(--nb-text-2)]">Style</span>
+                    <span className="text-[var(--nb-text)] font-medium">{form.style}</span>
+                  </>
+                )}
                 <span className="text-[var(--nb-text-2)]">Placement</span>
                 <span className="text-[var(--nb-text)] font-medium">{form.placement || "—"}</span>
                 {form.preferredDate && (

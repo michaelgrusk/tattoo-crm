@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Loader2, CheckCircle2, AlertCircle, Camera, X } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, Camera, X, Plus, Pencil, Trash2, GripVertical, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { CURRENCY_OPTIONS, formatCurrency } from "@/lib/currency";
+import { FlashPieceModal, type FlashPiece } from "./flash-piece-modal";
 import type { CurrencyCode } from "@/lib/currency";
 import { Calendar, Copy, CheckCircle2 as CopyCheck, ExternalLink, Globe } from "lucide-react";
 
@@ -74,6 +75,8 @@ export function SettingsView({
   initialShowPricingInfo,
   initialPricingNote,
   initialAvatarUrl,
+  initialFlashEnabled,
+  initialFlashPreviewCount,
   userId,
 }: {
   initialStudioName: string;
@@ -86,6 +89,8 @@ export function SettingsView({
   initialShowPricingInfo: boolean;
   initialPricingNote: string;
   initialAvatarUrl: string | null;
+  initialFlashEnabled: boolean;
+  initialFlashPreviewCount: number;
   userId: string;
 }) {
   const router = useRouter();
@@ -107,6 +112,16 @@ export function SettingsView({
   const [showPricingInfo, setShowPricingInfo] = useState(initialShowPricingInfo);
   const [pricingNote, setPricingNote] = useState(initialPricingNote);
   const [studioPageSaving, setStudioPageSaving] = useState(false);
+
+  // Flash tattoos
+  const [flashEnabled, setFlashEnabled] = useState(initialFlashEnabled);
+  const [flashPreviewCount, setFlashPreviewCount] = useState(initialFlashPreviewCount);
+  const [flashPieces, setFlashPieces] = useState<FlashPiece[]>([]);
+  const [flashLoading, setFlashLoading] = useState(false);
+  const [flashSettingsSaving, setFlashSettingsSaving] = useState(false);
+  const [flashModalOpen, setFlashModalOpen] = useState(false);
+  const [flashModalPiece, setFlashModalPiece] = useState<FlashPiece | null>(null);
+  const [flashDeleting, setFlashDeleting] = useState<string | null>(null);
 
   // Currency
   const [currency, setCurrency] = useState<CurrencyCode>(
@@ -365,6 +380,54 @@ export function SettingsView({
     if (error) { showToast(error.message, "error"); return; }
     setAvatarUrl(null);
     showToast("Profile photo removed");
+  }
+
+  // ── Load flash pieces ────────────────────────────────────────────────────
+
+  useEffect(() => {
+    setFlashLoading(true);
+    supabase
+      .from("flash_pieces")
+      .select("*")
+      .eq("user_id", userId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        setFlashPieces((data as FlashPiece[]) ?? []);
+        setFlashLoading(false);
+      });
+  }, [userId]);
+
+  async function handleSaveFlashSettings() {
+    setFlashSettingsSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ flash_enabled: flashEnabled, flash_preview_count: flashPreviewCount })
+      .eq("id", userId);
+    setFlashSettingsSaving(false);
+    if (error) showToast(error.message, "error"); else showToast("Flash settings saved!");
+  }
+
+  async function handleDeleteFlashPiece(id: string) {
+    setFlashDeleting(id);
+    await supabase.from("flash_pieces").delete().eq("id", id);
+    setFlashPieces((prev) => prev.filter((p) => p.id !== id));
+    setFlashDeleting(null);
+  }
+
+  function handleFlashPieceSaved(piece: FlashPiece) {
+    setFlashPieces((prev) => {
+      const idx = prev.findIndex((p) => p.id === piece.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = piece;
+        return next;
+      }
+      return [...prev, piece];
+    });
+    setFlashModalOpen(false);
+    setFlashModalPiece(null);
+    showToast(flashModalPiece ? "Flash piece updated!" : "Flash piece added!");
   }
 
   // ── Save studio page settings ────────────────────────────────────────────
@@ -1081,6 +1144,154 @@ export function SettingsView({
           </div>
         </SectionCard>
 
+        {/* ── Flash Tattoos ──────────────────────────────────────────────── */}
+        <SectionCard
+          title="Flash Tattoos"
+          description="Manage flash designs clients can browse and book directly from your studio page."
+        >
+          <div className="space-y-5">
+            {/* Enable toggle + preview count */}
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-[var(--nb-text)]">Enable flash gallery</p>
+                <p className="text-xs text-[var(--nb-text-2)] mt-0.5">Show a flash section on your public studio page</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFlashEnabled((v) => !v)}
+                role="switch"
+                aria-checked={flashEnabled}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors ${flashEnabled ? "bg-[#7C3AED]" : "bg-[var(--nb-border)]"}`}
+              >
+                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${flashEnabled ? "translate-x-5" : "translate-x-0"}`} />
+              </button>
+            </div>
+
+            {flashEnabled && (
+              <div>
+                <label className={labelCls}>Pieces to show on studio page</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={48}
+                  value={flashPreviewCount}
+                  onChange={(e) => setFlashPreviewCount(Math.max(1, parseInt(e.target.value) || 6))}
+                  className={`${inputCls} max-w-[120px]`}
+                />
+              </div>
+            )}
+
+            <div className="pt-1">
+              <button
+                onClick={handleSaveFlashSettings}
+                disabled={flashSettingsSaving}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-medium transition-colors disabled:opacity-60"
+              >
+                {flashSettingsSaving && <Loader2 size={14} className="animate-spin" />}
+                {flashSettingsSaving ? "Saving…" : "Save Settings"}
+              </button>
+            </div>
+
+            {/* Flash pieces list */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-[var(--nb-text)]">
+                  Flash pieces
+                  {flashPieces.length > 0 && (
+                    <span className="ml-2 text-xs font-normal text-[var(--nb-text-2)]">
+                      ({flashPieces.length})
+                    </span>
+                  )}
+                </p>
+                <button
+                  onClick={() => { setFlashModalPiece(null); setFlashModalOpen(true); }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#7C3AED] text-white hover:bg-[#6D28D9] transition-colors"
+                >
+                  <Plus size={12} />
+                  Add piece
+                </button>
+              </div>
+
+              {flashLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 size={20} className="animate-spin text-[var(--nb-text-2)]" />
+                </div>
+              ) : flashPieces.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 rounded-xl border-2 border-dashed border-[var(--nb-border)] text-center">
+                  <div className="size-10 rounded-xl bg-[var(--nb-active-bg)] flex items-center justify-center mb-3">
+                    <Zap size={18} className="text-[#7C3AED]" />
+                  </div>
+                  <p className="text-sm font-medium text-[var(--nb-text)]">No flash pieces yet</p>
+                  <p className="text-xs text-[var(--nb-text-2)] mt-1">Add your first flash design to get started</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {flashPieces.map((piece) => {
+                    const STATUS_BADGE: Record<string, string> = {
+                      available: "bg-emerald-50 text-emerald-700 border-emerald-200",
+                      pending:   "bg-amber-50 text-amber-700 border-amber-200",
+                      claimed:   "bg-violet-50 text-violet-700 border-violet-200",
+                      archived:  "bg-[var(--nb-bg)] text-[var(--nb-text-2)] border-[var(--nb-border)]",
+                    };
+                    return (
+                      <div
+                        key={piece.id}
+                        className="flex items-center gap-3 rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-3 py-2.5"
+                      >
+                        <GripVertical size={14} className="text-[var(--nb-border)] shrink-0" />
+
+                        {piece.image_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={piece.image_url} alt={piece.title} className="size-10 rounded-lg object-cover shrink-0 border border-[var(--nb-border)]" />
+                        ) : (
+                          <div className="size-10 rounded-lg bg-[var(--nb-active-bg)] flex items-center justify-center shrink-0">
+                            <Zap size={14} className="text-[#7C3AED]" />
+                          </div>
+                        )}
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[var(--nb-text)] truncate">{piece.title}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${STATUS_BADGE[piece.status] ?? ""}`}>
+                              {piece.status}
+                            </span>
+                            {piece.price != null && (
+                              <span className="text-xs text-[var(--nb-text-2)]">${piece.price}</span>
+                            )}
+                            {piece.repeatable && (
+                              <span className="text-[10px] text-[var(--nb-text-2)]">repeatable</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => { setFlashModalPiece(piece); setFlashModalOpen(true); }}
+                            className="size-7 flex items-center justify-center rounded-lg text-[var(--nb-text-2)] hover:text-[#7C3AED] hover:bg-[var(--nb-active-bg)] transition-colors"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFlashPiece(piece.id)}
+                            disabled={flashDeleting === piece.id}
+                            className="size-7 flex items-center justify-center rounded-lg text-[var(--nb-text-2)] hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                          >
+                            {flashDeleting === piece.id ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={13} />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </SectionCard>
+
         {/* ── Danger Zone ────────────────────────────────────────────────── */}
         <SectionCard
           title="Danger Zone"
@@ -1121,6 +1332,15 @@ export function SettingsView({
       </div>
 
       <Toast toast={toast} />
+
+      <FlashPieceModal
+        open={flashModalOpen}
+        piece={flashModalPiece}
+        userId={userId}
+        sortOrder={flashPieces.length}
+        onClose={() => { setFlashModalOpen(false); setFlashModalPiece(null); }}
+        onSaved={handleFlashPieceSaved}
+      />
     </>
   );
 }

@@ -28,6 +28,9 @@ export type TattooRequest = {
     suggested_questions: string[];
   } | null;
   ai_analyzed_at: string | null;
+  inquiry_type: "custom" | "flash" | null;
+  flash_piece_id: string | null;
+  source_type: string | null;
 };
 
 export type Appointment = {

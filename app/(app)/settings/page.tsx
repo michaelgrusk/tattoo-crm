@@ -14,7 +14,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("studio_name, slug, currency, bio, location, show_portfolio, portfolio_limit, show_pricing_info, pricing_note, avatar_url")
+    .select("studio_name, slug, currency, bio, location, show_portfolio, portfolio_limit, show_pricing_info, pricing_note, avatar_url, flash_enabled, flash_preview_count")
     .eq("id", user.id)
     .single();
 
@@ -30,6 +30,8 @@ export default async function SettingsPage() {
       initialShowPricingInfo={profile?.show_pricing_info ?? false}
       initialPricingNote={profile?.pricing_note ?? ""}
       initialAvatarUrl={profile?.avatar_url ?? null}
+      initialFlashEnabled={profile?.flash_enabled ?? false}
+      initialFlashPreviewCount={profile?.flash_preview_count ?? 6}
       userId={user.id}
     />
   );

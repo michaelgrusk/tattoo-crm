@@ -112,9 +112,17 @@ function RequestCard({ request, onClick }: { request: TattooRequest; onClick: ()
           <p className="font-semibold text-sm text-[var(--nb-text)] truncate">{request.client_name}</p>
           <p className="text-xs text-[var(--nb-text-2)] mt-0.5 truncate">{request.client_email}</p>
         </div>
-        <span className="inline-flex items-center rounded-full bg-[var(--nb-active-bg)] px-2 py-0.5 text-xs font-medium text-[#7C3AED] shrink-0">
-          {request.style}
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {request.inquiry_type === "flash" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              Flash
+            </span>
+          )}
+          <span className="inline-flex items-center rounded-full bg-[var(--nb-active-bg)] px-2 py-0.5 text-xs font-medium text-[#7C3AED]">
+            {request.style}
+          </span>
+        </div>
       </div>
 
       <div className="space-y-1.5 bg-[var(--nb-card)] rounded-lg border border-[var(--nb-card)] px-3 py-2.5">

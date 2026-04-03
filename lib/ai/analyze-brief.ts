@@ -40,7 +40,59 @@ export function analyzeBrief(input: {
   has_instagram?: boolean;
   has_phone?: boolean;
   artists?: { name: string }[];
+  flash_piece_title?: string | null;
 }): AiBriefAnalysis {
+  const isFlash = !!input.flash_piece_title;
+
+  // ── Flash booking — simplified path ──────────────────────────────────────
+  if (isFlash) {
+    const placement = (input.placement ?? "").trim();
+    const preferredDate = (input.preferred_date ?? "").trim();
+    const hasInstagram = !!input.has_instagram;
+    const hasPhone = !!input.has_phone;
+
+    // Effort: client already chose a specific design — strong signal
+    let effortScore = 8;
+    if (placement) effortScore += 0.5;
+    if (preferredDate) effortScore += 0.5;
+    if (hasInstagram || hasPhone) effortScore += 1;
+    effortScore = Math.min(10, Math.round(effortScore));
+
+    // Fit: concrete booking intent
+    let fitScore = 7;
+    if (placement) fitScore += 1;
+    if (preferredDate) {
+      const d = new Date(preferredDate + "T00:00:00");
+      if (!isNaN(d.getTime()) && d > new Date()) fitScore += 1;
+    }
+    if (hasPhone || hasInstagram) fitScore += 1;
+    fitScore = Math.min(10, Math.round(fitScore));
+
+    const combined = effortScore + fitScore;
+    const overall_rating: AiBriefAnalysis["overall_rating"] = combined >= 16 ? "Great fit" : "Good fit";
+
+    const briefParts = [`Flash booking — ${input.flash_piece_title}.`];
+    if (placement) briefParts.push(`Placement: ${placement}.`);
+    if (preferredDate) {
+      const d = new Date(preferredDate + "T00:00:00");
+      if (!isNaN(d.getTime())) {
+        briefParts.push(`Preferred date: ${d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.`);
+      }
+    }
+
+    return {
+      effort_score: effortScore,
+      fit_score: fitScore,
+      overall_rating,
+      session_length: "1-2 hours",
+      recommended_style: "Flash",
+      suggested_artist: input.artists && input.artists.length > 0 ? input.artists[0].name : null,
+      structured_brief: briefParts.join(" "),
+      red_flags: [],
+      suggested_questions: [],
+    };
+  }
+
   const desc = (input.description ?? "").trim();
   const descLower = desc.toLowerCase();
   const style = (input.style ?? "").trim();

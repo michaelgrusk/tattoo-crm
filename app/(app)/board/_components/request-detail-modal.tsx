@@ -176,6 +176,7 @@ export function RequestDetailModal({
   const [aiAnalysis, setAiAnalysis] = useState<AiBriefAnalysis | null>(null);
   const [aiAnalyzedAt, setAiAnalyzedAt] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [flashPiece, setFlashPiece] = useState<{ id: string; title: string; description: string | null; price: number | null; size_guidance: string | null; image_url: string | null } | null>(null);
 
   // Generate-quote form
   const [gqTotal, setGqTotal] = useState("");
@@ -216,6 +217,7 @@ export function RequestDetailModal({
       setAssignedArtistId(request.artist_id ?? null);
       setAiAnalysis(request.ai_analysis ?? null);
       setAiAnalyzedAt(request.ai_analyzed_at ?? null);
+      setFlashPiece(null);
       getUserId().then(async (userId) => {
         if (!userId) return;
 
@@ -243,6 +245,23 @@ export function RequestDetailModal({
         const templates = dbTemplates.length > 0 ? dbTemplates : [DEFAULT_QUOTE_TEMPLATE];
         setGqTemplates(templates);
         setGqTemplateId(templates[0].id);
+
+        // Fetch flash piece if this is a flash booking
+        if (request.flash_piece_id) {
+          const { data: fp } = await supabase
+            .from("flash_pieces")
+            .select("id, title, description, price, size_guidance, image_url")
+            .eq("id", request.flash_piece_id)
+            .single();
+          if (fp) {
+            const piece = fp as { id: string; title: string; description: string | null; price: number | null; size_guidance: string | null; image_url: string | null };
+            setFlashPiece(piece);
+            // Auto-fill total from flash piece price (only if not already set from quote_amount)
+            if (piece.price != null && !request.quote_amount) {
+              setGqTotal(String(piece.price));
+            }
+          }
+        }
 
         // Fetch client instagram if client_id is present
         if (request.client_id) {
@@ -465,6 +484,7 @@ export function RequestDetailModal({
         has_phone: !!parsed.phone,
         has_instagram: !!clientInstagram,
         artists: matchedArtists,
+        flash_piece_title: request.inquiry_type === "flash" ? (flashPiece?.title ?? request.description) : null,
       });
       const now = new Date().toISOString();
       setAiAnalysis(analysis);
@@ -511,116 +531,164 @@ export function RequestDetailModal({
         {view === "detail" && (
           <div className="space-y-5 pt-1">
 
-            {/* AI Analysis card */}
-            <div className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-card)] overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--nb-border)] bg-[var(--nb-bg)]">
-                <div className="flex items-center gap-1.5">
-                  <Sparkles size={13} className="text-[#7C3AED]" />
-                  <span className="text-xs font-semibold text-[var(--nb-text)]">AI Brief Analysis</span>
-                  {aiAnalysis && (() => {
-                    const r = RATING_STYLES[aiAnalysis.overall_rating];
-                    return (
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${r.bg} ${r.text} ${r.border}`}>
-                        {aiAnalysis.overall_rating}
-                      </span>
-                    );
-                  })()}
-                </div>
-                <button
-                  type="button"
-                  onClick={runAnalysis}
-                  disabled={aiLoading}
-                  className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors disabled:opacity-50"
-                >
-                  {aiLoading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
-                  {aiAnalysis ? "Re-analyze" : "Analyze"}
-                </button>
-              </div>
-
-              {aiLoading && !aiAnalysis && (
-                <div className="flex items-center justify-center gap-2 py-6 text-sm text-[var(--nb-text-2)]">
-                  <Loader2 size={15} className="animate-spin" />
-                  Analyzing brief…
-                </div>
-              )}
-
-              {!aiLoading && !aiAnalysis && (
-                <div className="px-4 py-4 text-center">
-                  <p className="text-xs text-[var(--nb-text-2)]">No analysis yet — click Analyze to generate insights.</p>
-                </div>
-              )}
-
-              {aiAnalysis && (
-                <div className="px-4 py-3 space-y-3">
-                  {/* Score bars */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <ScoreBar label="Fit score" score={aiAnalysis.fit_score} />
-                    <ScoreBar label="Effort score" score={aiAnalysis.effort_score} />
+            {/* AI Analysis card — simplified for flash bookings */}
+            {request.inquiry_type === "flash" ? (
+              <div className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-card)] overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--nb-border)] bg-[var(--nb-bg)]">
+                  <div className="flex items-center gap-1.5">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="#7C3AED"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    <span className="text-xs font-semibold text-[var(--nb-text)]">Flash Booking</span>
+                    {aiAnalysis && (() => {
+                      const r = RATING_STYLES[aiAnalysis.overall_rating];
+                      return (
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${r.bg} ${r.text} ${r.border}`}>
+                          {aiAnalysis.overall_rating}
+                        </span>
+                      );
+                    })()}
                   </div>
-
-                  {/* Structured brief */}
-                  <div>
-                    <p className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-1">Brief</p>
-                    <p className="text-xs text-[var(--nb-text)] leading-relaxed">{aiAnalysis.structured_brief}</p>
+                  <button
+                    type="button"
+                    onClick={runAnalysis}
+                    disabled={aiLoading}
+                    className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors disabled:opacity-50"
+                  >
+                    {aiLoading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                    {aiAnalysis ? "Re-score" : "Score"}
+                  </button>
+                </div>
+                {aiLoading && !aiAnalysis ? (
+                  <div className="flex items-center justify-center gap-2 py-5 text-sm text-[var(--nb-text-2)]">
+                    <Loader2 size={14} className="animate-spin" />
+                    Scoring…
                   </div>
-
-                  {/* Session + style row */}
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--nb-active-bg)] px-2 py-0.5 text-[#7C3AED] font-medium">
-                      {aiAnalysis.session_length}
-                    </span>
-                    {aiAnalysis.recommended_style && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--nb-border)] px-2 py-0.5 text-[var(--nb-text-2)]">
-                        Style: {aiAnalysis.recommended_style}
-                      </span>
+                ) : aiAnalysis ? (
+                  <div className="px-4 py-3 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <ScoreBar label="Fit score" score={aiAnalysis.fit_score} />
+                      <ScoreBar label="Effort score" score={aiAnalysis.effort_score} />
+                    </div>
+                    {aiAnalysis.structured_brief && (
+                      <p className="text-xs text-[var(--nb-text)] leading-relaxed">{aiAnalysis.structured_brief}</p>
                     )}
                     {aiAnalysis.suggested_artist && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--nb-border)] px-2 py-0.5 text-[var(--nb-text-2)]">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--nb-border)] px-2 py-0.5 text-xs text-[var(--nb-text-2)]">
                         Artist: {aiAnalysis.suggested_artist}
                       </span>
                     )}
+                    {aiAnalyzedAt && (
+                      <p className="text-[10px] text-[var(--nb-text-2)]">
+                        Scored {new Date(aiAnalyzedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    )}
                   </div>
-
-                  {/* Red flags */}
-                  {aiAnalysis.red_flags.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide flex items-center gap-1">
-                        <AlertTriangle size={10} className="text-amber-500" /> Red flags
-                      </p>
-                      <ul className="space-y-0.5">
-                        {aiAnalysis.red_flags.map((f, i) => (
-                          <li key={i} className="text-xs text-amber-700 flex items-start gap-1.5">
-                            <span className="mt-0.5 shrink-0">•</span>{f}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Suggested questions */}
-                  {aiAnalysis.suggested_questions.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide flex items-center gap-1">
-                        <HelpCircle size={10} className="text-sky-500" /> Ask the client
-                      </p>
-                      <ul className="space-y-0.5">
-                        {aiAnalysis.suggested_questions.map((q, i) => (
-                          <li key={i} className="text-xs text-[var(--nb-text)] flex items-start gap-1.5">
-                            <span className="mt-0.5 shrink-0 text-sky-500">?</span>{q}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {aiAnalyzedAt && (
-                    <p className="text-[10px] text-[var(--nb-text-2)]">
-                      Analyzed {new Date(aiAnalyzedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    </p>
-                  )}
+                ) : (
+                  <div className="px-4 py-3 text-center">
+                    <p className="text-xs text-[var(--nb-text-2)]">Click Score to generate effort &amp; fit scores.</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-card)] overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--nb-border)] bg-[var(--nb-bg)]">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-[#7C3AED]" />
+                    <span className="text-xs font-semibold text-[var(--nb-text)]">AI Brief Analysis</span>
+                    {aiAnalysis && (() => {
+                      const r = RATING_STYLES[aiAnalysis.overall_rating];
+                      return (
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${r.bg} ${r.text} ${r.border}`}>
+                          {aiAnalysis.overall_rating}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={runAnalysis}
+                    disabled={aiLoading}
+                    className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors disabled:opacity-50"
+                  >
+                    {aiLoading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                    {aiAnalysis ? "Re-analyze" : "Analyze"}
+                  </button>
                 </div>
-              )}
-            </div>
+
+                {aiLoading && !aiAnalysis && (
+                  <div className="flex items-center justify-center gap-2 py-6 text-sm text-[var(--nb-text-2)]">
+                    <Loader2 size={15} className="animate-spin" />
+                    Analyzing brief…
+                  </div>
+                )}
+
+                {!aiLoading && !aiAnalysis && (
+                  <div className="px-4 py-4 text-center">
+                    <p className="text-xs text-[var(--nb-text-2)]">No analysis yet — click Analyze to generate insights.</p>
+                  </div>
+                )}
+
+                {aiAnalysis && (
+                  <div className="px-4 py-3 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <ScoreBar label="Fit score" score={aiAnalysis.fit_score} />
+                      <ScoreBar label="Effort score" score={aiAnalysis.effort_score} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-1">Brief</p>
+                      <p className="text-xs text-[var(--nb-text)] leading-relaxed">{aiAnalysis.structured_brief}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--nb-active-bg)] px-2 py-0.5 text-[#7C3AED] font-medium">
+                        {aiAnalysis.session_length}
+                      </span>
+                      {aiAnalysis.recommended_style && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--nb-border)] px-2 py-0.5 text-[var(--nb-text-2)]">
+                          Style: {aiAnalysis.recommended_style}
+                        </span>
+                      )}
+                      {aiAnalysis.suggested_artist && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--nb-border)] px-2 py-0.5 text-[var(--nb-text-2)]">
+                          Artist: {aiAnalysis.suggested_artist}
+                        </span>
+                      )}
+                    </div>
+                    {aiAnalysis.red_flags.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide flex items-center gap-1">
+                          <AlertTriangle size={10} className="text-amber-500" /> Red flags
+                        </p>
+                        <ul className="space-y-0.5">
+                          {aiAnalysis.red_flags.map((f, i) => (
+                            <li key={i} className="text-xs text-amber-700 flex items-start gap-1.5">
+                              <span className="mt-0.5 shrink-0">•</span>{f}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {aiAnalysis.suggested_questions.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide flex items-center gap-1">
+                          <HelpCircle size={10} className="text-sky-500" /> Ask the client
+                        </p>
+                        <ul className="space-y-0.5">
+                          {aiAnalysis.suggested_questions.map((q, i) => (
+                            <li key={i} className="text-xs text-[var(--nb-text)] flex items-start gap-1.5">
+                              <span className="mt-0.5 shrink-0 text-sky-500">?</span>{q}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {aiAnalyzedAt && (
+                      <p className="text-[10px] text-[var(--nb-text-2)]">
+                        Analyzed {new Date(aiAnalyzedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Client card */}
             <div className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-card)] px-4 py-4">
@@ -659,11 +727,55 @@ export function RequestDetailModal({
               </p>
             </div>
 
+            {/* Flash piece card */}
+            {request.inquiry_type === "flash" && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
+                <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-amber-200">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#92400e"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                  <span className="text-xs font-semibold text-amber-800">Flash Booking</span>
+                </div>
+                {flashPiece ? (
+                  <div className="flex items-start gap-3 px-4 py-3">
+                    {flashPiece.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={flashPiece.image_url} alt={flashPiece.title} className="size-16 rounded-lg object-cover shrink-0 border border-amber-200" />
+                    ) : (
+                      <div className="size-16 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#92400e"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-amber-900 truncate">{flashPiece.title}</p>
+                      {flashPiece.description && (
+                        <p className="text-xs text-amber-700 mt-0.5 line-clamp-2">{flashPiece.description}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-1">
+                        {flashPiece.price != null && (
+                          <span className="text-xs font-medium text-amber-800">{formatCurrency(flashPiece.price)}</span>
+                        )}
+                        {flashPiece.size_guidance && (
+                          <span className="text-xs text-amber-600">{flashPiece.size_guidance}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="px-4 py-3 text-xs text-amber-700">Flash piece details unavailable</p>
+                )}
+              </div>
+            )}
+
             {/* Tattoo details */}
             <div>
               <SectionLabel>Tattoo Details</SectionLabel>
               <div className="space-y-2.5">
                 <div className="flex flex-wrap items-center gap-2">
+                  {request.inquiry_type === "flash" && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                      Flash
+                    </span>
+                  )}
                   <span className="inline-flex items-center rounded-full bg-[var(--nb-active-bg)] px-2.5 py-0.5 text-xs font-medium text-[#7C3AED]">
                     {request.style}
                   </span>
@@ -849,35 +961,65 @@ export function RequestDetailModal({
             </button>
 
             {/* Amounts */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="gq-total">
-                  Total ({currencySymbol}) <span className="text-[#7C3AED]">*</span>
-                </Label>
-                <Input
-                  id="gq-total"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="e.g. 600"
-                  value={gqTotal}
-                  onChange={(e) => setGqTotal(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="gq-deposit">Deposit ({currencySymbol})</Label>
-                <Input
-                  id="gq-deposit"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="e.g. 150"
-                  value={gqDeposit}
-                  onChange={(e) => setGqDeposit(e.target.value)}
-                />
-              </div>
-            </div>
+            {(() => {
+              const isFlashWithPrice = request.inquiry_type === "flash" && flashPiece?.price != null;
+              return (
+                <div className="space-y-3">
+                  {/* Flash price lock notice */}
+                  {isFlashWithPrice && (
+                    <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      <p className="text-xs text-amber-800">
+                        Price set by flash piece <span className="font-semibold">{flashPiece?.title}</span>
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="gq-total" className="flex items-center gap-1.5">
+                        Total ({currencySymbol}) <span className="text-[#7C3AED]">*</span>
+                        {isFlashWithPrice && (
+                          <span className="relative group cursor-default">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--nb-text-2)]"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md bg-[var(--nb-text)] text-[var(--nb-card)] text-[10px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                              Price locked by flash piece
+                            </span>
+                          </span>
+                        )}
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="gq-total"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="e.g. 600"
+                          value={gqTotal}
+                          onChange={(e) => { if (!isFlashWithPrice) setGqTotal(e.target.value); }}
+                          readOnly={isFlashWithPrice}
+                          autoFocus={!isFlashWithPrice}
+                          className={isFlashWithPrice ? "bg-[var(--nb-bg)] text-[var(--nb-text-2)] cursor-not-allowed select-none" : ""}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="gq-deposit">Deposit ({currencySymbol})</Label>
+                      <Input
+                        id="gq-deposit"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="e.g. 150"
+                        value={gqDeposit}
+                        onChange={(e) => setGqDeposit(e.target.value)}
+                        autoFocus={isFlashWithPrice}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Template selector */}
             {gqTemplates.length > 0 && (
