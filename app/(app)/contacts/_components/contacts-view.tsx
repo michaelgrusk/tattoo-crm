@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Search, UserPlus, CheckCircle2, Users, ArrowLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { ClientListItem } from "../page";
 import { ClientDetailPanel } from "./client-detail-panel";
 import { AddClientDialog } from "./add-client-dialog";
@@ -120,12 +120,22 @@ function ClientRow({
 
 export function ContactsView({ clients }: { clients: ClientListItem[] }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [localClients, setLocalClients] = useState(clients);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | number | null>(
     clients[0]?.id ?? null
   );
+
+  useEffect(() => {
+    const clientParam = searchParams.get("client");
+    if (clientParam) {
+      const id = Number(clientParam);
+      if (localClients.some((c) => c.id === id)) setSelectedId(id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
   const [toast, setToast] = useState<string | null>(null);

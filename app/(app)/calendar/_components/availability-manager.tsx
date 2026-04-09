@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Loader2, Calendar, Info } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
 import {
@@ -136,6 +136,142 @@ function MonthCalendar({
           <span className="text-xs text-[var(--nb-text-2)]">Unset</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Mini date picker ─────────────────────────────────────────────────────────
+
+function MiniDatePicker({
+  label,
+  value,
+  min,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  min?: string;
+  onChange: (v: string) => void;
+}) {
+  const today = new Date();
+  const initYear = value ? Number(value.slice(0, 4)) : today.getFullYear();
+  const initMonth = value ? Number(value.slice(5, 7)) - 1 : today.getMonth();
+
+  const [open, setOpen] = useState(false);
+  const [year, setYear] = useState(initYear);
+  const [month, setMonth] = useState(initMonth);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Sync calendar view when value changes externally (e.g. reset)
+  useEffect(() => {
+    if (value) {
+      setYear(Number(value.slice(0, 4)));
+      setMonth(Number(value.slice(5, 7)) - 1);
+    }
+  }, [value]);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const days = getMonthDays(year, month);
+  const todayStr = toDateStr(today);
+  const monthName = new Date(year, month, 1).toLocaleString("default", { month: "long" });
+
+  function prevMonth() {
+    if (month === 0) { setMonth(11); setYear((y) => y - 1); }
+    else setMonth((m) => m - 1);
+  }
+  function nextMonth() {
+    if (month === 11) { setMonth(0); setYear((y) => y + 1); }
+    else setMonth((m) => m + 1);
+  }
+
+  function selectDay(day: Date) {
+    const ds = toDateStr(day);
+    if (min && ds < min) return;
+    onChange(ds);
+    setOpen(false);
+  }
+
+  const displayValue = value
+    ? new Date(value + "T00:00:00").toLocaleDateString("default", { month: "short", day: "numeric", year: "numeric" })
+    : "";
+
+  return (
+    <div ref={ref} className="relative">
+      <label className="block text-sm font-medium text-[var(--nb-text)] mb-1.5">
+        {label} <span className="text-[#7C3AED]">*</span>
+      </label>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-2.5 text-sm text-left text-[var(--nb-text)] outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors flex items-center justify-between"
+      >
+        <span className={displayValue ? "text-[var(--nb-text)]" : "text-[var(--nb-text-2)]"}>
+          {displayValue || "Select date"}
+        </span>
+        <Calendar size={14} className="text-[var(--nb-text-2)] shrink-0" />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 top-full mt-1.5 left-0 bg-[var(--nb-card)] border border-[var(--nb-border)] rounded-xl shadow-lg p-3 w-64">
+          {/* Nav */}
+          <div className="flex items-center justify-between mb-2">
+            <button type="button" onClick={prevMonth} className="p-1 rounded hover:bg-[var(--nb-bg)] text-[var(--nb-text-2)] hover:text-[var(--nb-text)] transition-colors">
+              <ChevronLeft size={14} />
+            </button>
+            <span className="text-xs font-semibold text-[var(--nb-text)]">{monthName} {year}</span>
+            <button type="button" onClick={nextMonth} className="p-1 rounded hover:bg-[var(--nb-bg)] text-[var(--nb-text-2)] hover:text-[var(--nb-text)] transition-colors">
+              <ChevronRight size={14} />
+            </button>
+          </div>
+
+          {/* DOW */}
+          <div className="grid grid-cols-7 mb-1">
+            {DOW_LABELS.map((d) => (
+              <div key={d} className="text-center text-[9px] font-semibold text-[var(--nb-text-2)]">{d[0]}</div>
+            ))}
+          </div>
+
+          {/* Days */}
+          <div className="grid grid-cols-7 gap-px">
+            {days.map((day, i) => {
+              if (!day) return <div key={i} />;
+              const ds = toDateStr(day);
+              const isSelected = ds === value;
+              const isToday = ds === todayStr;
+              const isDisabled = !!(min && ds < min);
+
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => selectDay(day)}
+                  className={`h-7 w-full rounded text-xs font-medium transition-colors
+                    ${isSelected
+                      ? "bg-[#7C3AED] text-white"
+                      : isDisabled
+                      ? "text-[var(--nb-text-2)] opacity-30 cursor-not-allowed"
+                      : isToday
+                      ? "ring-1 ring-[#7C3AED]/50 text-[var(--nb-text)] hover:bg-[var(--nb-bg)]"
+                      : "text-[var(--nb-text)] hover:bg-[var(--nb-bg)]"}
+                  `}
+                >
+                  {day.getDate()}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -279,29 +415,17 @@ function AddBlockModal({
 
           {/* Date range */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-[var(--nb-text)] mb-1.5">
-                Start date <span className="text-[#7C3AED]">*</span>
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--nb-text)] mb-1.5">
-                End date <span className="text-[#7C3AED]">*</span>
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                min={startDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className={inputCls}
-              />
-            </div>
+            <MiniDatePicker
+              label="Start date"
+              value={startDate}
+              onChange={setStartDate}
+            />
+            <MiniDatePicker
+              label="End date"
+              value={endDate}
+              min={startDate}
+              onChange={setEndDate}
+            />
           </div>
 
           {/* Label */}

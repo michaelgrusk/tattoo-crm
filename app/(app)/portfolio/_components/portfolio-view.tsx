@@ -208,7 +208,7 @@ function Lightbox({
               <div className="pt-3 border-t border-[var(--nb-border)]">
                 <p className="text-[10px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-1.5">Client</p>
                 <Link
-                  href="/contacts"
+                  href={"/contacts?client=" + item.clients.id}
                   className="inline-flex items-center gap-1.5 text-sm font-medium text-[#7C3AED] hover:underline"
                 >
                   {item.clients.name}
@@ -591,7 +591,7 @@ export function PortfolioView() {
                       {/* View Client button (visible on hover) */}
                       {ct.clients && (
                         <Link
-                          href="/contacts"
+                          href={"/contacts?client=" + ct.clients.id}
                           className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-0.5 text-[10px] font-medium text-[#7C3AED] hover:underline shrink-0"
                         >
                           View client
