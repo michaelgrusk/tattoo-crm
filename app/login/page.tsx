@@ -114,7 +114,7 @@ export default function LoginPage() {
           <p className="text-sm text-[var(--nb-text-2)] leading-relaxed mb-6">
             We sent a verification link to{" "}
             <span className="font-medium text-[var(--nb-text)]">{verifyEmail}</span>.
-            Click the link to verify your account and get started.
+            Once verified, your application will be reviewed — usually within 24 hours.
           </p>
 
           {resent && (

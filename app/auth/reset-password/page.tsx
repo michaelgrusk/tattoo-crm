@@ -25,14 +25,15 @@ export default function ResetPasswordPage() {
   const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
-    // Detect PASSWORD_RECOVERY event or existing session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[reset-password] auth state change:", event, "session:", session?.user?.email ?? null);
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
         setSessionReady(true);
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("[reset-password] getSession:", session?.user?.email ?? null);
       if (session) setSessionReady(true);
     });
 
