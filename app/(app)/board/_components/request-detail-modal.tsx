@@ -173,6 +173,8 @@ export function RequestDetailModal({
   const [assignedArtistId, setAssignedArtistId] = useState<number | null>(null);
   const [assigning, setAssigning] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<AiBriefAnalysis | null>(null);
   const [aiAnalyzedAt, setAiAnalyzedAt] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -203,6 +205,7 @@ export function RequestDetailModal({
       const p = parseDescription(request.description);
       setView("detail");
       setDeclineConfirm(false);
+      setDeleteConfirm(false);
       setServerError(null);
       setWorking("");
       setGqTotal(request.quote_amount != null ? String(request.quote_amount) : "");
@@ -279,6 +282,7 @@ export function RequestDetailModal({
   function close() {
     setView("detail");
     setDeclineConfirm(false);
+    setDeleteConfirm(false);
     setServerError(null);
     onOpenChange(false);
   }
@@ -466,6 +470,19 @@ export function RequestDetailModal({
       .eq("id", request!.id);
     setArchiving(false);
     onSuccess("Request archived");
+  }
+
+  async function handleDelete() {
+    if (!deleteConfirm) { setDeleteConfirm(true); return; }
+    setDeleting(true);
+    const { error } = await supabase
+      .from("tattoo_requests")
+      .delete()
+      .eq("id", request!.id);
+    setDeleting(false);
+    if (error) { setServerError(error.message); return; }
+    close();
+    onSuccess("Request deleted");
   }
 
   async function runAnalysis() {
@@ -940,6 +957,25 @@ export function RequestDetailModal({
                   >
                     {archiving && <Loader2 size={11} className="animate-spin" />}
                     Archive this request
+                  </button>
+                </div>
+              )}
+
+              {/* Delete — only available for archived requests */}
+              {request.status === "archived" && (
+                <div className="mt-3 pt-3 border-t border-[var(--nb-border)]">
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={deleting || busy}
+                    className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
+                      deleteConfirm
+                        ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+                        : "text-[var(--nb-text-2)] hover:text-red-600 hover:bg-red-50"
+                    }`}
+                  >
+                    {deleting && <Loader2 size={11} className="animate-spin" />}
+                    {deleteConfirm ? "Confirm Delete?" : "Delete Request"}
                   </button>
                 </div>
               )}
