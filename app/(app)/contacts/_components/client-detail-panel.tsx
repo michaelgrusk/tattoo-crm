@@ -93,6 +93,15 @@ type WaMessage = {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+const NM_TEMPLATE_DEFAULTS: Record<string, { label: string; body: string }> = {
+  quote:           { label: "Quote",                body: "Hi {{client_name}}! 🖋️ Thanks for reaching out to {{studio_name}}.\n\nWe'd love to work on your tattoo — {{tattoo_description}} sounds awesome, we'd love to get this going!\n\nHere's our estimated quote:\n💰 *{{total_amount}}*\n\nTo secure your spot, a deposit of {{deposit_amount}} is required.\nAccepted payment methods: BIT, Bank Transfer.\n\nWe're excited to work with you — reply if you have any questions! 🙏" },
+  deposit_followup:{ label: "Deposit Follow-up",    body: "Hey {{client_name}}! 👋 Just following up on the quote we sent for your tattoo.\n\nTo confirm your booking, we need the deposit of {{deposit_amount}}.\nPayment methods: BIT, Bank Transfer.\n\nLet us know if you have any questions — we'd love to get you booked in! 🖋️" },
+  aftercare:       { label: "Aftercare",             body: "Hey {{client_name}}! 🖋️ Thanks so much for coming in today — it was a pleasure working on your piece!\n\nHere are your aftercare instructions:\n- Keep it clean and moisturised\n- Avoid sun, swimming and picking for 2 weeks\n- If you have any concerns, don't hesitate to reach out\n\nLooking forward to seeing the healed result! 💜" },
+  reminder:        { label: "Appointment Reminder",  body: "Hey {{client_name}}! 🖋️ Just a reminder that your tattoo appointment is coming up on {{appointment_date}}.\n\nPlease remember to:\n- Eat a good meal beforehand\n- Stay hydrated\n- Wear comfortable clothing that allows easy access to the tattoo area\n- Get a good night's sleep\n\nIf you need to reschedule, please let us know as soon as possible.\n\nSee you soon! — {{artist_name}}" },
+  touchup:         { label: "Touch-up Follow-up",    body: "Hey {{client_name}}! 👋 It's been a while since your session at {{studio_name}}!\n\nTattoos sometimes need a little touch-up after healing — especially in areas that see a lot of movement or sun exposure.\n\nIf you feel like your piece could use some love, reply here and we'll take a look. Touch-ups are usually quick and affordable.\n\nHope you're loving your ink! 🖋️" },
+  confirmation:    { label: "Booking Confirmation",  body: "Hey {{client_name}}! ✅ Your tattoo appointment is confirmed!\n\n📅 Date: {{appointment_date}}\n🎨 Type: {{tattoo_description}}\n💰 Deposit paid: {{deposit_amount}}\n\nPlease arrive 10 minutes early. If anything changes, let us know ASAP.\n\nWe're looking forward to working with you! — {{studio_name}} 🙏" },
+};
+
 const REQUEST_STATUS_STYLES: Record<string, { text: string; bg: string }> = {
   "new request": { text: "text-sky-700", bg: "bg-sky-50" },
   "quote sent": { text: "text-amber-700", bg: "bg-amber-50" },
@@ -1008,6 +1017,15 @@ export function ClientDetailPanel({
   const [apptTab, setApptTab] = useState<"requests" | "appointments" | "completed" | "messages">("requests");
   const [waMessages, setWaMessages] = useState<WaMessage[]>([]);
   const [copiedQuoteId, setCopiedQuoteId] = useState<string | null>(null);
+
+  // New Message modal
+  const [newMsgOpen, setNewMsgOpen] = useState(false);
+  const [nmTemplates, setNmTemplates] = useState<{ id: string; category: string; body_text: string }[]>([]);
+  const [nmTemplateId, setNmTemplateId] = useState("");
+  const [nmVars, setNmVars] = useState<Record<string, string>>({});
+  const [nmCopied, setNmCopied] = useState(false);
+  const [nmSaving, setNmSaving] = useState(false);
+  const [nmLoading, setNmLoading] = useState(false);
   const [apptBookOpen, setApptBookOpen] = useState(false);
   const [localStatus, setLocalStatus] = useState<string>(client.status ?? "");
   const [statusSaving, setStatusSaving] = useState(false);
@@ -1117,6 +1135,138 @@ export function ClientDetailPanel({
   const cardImageInputRefs = useRef<Record<string, HTMLInputElement | null>>(
     {}
   );
+
+  // ── New Message modal handlers ─────────────────────────────────────────────
+
+  async function openNewMessage() {
+    setNewMsgOpen(true);
+    setNmLoading(true);
+    setNmCopied(false);
+
+    const userId = await getUserId();
+    if (!userId) { setNmLoading(false); return; }
+
+    const [{ data: dbTemplates }, { data: profile }, { data: depositRow }] = await Promise.all([
+      supabase.from("whatsapp_templates").select("id, category, body_text").eq("user_id", userId),
+      supabase.from("profiles").select("studio_name").eq("id", userId).single(),
+      supabase.from("invoices")
+        .select("amount")
+        .eq("client_id", String(client.id))
+        .eq("status", "deposit")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const studioName = profile?.studio_name ?? "";
+
+    // Merge DB templates with defaults — DB value wins for each category
+    const merged = Object.entries(NM_TEMPLATE_DEFAULTS).map(([cat, def]) => {
+      const db = (dbTemplates ?? []).find((t) => t.category === cat);
+      return { id: cat, category: cat, body_text: db?.body_text ?? def.body };
+    });
+    setNmTemplates(merged);
+    setNmTemplateId(merged[0]?.id ?? "");
+
+    // Build variable map from available client data
+    const todayIso = new Date().toISOString().split("T")[0];
+    const nextApptData = clientAppts.find((a) => a.date >= todayIso);
+    const artistName =
+      nextApptData?.artists?.name ?? nextApptData?.artist_name ?? "";
+    const appointmentDate = nextApptData
+      ? new Date(nextApptData.date + "T00:00:00").toLocaleDateString("en-US", {
+          weekday: "long", month: "long", day: "numeric", year: "numeric",
+        })
+      : "";
+    const latestRequest = requests[0];
+
+    setNmVars({
+      client_name: client.name,
+      studio_name: studioName,
+      artist_name: artistName,
+      appointment_date: appointmentDate,
+      deposit_amount: depositRow?.amount != null ? `$${depositRow.amount}` : "",
+      tattoo_description: latestRequest?.description?.split("\n")[0] ?? "",
+      total_amount: latestRequest?.quote_amount != null ? `$${latestRequest.quote_amount}` : "",
+    });
+
+    setNmLoading(false);
+  }
+
+  function buildNmPreview(templateId: string, templates: { id: string; body_text: string }[], vars: Record<string, string>) {
+    const tpl = templates.find((t) => t.id === templateId);
+    if (!tpl) return "";
+    return tpl.body_text.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] || `{{${key}}}`);
+  }
+
+  function renderNmPreview(templateId: string) {
+    const tpl = nmTemplates.find((t) => t.id === templateId);
+    if (!tpl) return null;
+    return tpl.body_text.split("\n").map((line, li) => {
+      const parts = line.split(/(\{\{\w+\}\})/g);
+      return (
+        <span key={li} className="block leading-relaxed">
+          {parts.map((part, pi) => {
+            const m = part.match(/^\{\{(\w+)\}\}$/);
+            if (!m) return <span key={pi}>{part}</span>;
+            const val = nmVars[m[1]];
+            return val
+              ? <span key={pi} className="inline-block bg-[var(--nb-active-bg)] text-[#7C3AED] rounded-full px-2 py-0.5 text-[11px] font-medium mx-0.5 align-middle">{val}</span>
+              : <span key={pi} className="inline-block bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5 text-[11px] font-medium mx-0.5 align-middle">{part}</span>;
+          })}
+        </span>
+      );
+    });
+  }
+
+  async function saveNmToHistory() {
+    const tpl = nmTemplates.find((t) => t.id === nmTemplateId);
+    const preview = buildNmPreview(nmTemplateId, nmTemplates, nmVars);
+    if (!tpl || !preview) return;
+
+    const userId = await getUserId();
+    if (!userId) return;
+
+    const now = new Date().toISOString();
+    const { data: saved, error } = await supabase
+      .from("whatsapp_messages")
+      .insert({
+        user_id: userId,
+        client_id: String(client.id),
+        direction: "outbound",
+        template_name: tpl.category,
+        message_text: preview,
+        status: "sent",
+        status_updated_at: now,
+      })
+      .select("id, direction, template_name, message_text, status, status_updated_at")
+      .single();
+
+    if (!error && saved) {
+      setWaMessages((prev) => [saved as WaMessage, ...prev]);
+    }
+  }
+
+  async function handleNmCopy() {
+    const preview = buildNmPreview(nmTemplateId, nmTemplates, nmVars);
+    if (!preview) return;
+
+    setNmSaving(true);
+    await Promise.all([
+      navigator.clipboard.writeText(preview),
+      saveNmToHistory(),
+    ]);
+    setNmSaving(false);
+    setNmCopied(true);
+    setTimeout(() => setNmCopied(false), 2500);
+  }
+
+  async function handleNmOutreach(url: string) {
+    setNmSaving(true);
+    await saveNmToHistory();
+    setNmSaving(false);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
@@ -2149,6 +2299,21 @@ export function ClientDetailPanel({
               </section>
             )}
 
+            {/* ── Messages tab header ───────────────────────────────────── */}
+            {apptTab === "messages" && (
+              <div className="flex items-center justify-between mb-5">
+                <p className="text-sm font-semibold text-[var(--nb-text)]">Messages</p>
+                <button
+                  type="button"
+                  onClick={openNewMessage}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#7C3AED] hover:bg-[#6D28D9] text-white transition-colors"
+                >
+                  <Plus size={12} />
+                  New Message
+                </button>
+              </div>
+            )}
+
             {/* ── Generated Quotes ──────────────────────────────────────── */}
             {apptTab === "messages" && (() => {
               const quotedRequests = requests.filter((r) => r.generated_quote_message);
@@ -2259,6 +2424,110 @@ export function ClientDetailPanel({
           </>
         )}
       </div>
+
+      {/* ── New Message modal ──────────────────────────────────────────── */}
+      <Dialog open={newMsgOpen} onOpenChange={(v) => { setNewMsgOpen(v); if (!v) setNmCopied(false); }}>
+        <DialogContent className="max-w-lg w-full bg-[var(--nb-card)] border-[var(--nb-border)] text-[var(--nb-text)] p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 py-5 border-b border-[var(--nb-border)]">
+            <DialogTitle className="text-base font-semibold text-[var(--nb-text)]">New Message</DialogTitle>
+            <DialogDescription className="text-xs text-[var(--nb-text-2)] mt-0.5">
+              Compose from a template and copy to send via WhatsApp or Instagram DM
+            </DialogDescription>
+          </DialogHeader>
+
+          {nmLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 size={20} className="animate-spin text-[var(--nb-text-2)]" />
+            </div>
+          ) : (
+            <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Template selector */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-[var(--nb-text)]">Template</label>
+                <select
+                  value={nmTemplateId}
+                  onChange={(e) => { setNmTemplateId(e.target.value); setNmCopied(false); }}
+                  className="w-full h-9 rounded-lg border border-[var(--nb-border)] bg-[var(--nb-bg)] px-3 text-sm text-[var(--nb-text)] outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors"
+                >
+                  {nmTemplates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {NM_TEMPLATE_DEFAULTS[t.category]?.label ?? t.category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Live preview */}
+              {nmTemplateId && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-[var(--nb-text)]">Preview</label>
+                  <div className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-3 text-sm text-[var(--nb-text-2)] min-h-[100px]">
+                    {renderNmPreview(nmTemplateId)}
+                  </div>
+                  <p className="text-[11px] text-[var(--nb-text-2)]">
+                    <span className="inline-block bg-[var(--nb-active-bg)] text-[#7C3AED] rounded-full px-1.5 py-0.5 text-[10px] font-medium mr-1">purple</span>
+                    = auto-filled &nbsp;·&nbsp;
+                    <span className="inline-block bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-1.5 py-0.5 text-[10px] font-medium mr-1">amber</span>
+                    = not available for this client
+                  </p>
+                </div>
+              )}
+
+              {/* Copy button */}
+              <button
+                type="button"
+                onClick={handleNmCopy}
+                disabled={!nmTemplateId || nmSaving}
+                className={`w-full h-10 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 ${
+                  nmCopied
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-[#7C3AED] hover:bg-[#6D28D9] text-white"
+                }`}
+              >
+                {nmSaving ? <Loader2 size={14} className="animate-spin" /> : nmCopied ? <Check size={14} /> : <Copy size={14} />}
+                {nmSaving ? "Saving…" : nmCopied ? "Copied to clipboard!" : "Copy Message"}
+              </button>
+
+              {/* Outreach buttons */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                {/* Instagram */}
+                <button
+                  type="button"
+                  disabled={!client.instagram || nmSaving}
+                  onClick={() => client.instagram && handleNmOutreach(`https://instagram.com/${client.instagram.replace(/^@/, "")}`)}
+                  className={`flex items-center justify-center gap-2 h-9 rounded-xl border text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                    client.instagram
+                      ? "border-[var(--nb-border)] text-[var(--nb-text)] hover:border-[#7C3AED]/40 hover:text-[#7C3AED] bg-[var(--nb-bg)]"
+                      : "border-[var(--nb-border)] text-[var(--nb-text-2)] bg-[var(--nb-bg)]"
+                  }`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                  </svg>
+                  {client.instagram ? `@${client.instagram.replace(/^@/, "")}` : "No Instagram"}
+                </button>
+
+                {/* WhatsApp */}
+                <button
+                  type="button"
+                  disabled={!client.phone || nmSaving}
+                  onClick={() => client.phone && handleNmOutreach(`https://wa.me/${client.phone.replace(/\D/g, "")}`)}
+                  className={`flex items-center justify-center gap-2 h-9 rounded-xl border text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                    client.phone
+                      ? "border-[var(--nb-border)] text-[var(--nb-text)] hover:border-emerald-500/40 hover:text-emerald-600 bg-[var(--nb-bg)]"
+                      : "border-[var(--nb-border)] text-[var(--nb-text-2)] bg-[var(--nb-bg)]"
+                  }`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+                  </svg>
+                  {client.phone ? "Open WhatsApp" : "No Phone"}
+                </button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Lightbox */}
       {lightboxUrl && (
