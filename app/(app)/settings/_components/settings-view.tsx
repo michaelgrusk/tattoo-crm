@@ -202,6 +202,18 @@ export function SettingsView({
       label: "Aftercare",
       body: "Hey {{client_name}}! 🖋️ Thanks so much for coming in today — it was a pleasure working on your piece!\n\nHere are your aftercare instructions:\n- Keep it clean and moisturised\n- Avoid sun, swimming and picking for 2 weeks\n- If you have any concerns, don't hesitate to reach out\n\nLooking forward to seeing the healed result! 💜",
     },
+    reminder: {
+      label: "Appointment Reminder",
+      body: "Hey {{client_name}}! 🖋️ Just a reminder that your tattoo appointment is coming up on {{appointment_date}}.\n\nPlease remember to:\n- Eat a good meal beforehand\n- Stay hydrated\n- Wear comfortable clothing that allows easy access to the tattoo area\n- Get a good night's sleep\n\nIf you need to reschedule, please let us know as soon as possible.\n\nSee you soon! — {{artist_name}}",
+    },
+    touchup: {
+      label: "Touch-up Follow-up",
+      body: "Hey {{client_name}}! 👋 It's been a while since your session at {{studio_name}}!\n\nTattoos sometimes need a little touch-up after healing — especially in areas that see a lot of movement or sun exposure.\n\nIf you feel like your piece could use some love, reply here and we'll take a look. Touch-ups are usually quick and affordable.\n\nHope you're loving your ink! 🖋️",
+    },
+    confirmation: {
+      label: "Booking Confirmation",
+      body: "Hey {{client_name}}! ✅ Your tattoo appointment is confirmed!\n\n📅 Date: {{appointment_date}}\n🎨 Type: {{tattoo_description}}\n💰 Deposit paid: {{deposit_amount}}\n\nPlease arrive 10 minutes early. If anything changes, let us know ASAP.\n\nWe're looking forward to working with you! — {{studio_name}} 🙏",
+    },
   };
   const [qtBodies, setQtBodies] = useState<Record<string, string>>(
     Object.fromEntries(Object.entries(QT_DEFAULTS).map(([k, v]) => [k, v.body]))
@@ -254,7 +266,7 @@ export function SettingsView({
         .from("whatsapp_templates")
         .select("category, body_text")
         .eq("user_id", user.id)
-        .in("category", ["quote", "deposit_followup", "aftercare"]);
+        .in("category", ["quote", "deposit_followup", "aftercare", "reminder", "touchup", "confirmation"]);
       if (data && data.length > 0) {
         const loaded: Record<string, string> = {};
         for (const row of data) if (row.body_text) loaded[row.category] = row.body_text;
