@@ -199,6 +199,19 @@ export function InvoiceDetailDialog({
               <p className="text-sm text-[var(--nb-text)]">{invoice.type || "—"}</p>
             </div>
 
+            {invoice.tattoo_requests && (
+              <div className="flex items-start gap-2.5 rounded-lg bg-[var(--nb-active-bg)] border border-[#7C3AED]/15 px-3 py-2.5">
+                <svg width="14" height="14" className="shrink-0 mt-0.5 text-[#7C3AED]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                </svg>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold text-[#7C3AED] uppercase tracking-wide mb-0.5">Linked Request</p>
+                  <p className="text-xs text-[var(--nb-text)] leading-snug truncate">{invoice.tattoo_requests.description.split("\n")[0]}</p>
+                  <p className="text-[11px] text-[var(--nb-text-2)] mt-0.5">{invoice.tattoo_requests.style}</p>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-[11px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-0.5">

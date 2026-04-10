@@ -38,7 +38,11 @@
       "Bash(ls \"app/\\(public\\)/\")",
       "Bash(head -5 \"app/\\(public\\)/studio/[slug]/page.tsx\")",
       "Bash(head -5 \"app/\\(public\\)/layout.tsx\")",
-      "Bash(Remove-Item -Recurse -Force 'C:\\\\Users\\\\fxckc\\\\OneDrive\\\\Documents\\\\Projects\\\\tattoo-crm\\\\.next')"
+      "Bash(Remove-Item -Recurse -Force 'C:\\\\Users\\\\fxckc\\\\OneDrive\\\\Documents\\\\Projects\\\\tattoo-crm\\\\.next')",
+      "Bash(cat app/\\\\\\(app\\\\\\)/invoices/_components/new-invoice-dialog.tsx)",
+      "Bash(node -e \":*)",
+      "Bash(npx supabase:*)",
+      "Bash(npx:*)"
     ]
   }
 }

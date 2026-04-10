@@ -21,6 +21,7 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Client = { id: string | number; name: string; email: string };
+type TattooRequest = { id: string; description: string; style: string; status: string };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -148,6 +149,7 @@ const EMPTY = {
   amount: "",
   status: "pending",
   date: "",
+  tattooRequestId: "" as string,
 };
 
 export function NewInvoiceDialog({
@@ -165,6 +167,8 @@ export function NewInvoiceDialog({
   const currencySymbol = CURRENCY_OPTIONS.find((c) => c.value === currency)?.symbol ?? "$";
   const [form, setForm] = useState({ ...EMPTY, date: todayStr() });
   const [clients, setClients] = useState<Client[]>([]);
+  const [clientRequests, setClientRequests] = useState<TattooRequest[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -195,8 +199,26 @@ export function NewInvoiceDialog({
       setForm({ ...EMPTY, date: todayStr() });
       setErrors({});
       setServerError(null);
+      setClientRequests([]);
     }
   }, [open]);
+
+  // Fetch tattoo requests when client changes
+  useEffect(() => {
+    const clientId = form.selectedClient?.id;
+    if (!clientId) { setClientRequests([]); return; }
+    setLoadingRequests(true);
+    setForm((prev) => ({ ...prev, tattooRequestId: "" }));
+    supabase
+      .from("tattoo_requests")
+      .select("id, description, style, status")
+      .eq("client_id", String(clientId))
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        setClientRequests((data as TattooRequest[]) ?? []);
+        setLoadingRequests(false);
+      });
+  }, [form.selectedClient?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function setField<K extends keyof typeof EMPTY>(
     key: K,
@@ -243,6 +265,7 @@ export function NewInvoiceDialog({
       amount: Number(form.amount),
       status: form.status,
       date: form.date,
+      tattoo_request_id: form.tattooRequestId ? Number(form.tattooRequestId) : null,
     });
 
     setSubmitting(false);
@@ -284,6 +307,46 @@ export function NewInvoiceDialog({
               <p className="text-xs text-destructive">{errors.client}</p>
             )}
           </div>
+
+          {/* Tattoo request association */}
+          {form.selectedClient && (
+            <div className="space-y-1.5">
+              <Label htmlFor="inv-request">
+                Associate with tattoo request
+                <span className="ml-1 text-[var(--nb-text-2)] font-normal">(optional)</span>
+              </Label>
+              {loadingRequests ? (
+                <div className="flex items-center gap-2 h-9 px-3 rounded-lg border border-[var(--nb-border)] bg-[var(--nb-bg)] text-xs text-[var(--nb-text-2)]">
+                  <Loader2 size={12} className="animate-spin" />
+                  Loading requests…
+                </div>
+              ) : (
+                <select
+                  id="inv-request"
+                  value={form.tattooRequestId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setField("tattooRequestId", id);
+                    if (id) {
+                      const req = clientRequests.find((r) => r.id === id);
+                      if (req) setField("description", req.description.split("\n")[0]);
+                    }
+                  }}
+                  className={selectCls}
+                >
+                  <option value="">No specific request</option>
+                  {clientRequests.map((req) => (
+                    <option key={req.id} value={req.id}>
+                      {req.style} — {req.description.split("\n")[0].slice(0, 50)}{req.description.split("\n")[0].length > 50 ? "…" : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {clientRequests.length === 0 && !loadingRequests && (
+                <p className="text-[11px] text-[var(--nb-text-2)]">No tattoo requests found for this client</p>
+              )}
+            </div>
+          )}
 
           {/* Description */}
           <div className="space-y-1.5">

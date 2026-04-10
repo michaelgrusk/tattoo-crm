@@ -9,7 +9,9 @@ export type Invoice = {
   status: "paid" | "pending" | "deposit" | "overdue";
   type: string;
   date: string;
+  tattoo_request_id: number | null;
   clients: { name: string; email: string } | null;
+  tattoo_requests: { description: string; style: string } | null;
 };
 
 export type InvoiceSummary = {
@@ -25,7 +27,7 @@ export default async function InvoicesPage() {
 
   const { data } = await supabase
     .from("invoices")
-    .select("*, clients(name, email)")
+    .select("*, clients(name, email), tattoo_requests(description, style)")
     .eq("user_id", userId)
     .order("date", { ascending: false });
 
