@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Loader2, Calendar, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Loader2, Calendar, Info, Clock } from "lucide-react";
 import { supabase, getUserId } from "@/lib/supabase/client";
 import {
   Dialog,
@@ -19,6 +19,9 @@ export type AvailabilityBlock = {
   block_type: "blocked" | "available";
   label: string | null;
   notes: string | null;
+  is_full_day: boolean;
+  start_time: string | null;
+  end_time: string | null;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -30,12 +33,14 @@ function toDateStr(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/** Only full-day blocks determine a day's overall status on the calendar. */
 function getDateStatus(
   dateStr: string,
   blocks: AvailabilityBlock[]
 ): "blocked" | "available" | null {
   let hasAvailable = false;
   for (const b of blocks) {
+    if (b.is_full_day === false) continue;
     if (dateStr >= b.start_date && dateStr <= b.end_date) {
       if (b.block_type === "blocked") return "blocked";
       hasAvailable = true;
@@ -44,11 +49,17 @@ function getDateStatus(
   return hasAvailable ? "available" : null;
 }
 
+function getHourlyBlocksForDate(dateStr: string, blocks: AvailabilityBlock[]) {
+  return blocks.filter(
+    (b) => b.is_full_day === false && dateStr >= b.start_date && dateStr <= b.end_date
+  );
+}
+
 function getMonthDays(year: number, month: number): (Date | null)[] {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   const days: (Date | null)[] = [];
-  const startDow = firstDay.getDay(); // 0 = Sun
+  const startDow = firstDay.getDay();
   for (let i = 0; i < startDow; i++) days.push(null);
   for (let d = 1; d <= lastDay.getDate(); d++) days.push(new Date(year, month, d));
   while (days.length % 7 !== 0) days.push(null);
@@ -56,6 +67,28 @@ function getMonthDays(year: number, month: number): (Date | null)[] {
 }
 
 const DOW_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// 8 AM – 8 PM in 30-minute increments
+const TIME_SLOTS: { value: string; label: string }[] = [];
+for (let mins = 8 * 60; mins <= 20 * 60; mins += 30) {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  const hh = String(h).padStart(2, "0");
+  const mm = String(m).padStart(2, "0");
+  const ampm = h < 12 ? "AM" : "PM";
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  TIME_SLOTS.push({ value: `${hh}:${mm}:00`, label: `${h12}:${mm} ${ampm}` });
+}
+
+function formatTime(t: string | null): string {
+  if (!t) return "";
+  const parts = t.split(":");
+  const h = parseInt(parts[0]);
+  const m = parts[1];
+  const ampm = h < 12 ? "am" : "pm";
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${m}${ampm}`;
+}
 
 // ─── Mini month calendar ──────────────────────────────────────────────────────
 
@@ -82,9 +115,10 @@ function MonthCalendar({
       </div>
       <div className="grid grid-cols-7 gap-px bg-[var(--nb-border)] rounded-xl overflow-hidden">
         {days.map((day, i) => {
-          if (!day) return <div key={i} className="bg-[var(--nb-bg)] h-9" />;
+          if (!day) return <div key={i} className="bg-[var(--nb-bg)] min-h-[2.25rem]" />;
           const ds = toDateStr(day);
           const status = getDateStatus(ds, blocks);
+          const hourlyBlocks = getHourlyBlocksForDate(ds, blocks);
           const isToday = ds === todayStr;
           const isPast = ds < todayStr;
 
@@ -95,7 +129,7 @@ function MonthCalendar({
                 status === "blocked" ? "Blocked" :
                 status === "available" ? "Available" : undefined
               }
-              className={`h-9 flex items-center justify-center relative
+              className={`min-h-[2.25rem] flex flex-col items-center pt-1 pb-0.5 px-0.5 relative
                 ${status === "blocked"
                   ? "bg-red-50"
                   : status === "available"
@@ -117,12 +151,34 @@ function MonthCalendar({
               >
                 {day.getDate()}
               </span>
+              {/* Hourly block badges */}
+              {hourlyBlocks.length > 0 && (
+                <div className="flex flex-col gap-px w-full mt-0.5">
+                  {hourlyBlocks.slice(0, 2).map((b) => (
+                    <span
+                      key={b.id}
+                      className={`text-[6px] font-semibold px-0.5 rounded leading-tight truncate text-center
+                        ${b.block_type === "blocked"
+                          ? "bg-red-200 text-red-700"
+                          : "bg-emerald-200 text-emerald-700"}
+                      `}
+                    >
+                      {formatTime(b.start_time)}–{formatTime(b.end_time)}
+                    </span>
+                  ))}
+                  {hourlyBlocks.length > 2 && (
+                    <span className="text-[6px] text-[var(--nb-text-2)] text-center leading-tight">
+                      +{hourlyBlocks.length - 2}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
-      <div className="flex items-center gap-4 mt-3">
+      <div className="flex items-center gap-4 mt-3 flex-wrap">
         <div className="flex items-center gap-1.5">
           <div className="size-3 rounded-sm bg-red-100 border border-red-200" />
           <span className="text-xs text-[var(--nb-text-2)]">Blocked</span>
@@ -134,6 +190,10 @@ function MonthCalendar({
         <div className="flex items-center gap-1.5">
           <div className="size-3 rounded-sm bg-[var(--nb-bg)] border border-[var(--nb-border)]" />
           <span className="text-xs text-[var(--nb-text-2)]">Unset</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="size-3 rounded-sm bg-red-200" />
+          <span className="text-xs text-[var(--nb-text-2)]">Hourly block</span>
         </div>
       </div>
     </div>
@@ -162,7 +222,6 @@ function MiniDatePicker({
   const [month, setMonth] = useState(initMonth);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Sync calendar view when value changes externally (e.g. reset)
   useEffect(() => {
     if (value) {
       setYear(Number(value.slice(0, 4)));
@@ -170,7 +229,6 @@ function MiniDatePicker({
     }
   }, [value]);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     function handler(e: MouseEvent) {
@@ -222,7 +280,6 @@ function MiniDatePicker({
 
       {open && (
         <div className="absolute z-50 top-full mt-1.5 left-0 bg-[var(--nb-card)] border border-[var(--nb-border)] rounded-xl shadow-lg p-3 w-64">
-          {/* Nav */}
           <div className="flex items-center justify-between mb-2">
             <button type="button" onClick={prevMonth} className="p-1 rounded hover:bg-[var(--nb-bg)] text-[var(--nb-text-2)] hover:text-[var(--nb-text)] transition-colors">
               <ChevronLeft size={14} />
@@ -232,15 +289,11 @@ function MiniDatePicker({
               <ChevronRight size={14} />
             </button>
           </div>
-
-          {/* DOW */}
           <div className="grid grid-cols-7 mb-1">
             {DOW_LABELS.map((d) => (
               <div key={d} className="text-center text-[9px] font-semibold text-[var(--nb-text-2)]">{d[0]}</div>
             ))}
           </div>
-
-          {/* Days */}
           <div className="grid grid-cols-7 gap-px">
             {days.map((day, i) => {
               if (!day) return <div key={i} />;
@@ -248,7 +301,6 @@ function MiniDatePicker({
               const isSelected = ds === value;
               const isToday = ds === todayStr;
               const isDisabled = !!(min && ds < min);
-
               return (
                 <button
                   key={i}
@@ -281,6 +333,9 @@ function MiniDatePicker({
 const inputCls =
   "w-full rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-2.5 text-sm text-[var(--nb-text)] outline-none placeholder:text-[var(--nb-text-2)] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors";
 
+const selectCls =
+  "w-full rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-3 py-2.5 text-sm text-[var(--nb-text)] outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors";
+
 function AddBlockModal({
   open,
   editingBlock,
@@ -294,26 +349,34 @@ function AddBlockModal({
 }) {
   const isEdit = !!editingBlock;
   const [blockType, setBlockType] = useState<"blocked" | "available">("blocked");
+  const [isFullDay, setIsFullDay] = useState(true);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [startTime, setStartTime] = useState("09:00:00");
+  const [endTime, setEndTime] = useState("17:00:00");
   const [label, setLabel] = useState("Fully booked");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Reset / pre-fill on open
   useEffect(() => {
     if (open) {
       if (editingBlock) {
         setBlockType(editingBlock.block_type);
+        setIsFullDay(editingBlock.is_full_day !== false);
         setStartDate(editingBlock.start_date);
         setEndDate(editingBlock.end_date);
+        setStartTime(editingBlock.start_time ?? "09:00:00");
+        setEndTime(editingBlock.end_time ?? "17:00:00");
         setLabel(editingBlock.label ?? (editingBlock.block_type === "blocked" ? "Fully booked" : "Available for bookings"));
         setNotes(editingBlock.notes ?? "");
       } else {
         setBlockType("blocked");
+        setIsFullDay(true);
         setStartDate("");
         setEndDate("");
+        setStartTime("09:00:00");
+        setEndTime("17:00:00");
         setLabel("Fully booked");
         setNotes("");
       }
@@ -321,7 +384,6 @@ function AddBlockModal({
     }
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-update label when type changes (only for new blocks)
   useEffect(() => {
     if (!isEdit) {
       setLabel(blockType === "blocked" ? "Fully booked" : "Available for bookings");
@@ -331,6 +393,7 @@ function AddBlockModal({
   async function handleSave() {
     if (!startDate || !endDate) { setError("Start and end dates are required"); return; }
     if (endDate < startDate) { setError("End date must be on or after start date"); return; }
+    if (!isFullDay && startTime >= endTime) { setError("End time must be after start time"); return; }
     setSaving(true);
     setError(null);
     const userId = await getUserId();
@@ -342,6 +405,9 @@ function AddBlockModal({
       block_type: blockType,
       label: label.trim() || null,
       notes: notes.trim() || null,
+      is_full_day: isFullDay,
+      start_time: isFullDay ? null : startTime,
+      end_time: isFullDay ? null : endTime,
     };
 
     let data: AvailabilityBlock | null = null;
@@ -379,7 +445,7 @@ function AddBlockModal({
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
-          {/* Type selector */}
+          {/* Block type */}
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -413,6 +479,34 @@ function AddBlockModal({
             </button>
           </div>
 
+          {/* Full day vs specific hours toggle */}
+          <div className="flex items-center justify-between rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Clock size={14} className="text-[var(--nb-text-2)]" />
+              <div>
+                <p className="text-sm font-medium text-[var(--nb-text)]">
+                  {isFullDay ? "Full day" : "Specific hours"}
+                </p>
+                <p className="text-xs text-[var(--nb-text-2)]">
+                  {isFullDay ? "Applies to the entire day" : "Applies to a time window only"}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsFullDay((v) => !v)}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none ${
+                isFullDay ? "bg-[#7C3AED]" : "bg-[var(--nb-border)]"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                  isFullDay ? "translate-x-4" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+
           {/* Date range */}
           <div className="grid grid-cols-2 gap-3">
             <MiniDatePicker
@@ -427,6 +521,40 @@ function AddBlockModal({
               onChange={setEndDate}
             />
           </div>
+
+          {/* Time selects — only when specific hours */}
+          {!isFullDay && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-[var(--nb-text)] mb-1.5">
+                  Start time <span className="text-[#7C3AED]">*</span>
+                </label>
+                <select
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className={selectCls}
+                >
+                  {TIME_SLOTS.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--nb-text)] mb-1.5">
+                  End time <span className="text-[#7C3AED]">*</span>
+                </label>
+                <select
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className={selectCls}
+                >
+                  {TIME_SLOTS.filter((t) => t.value > startTime).map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
 
           {/* Label */}
           <div>
@@ -497,19 +625,44 @@ export function AvailabilityManager() {
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
 
+  // Strict mode
+  const [strictMode, setStrictMode] = useState(false);
+  const [strictSaving, setStrictSaving] = useState(false);
+
   const fetchBlocks = useCallback(async () => {
     const userId = await getUserId();
     if (!userId) { setLoading(false); return; }
-    const { data } = await supabase
-      .from("availability_blocks")
-      .select("*")
-      .eq("user_id", userId)
-      .order("start_date", { ascending: true });
-    setBlocks((data as AvailabilityBlock[]) ?? []);
+    const [blocksRes, profileRes] = await Promise.all([
+      supabase
+        .from("availability_blocks")
+        .select("*")
+        .eq("user_id", userId)
+        .order("start_date", { ascending: true }),
+      supabase
+        .from("profiles")
+        .select("availability_strict_mode")
+        .eq("id", userId)
+        .single(),
+    ]);
+    setBlocks((blocksRes.data as AvailabilityBlock[]) ?? []);
+    if (profileRes.data?.availability_strict_mode != null) {
+      setStrictMode(profileRes.data.availability_strict_mode);
+    }
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchBlocks(); }, [fetchBlocks]);
+
+  async function handleStrictModeToggle() {
+    const next = !strictMode;
+    setStrictMode(next);
+    setStrictSaving(true);
+    const userId = await getUserId();
+    if (userId) {
+      await supabase.from("profiles").update({ availability_strict_mode: next }).eq("id", userId);
+    }
+    setStrictSaving(false);
+  }
 
   async function handleDelete(id: number) {
     setDeleting(id);
@@ -551,11 +704,37 @@ export function AvailabilityManager() {
         </button>
       </div>
 
+      {/* Strict mode toggle */}
+      <div className="flex items-center justify-between rounded-xl border border-[var(--nb-border)] bg-[var(--nb-card)] px-4 py-3.5">
+        <div className="min-w-0 pr-4">
+          <p className="text-sm font-medium text-[var(--nb-text)]">Allow bookings on unset dates</p>
+          <p className="text-xs text-[var(--nb-text-2)] mt-0.5">
+            {strictMode
+              ? "Off — only explicitly marked available dates are selectable"
+              : "On — clients can pick any date that isn't blocked"}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleStrictModeToggle}
+          disabled={strictSaving}
+          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 disabled:opacity-60 ${
+            !strictMode ? "bg-[#7C3AED]" : "bg-[var(--nb-border)]"
+          }`}
+        >
+          <span
+            className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+              !strictMode ? "translate-x-4" : "translate-x-0"
+            }`}
+          />
+        </button>
+      </div>
+
       {/* Tip */}
       <div className="flex items-start gap-2.5 rounded-xl border border-[var(--nb-border)] bg-[var(--nb-card)] px-4 py-3">
         <Info size={14} className="text-[#7C3AED] shrink-0 mt-0.5" />
         <p className="text-xs text-[var(--nb-text-2)] leading-relaxed">
-          Blocked dates will show as unavailable on your intake form. Open dates signal to clients when you&apos;re taking bookings.
+          Blocked dates will show as unavailable on your intake form. Open dates signal to clients when you&apos;re taking bookings. Hourly blocks show as small badges on the calendar.
         </p>
       </div>
 
@@ -631,9 +810,19 @@ export function AvailabilityManager() {
                     }`}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-semibold ${isBlocked ? "text-red-800" : "text-emerald-800"}`}>
-                      {block.label ?? (isBlocked ? "Blocked" : "Available")}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className={`text-sm font-semibold ${isBlocked ? "text-red-800" : "text-emerald-800"}`}>
+                        {block.label ?? (isBlocked ? "Blocked" : "Available")}
+                      </p>
+                      {block.is_full_day === false && (
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                          isBlocked ? "bg-red-100 text-red-600" : "bg-emerald-100 text-emerald-600"
+                        }`}>
+                          <Clock size={9} />
+                          {formatTime(block.start_time)} – {formatTime(block.end_time)}
+                        </span>
+                      )}
+                    </div>
                     <p className={`text-xs mt-0.5 ${isBlocked ? "text-red-600" : "text-emerald-600"}`}>
                       {isSameDay ? startFmt : `${startFmt} — ${endFmt}`}
                     </p>

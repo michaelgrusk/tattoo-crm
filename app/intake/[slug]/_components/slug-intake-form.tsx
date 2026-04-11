@@ -164,6 +164,7 @@ export function SlugIntakeForm({
   flashPieces = [],
   preselectedFlashId = null,
   availabilityBlocks = [],
+  strictMode = false,
 }: {
   studioName: string;
   slug: string;
@@ -171,6 +172,7 @@ export function SlugIntakeForm({
   flashPieces?: FlashPiecePreview[];
   preselectedFlashId?: string | null;
   availabilityBlocks?: IntakeAvailabilityBlock[];
+  strictMode?: boolean;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -465,6 +467,7 @@ export function SlugIntakeForm({
                     value={form.preferredDate}
                     onChange={(date) => set("preferredDate", date)}
                     blocks={availabilityBlocks}
+                    strictMode={strictMode}
                   />
                 </Field>
               </>
@@ -521,6 +524,7 @@ export function SlugIntakeForm({
                     value={form.preferredDate}
                     onChange={(date) => set("preferredDate", date)}
                     blocks={availabilityBlocks}
+                    strictMode={strictMode}
                   />
                 </Field>
               </div>

@@ -27,7 +27,7 @@ export default async function SlugIntakePage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, studio_name, slug, flash_enabled")
+    .select("id, studio_name, slug, flash_enabled, availability_strict_mode")
     .eq("slug", slug)
     .single();
 
@@ -37,7 +37,7 @@ export default async function SlugIntakePage({
   const today = new Date().toISOString().split("T")[0];
   const { data: availabilityData } = await supabase
     .from("availability_blocks")
-    .select("start_date, end_date, block_type, label")
+    .select("start_date, end_date, block_type, label, is_full_day, start_time, end_time")
     .eq("user_id", profile.id)
     .gte("end_date", today)
     .order("start_date", { ascending: true });
@@ -63,6 +63,7 @@ export default async function SlugIntakePage({
       flashPieces={flashPieces}
       preselectedFlashId={preselectedFlashId}
       availabilityBlocks={availabilityBlocks}
+      strictMode={profile.availability_strict_mode ?? false}
     />
   );
 }

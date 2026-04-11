@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 
 export type IntakeAvailabilityBlock = {
   start_date: string;
   end_date: string;
   block_type: "blocked" | "available";
   label: string | null;
+  is_full_day: boolean;
+  start_time: string | null;
+  end_time: string | null;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -22,20 +25,32 @@ function toDateStr(date: Date): string {
 function getDateStatus(
   dateStr: string,
   blocks: IntakeAvailabilityBlock[]
-): "blocked" | "available" | null {
-  let hasAvailable = false;
+): "blocked" | "available" | "partial" | null {
+  let hasFullDayAvailable = false;
+  let hasHourlyAvailable = false;
+
   for (const b of blocks) {
     if (dateStr >= b.start_date && dateStr <= b.end_date) {
-      if (b.block_type === "blocked") return "blocked";
-      hasAvailable = true;
+      // Full-day blocked takes priority
+      if (b.block_type === "blocked" && b.is_full_day !== false) return "blocked";
+      if (b.block_type === "available") {
+        if (b.is_full_day !== false) {
+          hasFullDayAvailable = true;
+        } else {
+          hasHourlyAvailable = true;
+        }
+      }
     }
   }
-  return hasAvailable ? "available" : null;
+
+  if (hasFullDayAvailable) return "available";
+  if (hasHourlyAvailable) return "partial";
+  return null;
 }
 
 function getBlockedLabel(dateStr: string, blocks: IntakeAvailabilityBlock[]): string {
   for (const b of blocks) {
-    if (dateStr >= b.start_date && dateStr <= b.end_date && b.block_type === "blocked") {
+    if (dateStr >= b.start_date && dateStr <= b.end_date && b.block_type === "blocked" && b.is_full_day !== false) {
       return b.label ?? "Fully Booked";
     }
   }
@@ -61,10 +76,12 @@ export function AvailabilityDatePicker({
   value,
   onChange,
   blocks,
+  strictMode = false,
 }: {
   value: string;
   onChange: (date: string) => void;
   blocks: IntakeAvailabilityBlock[];
+  strictMode?: boolean;
 }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -99,6 +116,10 @@ export function AvailabilityDatePicker({
         weekday: "short", month: "short", day: "numeric", year: "numeric",
       })
     : null;
+
+  // Check if selected date has only hourly (partial) availability
+  const selectedStatus = value ? getDateStatus(value, blocks) : null;
+  const selectedIsPartial = selectedStatus === "partial";
 
   return (
     <div className="relative">
@@ -170,9 +191,12 @@ export function AvailabilityDatePicker({
               const isPast = day < today;
               const isBlocked = status === "blocked";
               const isAvailable = status === "available";
+              const isPartial = status === "partial";
+              // In strict mode, unset dates (null status) are disabled
+              const isUnset = status === null;
               const isSelected = ds === value;
               const isToday = ds === todayStr;
-              const isDisabled = isPast || isBlocked;
+              const isDisabled = isPast || isBlocked || (strictMode && isUnset);
               const blockedLabel = isBlocked ? getBlockedLabel(ds, blocks) : "";
 
               return (
@@ -200,10 +224,12 @@ export function AvailabilityDatePicker({
                         ? "bg-[#7C3AED] text-white shadow-sm"
                         : isBlocked
                         ? "bg-red-100 text-red-300 cursor-not-allowed"
-                        : isPast
+                        : isPast || (strictMode && isUnset)
                         ? "text-[var(--nb-text-2)] opacity-30 cursor-not-allowed"
                         : isAvailable
                         ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                        : isPartial
+                        ? "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
                         : "text-[var(--nb-text)] hover:bg-[var(--nb-active-bg)] hover:text-[#7C3AED]"}
                     `}
                   >
@@ -218,7 +244,7 @@ export function AvailabilityDatePicker({
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-3 px-4 py-2.5 border-t border-[var(--nb-border)] bg-[var(--nb-bg)]">
+          <div className="flex items-center gap-3 px-4 py-2.5 border-t border-[var(--nb-border)] bg-[var(--nb-bg)] flex-wrap">
             <div className="flex items-center gap-1.5">
               <div className="size-2.5 rounded-full bg-red-200" />
               <span className="text-[10px] text-[var(--nb-text-2)]">Unavailable</span>
@@ -228,10 +254,22 @@ export function AvailabilityDatePicker({
               <span className="text-[10px] text-[var(--nb-text-2)]">Open slot</span>
             </div>
             <div className="flex items-center gap-1.5">
+              <div className="size-2.5 rounded-full bg-amber-300" />
+              <span className="text-[10px] text-[var(--nb-text-2)]">Limited hours</span>
+            </div>
+            <div className="flex items-center gap-1.5">
               <div className="size-2.5 rounded-full bg-[#7C3AED]" />
               <span className="text-[10px] text-[var(--nb-text-2)]">Selected</span>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Note for partial availability on selected date */}
+      {selectedIsPartial && (
+        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <Clock size={11} className="shrink-0" />
+          Some time slots may be limited on this date. The artist will confirm availability.
         </div>
       )}
     </div>
