@@ -121,7 +121,7 @@ export async function GET(
 
     lines.push(
       "BEGIN:VEVENT",
-      fold(`UID:needlebook-appt-${appt.id}@needlebook.app`),
+      fold(`UID:tatflow-appt-${appt.id}@tatflow.ink`),
       fold(`DTSTAMP:${stamp}`),
       fold(`DTSTART:${dtstart}`),
       fold(`DTEND:${dtend}`),

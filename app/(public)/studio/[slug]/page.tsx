@@ -351,7 +351,7 @@ export default async function StudioPage({
         {/* ── POWERED BY ─────────────────────────────────────────────────────── */}
         <div className="py-5 text-center border-t border-white/5">
           <a
-            href="https://needlebook.app"
+            href="https://tatflow.ink"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-white/25 hover:text-white/50 transition-colors"

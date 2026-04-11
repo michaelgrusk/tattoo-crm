@@ -1,5 +1,7 @@
 import { inngest } from "./client";
 import { resend } from "@/lib/resend";
+
+const FROM_ADDRESS = process.env.RESEND_FROM ?? "Tatflow <onboarding@resend.dev>";
 import { getTwilioClient, TWILIO_MESSAGING_SERVICE_SID } from "@/lib/twilio";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -174,7 +176,7 @@ export const reminder24h = inngest.createFunction(
       `);
 
       await resend.emails.send({
-        from: "Tatflow <onboarding@resend.dev>",
+        from: FROM_ADDRESS,
         to: client_email,
         subject: `Reminder: Your appointment tomorrow at ${studio_name}`,
         html,
@@ -233,7 +235,7 @@ export const reminder1Week = inngest.createFunction(
       `);
 
       await resend.emails.send({
-        from: "Tatflow <onboarding@resend.dev>",
+        from: FROM_ADDRESS,
         to: client_email,
         subject: `Your appointment at ${studio_name} is one week away`,
         html,
@@ -294,7 +296,7 @@ export const aftercareFollowUp = inngest.createFunction(
       `);
 
       await resend.emails.send({
-        from: "Tatflow <onboarding@resend.dev>",
+        from: FROM_ADDRESS,
         to: client_email,
         subject: `Your aftercare guide from ${studio_name}`,
         html,
@@ -389,7 +391,7 @@ export const rebookingNudge = inngest.createFunction(
       `);
 
       await resend.emails.send({
-        from: "Tatflow <onboarding@resend.dev>",
+        from: FROM_ADDRESS,
         to: client_email,
         subject: `Ready for your next tattoo? 🖤 ${studio_name} would love to see you`,
         html,

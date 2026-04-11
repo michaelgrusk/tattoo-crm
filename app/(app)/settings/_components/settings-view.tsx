@@ -80,7 +80,7 @@ function CopyReviewLinkButton({ slug, mounted }: { slug: string; mounted: boolea
   const [copied, setCopied] = useState(false);
   const url = mounted
     ? `${window.location.origin}/review/${slug}`
-    : `https://needlebook-crm.vercel.app/review/${slug}`;
+    : `https://tatflow.ink/review/${slug}`;
   return (
     <button
       type="button"
@@ -606,7 +606,7 @@ export function SettingsView({
 
   // ── Intake URL preview ───────────────────────────────────────────────────
 
-  const host = mounted ? window.location.host : "needlebook.app";
+  const host = mounted ? window.location.host : "tatflow.ink";
   const protocol = mounted ? window.location.protocol : "https:";
   const intakePreview = slug.trim()
     ? `${host}/intake/${slug.trim()}`
@@ -1304,7 +1304,7 @@ export function SettingsView({
               <div className="flex-1 rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-2.5 text-sm text-[var(--nb-text-2)] truncate select-all font-mono">
                 {mounted
                   ? `${window.location.origin}/review/${slug}`
-                  : `https://needlebook-crm.vercel.app/review/${slug}`}
+                  : `https://tatflow.ink/review/${slug}`}
               </div>
               <CopyReviewLinkButton slug={slug} mounted={mounted} />
             </div>

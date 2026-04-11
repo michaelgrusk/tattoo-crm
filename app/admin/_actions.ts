@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const ADMIN_EMAIL = "saltedslightly@gmail.com";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://needlebook-crm.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://tatflow.ink";
 
 async function assertAdmin() {
   const supabase = await createSupabaseServerClient();

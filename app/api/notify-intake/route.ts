@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resend } from "@/lib/resend";
+
+const FROM_ADDRESS = process.env.RESEND_FROM ?? "Tatflow <onboarding@resend.dev>";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { analyzeBrief } from "@/lib/ai/analyze-brief";
 
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest) {
     });
 
     const { error: sendError } = await resend.emails.send({
-      from: "Tatflow <onboarding@resend.dev>",
+      from: FROM_ADDRESS,
       to: artistEmail,
       subject: `New tattoo request from ${client_name}`,
       html,
