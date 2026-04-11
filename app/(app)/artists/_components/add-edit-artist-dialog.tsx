@@ -258,6 +258,7 @@ export function AddEditArtistDialog({
               onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
               placeholder="Artist name"
               className={INPUT_CLASS}
+              dir="auto"
             />
           </div>
 
@@ -272,6 +273,7 @@ export function AddEditArtistDialog({
               onChange={(e) => setForm((p) => ({ ...p, bio: e.target.value }))}
               placeholder="Short artist bio…"
               className={INPUT_CLASS + " resize-none"}
+              dir="auto"
             />
           </div>
 
@@ -305,6 +307,7 @@ export function AddEditArtistDialog({
                 }
                 placeholder="@handle"
                 className={INPUT_CLASS}
+                dir="auto"
               />
             </div>
           </div>
@@ -323,6 +326,7 @@ export function AddEditArtistDialog({
                 }
                 placeholder="artist@email.com"
                 className={INPUT_CLASS}
+                dir="auto"
               />
             </div>
             <div className="space-y-1.5">
@@ -337,6 +341,7 @@ export function AddEditArtistDialog({
                 }
                 placeholder="+1 555 000 0000"
                 className={INPUT_CLASS}
+                dir="auto"
               />
             </div>
           </div>

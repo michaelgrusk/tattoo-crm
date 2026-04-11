@@ -698,6 +698,7 @@ export function SettingsView({
                 onChange={(e) => setStudioName(e.target.value)}
                 placeholder="e.g. Midnight Ink Studio"
                 className={inputCls}
+                dir="auto"
               />
             </div>
 
@@ -959,6 +960,7 @@ export function SettingsView({
                         value={qtEditingBody}
                         onChange={(e) => setQtEditingBody(e.target.value)}
                         rows={8}
+                        dir="auto"
                         className="w-full rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-3 py-2.5 text-sm text-[var(--nb-text)] outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors resize-none font-mono"
                       />
                       <p className="text-[11px] text-[var(--nb-text-2)]">
@@ -1048,6 +1050,7 @@ export function SettingsView({
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="e.g. Auckland-based tattoo artist specializing in Japanese and blackwork…"
                 className={`${inputCls} resize-none`}
+                dir="auto"
               />
             </div>
 
@@ -1060,6 +1063,7 @@ export function SettingsView({
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="e.g. Tel Aviv, Israel"
                 className={inputCls}
+                dir="auto"
               />
             </div>
 
@@ -1122,6 +1126,7 @@ export function SettingsView({
                   onChange={(e) => setPricingNote(e.target.value)}
                   placeholder="e.g. Starting from ₪300 for small pieces. Larger pieces priced by session."
                   className={`${inputCls} resize-none`}
+                  dir="auto"
                 />
               </div>
             )}
@@ -1404,6 +1409,18 @@ export function SettingsView({
         </SectionCard>
 
         {/* ── Danger Zone ────────────────────────────────────────────────── */}
+        <SectionCard
+          title="Language & Region"
+          description="Text direction and language settings for your Needlebook account."
+        >
+          <div className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-3.5 space-y-1.5">
+            <p className="text-sm font-medium text-[var(--nb-text)]">Hebrew & RTL text support</p>
+            <p className="text-xs text-[var(--nb-text-2)] leading-relaxed">
+              Needlebook supports Hebrew text input throughout the app. All text fields automatically detect the writing direction — type in Hebrew and the text will align right-to-left automatically. No extra configuration is needed.
+            </p>
+          </div>
+        </SectionCard>
+
         <SectionCard
           title="Danger Zone"
           description="Permanently delete your account and all associated data. This cannot be undone."

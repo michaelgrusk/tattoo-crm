@@ -543,6 +543,7 @@ function AddRequestDialog({
               onChange={setField("description")}
               aria-invalid={!!errors.description}
               className="min-h-[80px] resize-none"
+              dir="auto"
             />
             {errors.description && (
               <p className="text-xs text-destructive">{errors.description}</p>
@@ -778,6 +779,7 @@ function EditClientDialog({
                 value={form.name}
                 onChange={setField("name")}
                 aria-invalid={!!errors.name}
+                dir="auto"
               />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
@@ -791,6 +793,7 @@ function EditClientDialog({
                 value={form.email}
                 onChange={setField("email")}
                 aria-invalid={!!errors.email}
+                dir="auto"
               />
               {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
@@ -803,6 +806,7 @@ function EditClientDialog({
               type="tel"
               value={form.phone}
               onChange={setField("phone")}
+              dir="auto"
             />
           </div>
 
@@ -821,6 +825,7 @@ function EditClientDialog({
                   if (errors.instagram) setErrors((p) => ({ ...p, instagram: undefined }));
                 }}
                 placeholder="yourhandle"
+                dir="auto"
               />
             </div>
           </div>
@@ -832,6 +837,7 @@ function EditClientDialog({
               value={form.notes}
               onChange={setField("notes")}
               className="min-h-[72px] resize-none"
+              dir="auto"
             />
           </div>
 
@@ -843,6 +849,7 @@ function EditClientDialog({
               onChange={setField("skin_notes")}
               placeholder="Skin type, sensitivities, healing notes…"
               className="min-h-[72px] resize-none"
+              dir="auto"
             />
           </div>
 
@@ -1793,7 +1800,7 @@ export function ClientDetailPanel({
                       <p className="text-xs font-medium text-[var(--nb-text-2)] uppercase tracking-wide mb-1.5">
                         Skin Notes
                       </p>
-                      <p className="text-sm text-[var(--nb-text)] leading-relaxed">
+                      <p className="text-sm text-[var(--nb-text)] leading-relaxed" dir="auto">
                         {client.skin_notes}
                       </p>
                     </div>
@@ -1803,7 +1810,7 @@ export function ClientDetailPanel({
                       <p className="text-xs font-medium text-[var(--nb-text-2)] uppercase tracking-wide mb-1.5">
                         General Notes
                       </p>
-                      <p className="text-sm text-[var(--nb-text)] leading-relaxed">
+                      <p className="text-sm text-[var(--nb-text)] leading-relaxed" dir="auto">
                         {client.notes}
                       </p>
                     </div>
@@ -2240,7 +2247,7 @@ export function ClientDetailPanel({
 
                           {/* Notes preview */}
                           {ct.notes && (
-                            <p className="text-xs text-[var(--nb-text)] leading-relaxed line-clamp-2">
+                            <p className="text-xs text-[var(--nb-text)] leading-relaxed line-clamp-2" dir="auto">
                               {ct.notes}
                             </p>
                           )}

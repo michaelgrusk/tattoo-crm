@@ -176,6 +176,7 @@ function FieldInput({
           placeholder={field.label}
           className={inputClass}
           aria-invalid={!!error}
+          dir="auto"
         />
         {error && <p className={errorClass}>{error}</p>}
       </>
@@ -192,6 +193,7 @@ function FieldInput({
           rows={3}
           className={`${inputClass} resize-none`}
           aria-invalid={!!error}
+          dir="auto"
         />
         {error && <p className={errorClass}>{error}</p>}
       </>

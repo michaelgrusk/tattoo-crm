@@ -139,6 +139,7 @@ export function AddClientDialog({
                 onChange={field("name")}
                 aria-invalid={!!errors.name}
                 autoComplete="off"
+                dir="auto"
               />
               {errors.name && (
                 <p className="text-xs text-destructive">{errors.name}</p>
@@ -160,6 +161,7 @@ export function AddClientDialog({
                 onChange={field("email")}
                 aria-invalid={!!errors.email}
                 autoComplete="off"
+                dir="auto"
               />
               {errors.email && (
                 <p className="text-xs text-destructive">{errors.email}</p>
@@ -176,6 +178,7 @@ export function AddClientDialog({
               placeholder="+1 (555) 000-0000"
               value={form.phone}
               onChange={field("phone")}
+              dir="auto"
             />
           </div>
 
@@ -188,6 +191,7 @@ export function AddClientDialog({
               value={form.skin_notes}
               onChange={field("skin_notes")}
               className="min-h-[72px] resize-none"
+              dir="auto"
             />
           </div>
 
@@ -200,6 +204,7 @@ export function AddClientDialog({
               value={form.notes}
               onChange={field("notes")}
               className="min-h-[88px] resize-none"
+              dir="auto"
             />
           </div>
 

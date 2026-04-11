@@ -201,6 +201,7 @@ export function FlashPieceModal({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Koi Fish"
               className={inputCls}
+              dir="auto"
             />
           </div>
 
@@ -213,6 +214,7 @@ export function FlashPieceModal({
               rows={2}
               placeholder="Brief description of this design"
               className={`${inputCls} resize-none`}
+              dir="auto"
             />
           </div>
 
@@ -238,6 +240,7 @@ export function FlashPieceModal({
                 onChange={(e) => setSizeGuidance(e.target.value)}
                 placeholder='e.g. "palm-sized"'
                 className={inputCls}
+                dir="auto"
               />
             </div>
           </div>
@@ -251,6 +254,7 @@ export function FlashPieceModal({
               onChange={(e) => setPlacementNotes(e.target.value)}
               placeholder="e.g. Works well on forearm or calf"
               className={inputCls}
+              dir="auto"
             />
           </div>
 

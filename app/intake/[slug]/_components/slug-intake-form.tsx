@@ -355,21 +355,21 @@ export function SlugIntakeForm({
 
             <Field label="Full name" required error={errors.name}>
               <input type="text" placeholder="Jane Smith" value={form.name}
-                onChange={(e) => set("name", e.target.value)} className={inputCls} autoComplete="name" />
+                onChange={(e) => set("name", e.target.value)} className={inputCls} autoComplete="name" dir="auto" />
             </Field>
             <Field label="Email" required error={errors.email}>
               <input type="email" placeholder="jane@example.com" value={form.email}
-                onChange={(e) => set("email", e.target.value)} className={inputCls} autoComplete="email" />
+                onChange={(e) => set("email", e.target.value)} className={inputCls} autoComplete="email" dir="auto" />
             </Field>
             <Field label="Phone number" required error={errors.phone}>
               <input type="tel" placeholder="+1 (555) 000-0000" value={form.phone}
-                onChange={(e) => set("phone", e.target.value)} className={inputCls} autoComplete="tel" />
+                onChange={(e) => set("phone", e.target.value)} className={inputCls} autoComplete="tel" dir="auto" />
             </Field>
             <Field label="Instagram handle" required error={errors.instagram}>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-[var(--nb-text-2)] select-none pointer-events-none">@</span>
                 <input type="text" placeholder="yourusername" value={form.instagram}
-                  onChange={(e) => set("instagram", e.target.value.replace(/^@+/, ""))} className={`${inputCls} pl-8`} autoComplete="off" />
+                  onChange={(e) => set("instagram", e.target.value.replace(/^@+/, ""))} className={`${inputCls} pl-8`} autoComplete="off" dir="auto" />
               </div>
               <p className="mt-1.5 text-xs text-[var(--nb-text-2)]">We&apos;ll use this to send you your quote.</p>
             </Field>
@@ -442,7 +442,7 @@ export function SlugIntakeForm({
                 <Field label="Tattoo description" required error={errors.description}>
                   <textarea placeholder="Describe your idea — subject matter, mood, any specific elements…"
                     value={form.description} onChange={(e) => set("description", e.target.value)}
-                    rows={4} className={`${inputCls} resize-none`} />
+                    rows={4} className={`${inputCls} resize-none`} dir="auto" />
                 </Field>
 
                 <Field label="Style">
@@ -454,11 +454,11 @@ export function SlugIntakeForm({
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Placement" required error={errors.placement}>
                     <input type="text" placeholder="e.g. Left forearm" value={form.placement}
-                      onChange={(e) => set("placement", e.target.value)} className={inputCls} />
+                      onChange={(e) => set("placement", e.target.value)} className={inputCls} dir="auto" />
                   </Field>
                   <Field label="Rough size">
                     <input type="text" placeholder='e.g. "palm sized"' value={form.size}
-                      onChange={(e) => set("size", e.target.value)} className={inputCls} />
+                      onChange={(e) => set("size", e.target.value)} className={inputCls} dir="auto" />
                   </Field>
                 </div>
 

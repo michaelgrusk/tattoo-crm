@@ -295,6 +295,7 @@ export function CompletedTattooModal({
               onChange={(e) => setPlacement(e.target.value)}
               placeholder="e.g. Left forearm, right shoulder…"
               className={inputCls}
+              dir="auto"
             />
           </div>
 
@@ -306,6 +307,7 @@ export function CompletedTattooModal({
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Client wants to add wings in a future session…"
               rows={3}
+              dir="auto"
               className="w-full rounded-lg border border-[var(--nb-border)] bg-[var(--nb-bg)] px-3 py-2 text-sm text-[var(--nb-text)] outline-none placeholder:text-[var(--nb-text-2)] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors resize-none"
             />
           </div>

@@ -357,6 +357,7 @@ export function NewInvoiceDialog({
               value={form.description}
               onChange={(e) => setField("description", e.target.value)}
               autoComplete="off"
+              dir="auto"
             />
           </div>
 

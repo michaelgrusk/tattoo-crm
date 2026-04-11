@@ -372,15 +372,15 @@ function NewRequestModal({ open, onOpenChange, onSuccess }: {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5 col-span-2">
               <label className="text-xs font-medium text-[var(--nb-text)]">Client name *</label>
-              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Full name" className={inputCls} />
+              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Full name" className={inputCls} dir="auto" />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--nb-text)]">Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="client@example.com" className={inputCls} />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="client@example.com" className={inputCls} dir="auto" />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--nb-text)]">Phone</label>
-              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 000-0000" className={inputCls} />
+              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 000-0000" className={inputCls} dir="auto" />
             </div>
           </div>
 
@@ -415,7 +415,7 @@ function NewRequestModal({ open, onOpenChange, onSuccess }: {
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-[var(--nb-text)]">Description *</label>
             <textarea value={description} onChange={e => setDescription(e.target.value)}
-              placeholder="Describe the tattoo request…" rows={3}
+              placeholder="Describe the tattoo request…" rows={3} dir="auto"
               className="w-full rounded-lg border border-[var(--nb-border)] bg-[var(--nb-card)] px-3 py-2 text-sm text-[var(--nb-text)] outline-none placeholder:text-[var(--nb-text-2)] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors resize-none"
             />
           </div>
@@ -423,11 +423,11 @@ function NewRequestModal({ open, onOpenChange, onSuccess }: {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--nb-text)]">Placement</label>
-              <input type="text" value={placement} onChange={e => setPlacement(e.target.value)} placeholder="e.g. Left forearm" className={inputCls} />
+              <input type="text" value={placement} onChange={e => setPlacement(e.target.value)} placeholder="e.g. Left forearm" className={inputCls} dir="auto" />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--nb-text)]">Size / dimensions</label>
-              <input type="text" value={size} onChange={e => setSize(e.target.value)} placeholder="e.g. 10x8 cm" className={inputCls} />
+              <input type="text" value={size} onChange={e => setSize(e.target.value)} placeholder="e.g. 10x8 cm" className={inputCls} dir="auto" />
             </div>
           </div>
 

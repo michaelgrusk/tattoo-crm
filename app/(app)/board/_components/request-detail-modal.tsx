@@ -809,7 +809,7 @@ export function RequestDetailModal({
                 </div>
 
                 {parsed.tattooDescription && (
-                  <p className="text-sm text-[var(--nb-text)] leading-relaxed bg-[var(--nb-card)] rounded-lg border border-[var(--nb-card)] px-3 py-2.5">
+                  <p className="text-sm text-[var(--nb-text)] leading-relaxed bg-[var(--nb-card)] rounded-lg border border-[var(--nb-card)] px-3 py-2.5" dir="auto">
                     {parsed.tattooDescription}
                   </p>
                 )}

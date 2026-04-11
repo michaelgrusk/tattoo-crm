@@ -186,7 +186,7 @@ export function FlashLightbox({
 
               {/* Description */}
               {open.description && (
-                <p className="text-white/70 text-sm leading-relaxed">{open.description}</p>
+                <p className="text-white/70 text-sm leading-relaxed" dir="auto">{open.description}</p>
               )}
 
               {/* Meta grid */}

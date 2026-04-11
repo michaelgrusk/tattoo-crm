@@ -173,7 +173,7 @@ export default async function StudioPage({
             )}
 
             {profile.bio && (
-              <p className="text-white/70 text-base sm:text-lg leading-relaxed max-w-xl mx-auto mb-6">
+              <p className="text-white/70 text-base sm:text-lg leading-relaxed max-w-xl mx-auto mb-6" dir="auto">
                 {profile.bio}
               </p>
             )}
@@ -304,7 +304,7 @@ export default async function StudioPage({
                         ))}
                       </div>
                       {review.comment && (
-                        <p className="text-sm text-white/75 leading-relaxed mb-3">
+                        <p className="text-sm text-white/75 leading-relaxed mb-3" dir="auto">
                           &ldquo;{review.comment}&rdquo;
                         </p>
                       )}

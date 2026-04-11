@@ -196,7 +196,7 @@ export function InvoiceDetailDialog({
               <p className="text-[11px] font-semibold text-[var(--nb-text-2)] uppercase tracking-wide mb-0.5">
                 Description
               </p>
-              <p className="text-sm text-[var(--nb-text)]">{invoice.type || "—"}</p>
+              <p className="text-sm text-[var(--nb-text)]" dir="auto">{invoice.type || "—"}</p>
             </div>
 
             {invoice.tattoo_requests && (
