@@ -1,4 +1,4 @@
-# Needlebook — Tattoo Artist CRM
+# Tatflow — Tattoo Studio Management
 
 ## Project overview
 A CRM SaaS for tattoo artists and small studios. Helps manage new client intake, appointments, invoices, and analytics.

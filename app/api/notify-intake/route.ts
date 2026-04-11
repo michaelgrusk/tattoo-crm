@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     });
 
     const { error: sendError } = await resend.emails.send({
-      from: "Needlebook <onboarding@resend.dev>",
+      from: "Tatflow <onboarding@resend.dev>",
       to: artistEmail,
       subject: `New tattoo request from ${client_name}`,
       html,
@@ -225,7 +225,7 @@ function buildEmail({
                     </span>
                   </td>
                   <td style="padding-left:10px;color:#7C3AED;font-size:16px;font-weight:700;letter-spacing:-0.3px;vertical-align:middle">
-                    Needlebook
+                    Tatflow
                   </td>
                 </tr>
               </table>
@@ -294,7 +294,7 @@ function buildEmail({
           <tr>
             <td align="center" style="padding-top:20px">
               <p style="margin:0;font-size:12px;color:#9490A8">
-                Sent by <a href="${boardUrl}" style="color:#7C3AED;text-decoration:none;font-weight:500">Needlebook</a> · You're receiving this because a client submitted your intake form.
+                Sent by <a href="${boardUrl}" style="color:#7C3AED;text-decoration:none;font-weight:500">Tatflow</a> · You're receiving this because a client submitted your intake form.
               </p>
             </td>
           </tr>

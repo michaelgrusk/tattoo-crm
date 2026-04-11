@@ -637,7 +637,7 @@ export function SlugIntakeForm({
       </div>
 
       <p className="mt-6 text-xs text-[var(--nb-text-2)] text-center">
-        Powered by <span className="font-medium text-[#7C3AED]">Needlebook</span>
+        Powered by <span className="font-medium text-[#7C3AED]">Tatflow</span>
       </p>
     </div>
   );

@@ -89,17 +89,17 @@ export async function GET(
   }
 
   // 3. Build iCal
-  const calName = escapeText(profile.studio_name ?? "Needlebook Appointments");
+  const calName = escapeText(profile.studio_name ?? "Tatflow Appointments");
   const stamp = dtstamp();
 
   const lines: string[] = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Needlebook//Tattoo CRM//EN",
+    "PRODID:-//Tatflow//Tattoo CRM//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     fold(`X-WR-CALNAME:${calName}`),
-    "X-WR-CALDESC:Appointments synced from Needlebook",
+    "X-WR-CALDESC:Appointments synced from Tatflow",
     "X-PUBLISHED-TTL:PT1H",
   ];
 

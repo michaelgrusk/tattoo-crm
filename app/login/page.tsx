@@ -140,7 +140,7 @@ export default function LoginPage() {
             ← Back to sign in
           </button>
         </div>
-        <p className="mt-6 text-xs text-[var(--nb-text-2)]">© {new Date().getFullYear()} Needlebook</p>
+        <p className="mt-6 text-xs text-[var(--nb-text-2)]">© {new Date().getFullYear()} Tatflow</p>
       </div>
     );
   }
@@ -151,7 +151,7 @@ export default function LoginPage() {
       <div className="min-h-screen bg-[var(--nb-bg)] flex flex-col items-center justify-center px-4 py-10">
         <div className="w-full max-w-sm bg-[var(--nb-card)] rounded-2xl border border-[var(--nb-border)] shadow-sm px-8 py-8">
           <div className="flex flex-col items-center mb-6">
-            <Image src="/logo.png" alt="Needlebook" width={200} height={200} style={{ height: "80px", width: "auto" }} className="mb-3" priority />
+            <Image src="/logo.png" alt="Tatflow" width={200} height={200} style={{ height: "80px", width: "auto" }} className="mb-3" priority />
             <h2 className="text-lg font-semibold text-[var(--nb-text)]">Reset password</h2>
             <p className="text-xs text-[var(--nb-text-2)] mt-1 text-center">
               Enter your email and we&apos;ll send a reset link
@@ -217,7 +217,7 @@ export default function LoginPage() {
             </form>
           )}
         </div>
-        <p className="mt-6 text-xs text-[var(--nb-text-2)]">© {new Date().getFullYear()} Needlebook</p>
+        <p className="mt-6 text-xs text-[var(--nb-text-2)]">© {new Date().getFullYear()} Tatflow</p>
       </div>
     );
   }
@@ -228,9 +228,9 @@ export default function LoginPage() {
       <div className="w-full max-w-sm bg-[var(--nb-card)] rounded-2xl border border-[var(--nb-border)] shadow-sm px-8 py-8">
         {/* Branding */}
         <div className="flex flex-col items-center mb-7">
-          <Image src="/logo.png" alt="Needlebook" width={200} height={200} style={{ height: "110px", width: "auto" }} className="mb-3" priority loading="eager" />
-          <h1 className="text-xl font-semibold text-[var(--nb-text)]">Needlebook</h1>
-          <p className="text-xs text-[var(--nb-text-2)] mt-0.5">Tattoo artist CRM</p>
+          <Image src="/logo.png" alt="Tatflow" width={200} height={200} style={{ height: "110px", width: "auto" }} className="mb-3" priority loading="eager" />
+          <h1 className="text-xl font-semibold text-[var(--nb-text)]">Tatflow</h1>
+          <p className="text-xs text-[var(--nb-text-2)] mt-0.5">Tattoo studio management</p>
         </div>
 
         {/* Mode toggle */}
@@ -354,7 +354,7 @@ export default function LoginPage() {
       </div>
 
       <p className="mt-6 text-xs text-[var(--nb-text-2)]">
-        © {new Date().getFullYear()} Needlebook
+        © {new Date().getFullYear()} Tatflow
       </p>
     </div>
   );

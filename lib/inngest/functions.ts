@@ -99,7 +99,7 @@ function emailShell(studioName: string, body: string): string {
           <tr>
             <td align="center" style="padding-top:20px">
               <p style="margin:0;font-size:12px;color:#9490A8">
-                Sent by <span style="color:#7C3AED;font-weight:500">Needlebook</span> on behalf of ${studioName}
+                Sent by <span style="color:#7C3AED;font-weight:500">Tatflow</span> on behalf of ${studioName}
               </p>
             </td>
           </tr>
@@ -174,7 +174,7 @@ export const reminder24h = inngest.createFunction(
       `);
 
       await resend.emails.send({
-        from: "Needlebook <onboarding@resend.dev>",
+        from: "Tatflow <onboarding@resend.dev>",
         to: client_email,
         subject: `Reminder: Your appointment tomorrow at ${studio_name}`,
         html,
@@ -233,7 +233,7 @@ export const reminder1Week = inngest.createFunction(
       `);
 
       await resend.emails.send({
-        from: "Needlebook <onboarding@resend.dev>",
+        from: "Tatflow <onboarding@resend.dev>",
         to: client_email,
         subject: `Your appointment at ${studio_name} is one week away`,
         html,
@@ -294,7 +294,7 @@ export const aftercareFollowUp = inngest.createFunction(
       `);
 
       await resend.emails.send({
-        from: "Needlebook <onboarding@resend.dev>",
+        from: "Tatflow <onboarding@resend.dev>",
         to: client_email,
         subject: `Your aftercare guide from ${studio_name}`,
         html,
@@ -389,7 +389,7 @@ export const rebookingNudge = inngest.createFunction(
       `);
 
       await resend.emails.send({
-        from: "Needlebook <onboarding@resend.dev>",
+        from: "Tatflow <onboarding@resend.dev>",
         to: client_email,
         subject: `Ready for your next tattoo? 🖤 ${studio_name} would love to see you`,
         html,

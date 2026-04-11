@@ -69,7 +69,7 @@ export default async function SlugConfirmationPage({
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
           </svg>
         </div>
-        <span className="text-xs text-[var(--nb-text-2)] font-medium">Powered by Needlebook</span>
+        <span className="text-xs text-[var(--nb-text-2)] font-medium">Powered by Tatflow</span>
       </div>
     </div>
   );

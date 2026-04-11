@@ -3,7 +3,7 @@ import { XCircle } from "lucide-react";
 import Image from "next/image";
 import { SignOutButton } from "@/app/pending-approval/sign-out-button";
 
-export const metadata = { title: "Application Not Approved — Needlebook" };
+export const metadata = { title: "Application Not Approved — Tatflow" };
 
 export default async function RejectedPage() {
   const supabase = await createSupabaseServerClient();
@@ -28,7 +28,7 @@ export default async function RejectedPage() {
         <div className="flex justify-center mb-5">
           <Image
             src="/logo.png"
-            alt="Needlebook"
+            alt="Tatflow"
             width={200}
             height={200}
             style={{ height: "70px", width: "auto" }}
@@ -68,7 +68,7 @@ export default async function RejectedPage() {
         <SignOutButton />
       </div>
 
-      <p className="mt-6 text-xs text-[var(--nb-text-2)]">© {new Date().getFullYear()} Needlebook</p>
+      <p className="mt-6 text-xs text-[var(--nb-text-2)]">© {new Date().getFullYear()} Tatflow</p>
     </div>
   );
 }

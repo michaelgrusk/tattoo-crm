@@ -70,7 +70,7 @@ export default function ResetPasswordPage() {
         <div className="flex flex-col items-center mb-7">
           <Image
             src="/logo.png"
-            alt="Needlebook"
+            alt="Tatflow"
             width={200}
             height={200}
             style={{ height: "80px", width: "auto" }}
@@ -154,7 +154,7 @@ export default function ResetPasswordPage() {
       </div>
 
       <p className="mt-6 text-xs text-[var(--nb-text-2)]">
-        © {new Date().getFullYear()} Needlebook
+        © {new Date().getFullYear()} Tatflow
       </p>
     </div>
   );

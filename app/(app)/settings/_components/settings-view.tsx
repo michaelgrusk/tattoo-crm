@@ -842,7 +842,7 @@ export function SettingsView({
         {/* ── Sync to Calendar ──────────────────────────────────────────── */}
         <SectionCard
           title="Sync to Calendar"
-          description="Subscribe to your Needlebook appointments in Google Calendar, Apple Calendar, or Outlook."
+          description="Subscribe to your Tatflow appointments in Google Calendar, Apple Calendar, or Outlook."
         >
           {!slug.trim() ? (
             <p className="text-sm text-[var(--nb-text-2)]">
@@ -881,7 +881,7 @@ export function SettingsView({
 
               {/* Instructions */}
               <p className="text-sm text-[var(--nb-text-2)] leading-relaxed">
-                Subscribe to this URL in your calendar app to see your Needlebook appointments alongside your personal events. The feed updates automatically every hour.
+                Subscribe to this URL in your calendar app to see your Tatflow appointments alongside your personal events. The feed updates automatically every hour.
               </p>
 
               {/* Google Calendar button */}
@@ -1411,12 +1411,12 @@ export function SettingsView({
         {/* ── Danger Zone ────────────────────────────────────────────────── */}
         <SectionCard
           title="Language & Region"
-          description="Text direction and language settings for your Needlebook account."
+          description="Text direction and language settings for your Tatflow account."
         >
           <div className="rounded-xl border border-[var(--nb-border)] bg-[var(--nb-bg)] px-4 py-3.5 space-y-1.5">
             <p className="text-sm font-medium text-[var(--nb-text)]">Hebrew & RTL text support</p>
             <p className="text-xs text-[var(--nb-text-2)] leading-relaxed">
-              Needlebook supports Hebrew text input throughout the app. All text fields automatically detect the writing direction — type in Hebrew and the text will align right-to-left automatically. No extra configuration is needed.
+              Tatflow supports Hebrew text input throughout the app. All text fields automatically detect the writing direction — type in Hebrew and the text will align right-to-left automatically. No extra configuration is needed.
             </p>
           </div>
         </SectionCard>

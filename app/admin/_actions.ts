@@ -94,14 +94,14 @@ export async function approveUser(
         Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: `Needlebook <${fromAddress}>`,
+        from: `Tatflow <${fromAddress}>`,
         to: [userEmail],
-        subject: "Your Needlebook account has been approved! 🎉",
+        subject: "Your Tatflow account has been approved! 🎉",
         html: `
           <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
-            <h2 style="color:#7C3AED;margin-bottom:8px">Welcome to Needlebook!</h2>
+            <h2 style="color:#7C3AED;margin-bottom:8px">Welcome to Tatflow!</h2>
             <p>Hi ${studioName || "there"},</p>
-            <p>Great news — your Needlebook account has been approved and is ready to use.</p>
+            <p>Great news — your Tatflow account has been approved and is ready to use.</p>
             <p style="margin-top:24px">
               <a href="${SITE_URL}/login"
                  style="display:inline-block;background:#7C3AED;color:#fff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:600">

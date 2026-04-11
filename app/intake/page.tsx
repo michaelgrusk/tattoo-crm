@@ -281,7 +281,7 @@ export default function IntakePage() {
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
           </svg>
         </div>
-        <h1 className="text-xl font-semibold text-[var(--nb-text)]">Needlebook</h1>
+        <h1 className="text-xl font-semibold text-[var(--nb-text)]">Tatflow</h1>
         <p className="text-sm text-[var(--nb-text-2)] mt-0.5">Tattoo request form</p>
       </div>
 
@@ -511,7 +511,7 @@ export default function IntakePage() {
       </div>
 
       <p className="mt-6 text-xs text-[var(--nb-text-2)] text-center">
-        Needlebook · Your request will be reviewed and we&apos;ll be in touch soon.
+        Tatflow · Your request will be reviewed and we&apos;ll be in touch soon.
       </p>
     </div>
   );

@@ -64,7 +64,7 @@ export default async function PublicWaiverSignPage({
 
         <p className="text-center text-xs text-gray-400 mt-6">
           Powered by{" "}
-          <span className="font-semibold text-violet-500">Needlebook</span>
+          <span className="font-semibold text-violet-500">Tatflow</span>
         </p>
       </div>
     </div>

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SettingsView } from "./_components/settings-view";
 
-export const metadata = { title: "Settings — Needlebook" };
+export const metadata = { title: "Settings — Tatflow" };
 
 export default async function SettingsPage() {
   const supabase = await createSupabaseServerClient();

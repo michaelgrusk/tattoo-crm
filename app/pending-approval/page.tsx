@@ -3,7 +3,7 @@ import { Clock } from "lucide-react";
 import Image from "next/image";
 import { SignOutButton } from "./sign-out-button";
 
-export const metadata = { title: "Under Review — Needlebook" };
+export const metadata = { title: "Under Review — Tatflow" };
 
 export default async function PendingApprovalPage() {
   const supabase = await createSupabaseServerClient();
@@ -25,7 +25,7 @@ export default async function PendingApprovalPage() {
         <div className="flex justify-center mb-5">
           <Image
             src="/logo.png"
-            alt="Needlebook"
+            alt="Tatflow"
             width={200}
             height={200}
             style={{ height: "70px", width: "auto" }}
@@ -52,7 +52,7 @@ export default async function PendingApprovalPage() {
         <SignOutButton />
       </div>
 
-      <p className="mt-6 text-xs text-[var(--nb-text-2)]">© {new Date().getFullYear()} Needlebook</p>
+      <p className="mt-6 text-xs text-[var(--nb-text-2)]">© {new Date().getFullYear()} Tatflow</p>
     </div>
   );
 }

@@ -356,7 +356,7 @@ export default async function StudioPage({
             rel="noopener noreferrer"
             className="text-xs text-white/25 hover:text-white/50 transition-colors"
           >
-            Powered by Needlebook
+            Powered by Tatflow
           </a>
         </div>
       </div>

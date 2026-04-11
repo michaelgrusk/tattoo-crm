@@ -132,7 +132,7 @@ export function Sidebar({
       `}
     >
       <div className="flex items-center justify-between border-b border-[var(--nb-border)] shrink-0" style={{ padding: "12px 16px" }}>
-        <Image src="/logo.png" alt="Needlebook" width={178} height={60} className="rounded-xl min-w-0 shrink" style={{ width: "100%", height: "auto" }} priority loading="eager" />
+        <Image src="/logo.png" alt="Tatflow" width={178} height={60} className="rounded-xl min-w-0 shrink" style={{ width: "100%", height: "auto" }} priority loading="eager" />
         <button
           onClick={onMobileClose}
           className="lg:hidden size-8 flex items-center justify-center rounded-lg hover:bg-[var(--nb-bg)] transition-colors text-[var(--nb-text-2)]"

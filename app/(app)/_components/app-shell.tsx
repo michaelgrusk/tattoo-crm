@@ -40,7 +40,7 @@ export function AppShell({
             >
               <Menu size={20} className="text-[var(--nb-text-2)]" />
             </button>
-            <span className="ml-3 font-semibold text-[#7C3AED]">Needlebook</span>
+            <span className="ml-3 font-semibold text-[#7C3AED]">Tatflow</span>
           </header>
 
           <main className="flex-1 overflow-y-auto min-h-0">{children}</main>

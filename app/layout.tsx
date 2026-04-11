@@ -14,8 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Needlebook",
-  description: "CRM for tattoo artists and studios",
+  title: "Tatflow",
+  description: "Tattoo studio management",
+  openGraph: {
+    title: "Tatflow",
+    description: "Tattoo studio management",
+    siteName: "Tatflow",
+  },
 };
 
 export default function RootLayout({

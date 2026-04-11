@@ -95,7 +95,7 @@ export function AdminView() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-[var(--nb-text)]">Admin — Beta Approvals</h1>
-          <p className="text-sm text-[var(--nb-text-2)] mt-1">Manage who gets access to Needlebook</p>
+          <p className="text-sm text-[var(--nb-text-2)] mt-1">Manage who gets access to Tatflow</p>
         </div>
 
         {actionError && (

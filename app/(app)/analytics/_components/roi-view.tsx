@@ -285,7 +285,7 @@ export function ROIView() {
   // Deposit coverage as % of total revenue
   const depositCoveragePct = totalRevenue > 0 ? (depositsTotal / totalRevenue) * 100 : 0;
   const periodLabel = PERIOD_OPTIONS.find((o) => o.value === period)?.label ?? "";
-  const summaryText = `In ${periodLabel.toLowerCase()}, Needlebook helped ${studioName} save ${Math.round(totalAdminHours)} hours of admin, collect ${format(depositsTotal)} in deposits, and recover an estimated ${format(Math.round(totalValueRecovered))} in revenue.`;
+  const summaryText = `In ${periodLabel.toLowerCase()}, Tatflow helped ${studioName} save ${Math.round(totalAdminHours)} hours of admin, collect ${format(depositsTotal)} in deposits, and recover an estimated ${format(Math.round(totalValueRecovered))} in revenue.`;
 
   function handleCopy() {
     navigator.clipboard.writeText(summaryText);
@@ -303,7 +303,7 @@ export function ROIView() {
         <div>
           <h1 className="text-2xl font-semibold text-[var(--nb-text)]">ROI Calculator</h1>
           <p className="mt-1 text-sm text-[var(--nb-text-2)]">
-            The real financial impact of Needlebook on your studio
+            The real financial impact of Tatflow on your studio
           </p>
         </div>
         <div className="relative shrink-0">
@@ -322,7 +322,7 @@ export function ROIView() {
 
       {/* ── 1. Your Studio Stats ─────────────────────────────────────────── */}
       <section>
-        <SectionHeading sub={`Pulled from your Needlebook data — ${periodLabel.toLowerCase()}`}>
+        <SectionHeading sub={`Pulled from your Tatflow data — ${periodLabel.toLowerCase()}`}>
           Your Studio Stats
         </SectionHeading>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -387,7 +387,7 @@ export function ROIView() {
           <ValueCard
             label="Deposits Secured"
             mainValue={format(Math.round(depositsTotal))}
-            sub="Already collected through Needlebook"
+            sub="Already collected through Tatflow"
             accent="Revenue in hand before the session"
             loading={loading}
           />
@@ -472,7 +472,7 @@ export function ROIView() {
                 <Zap size={18} className="text-white" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--nb-text)]">Your Needlebook Impact</p>
+                <p className="text-sm font-semibold text-[var(--nb-text)]">Your Tatflow Impact</p>
                 <p className="text-xs text-[var(--nb-text-2)]">{periodLabel}</p>
               </div>
             </div>

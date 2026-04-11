@@ -4,7 +4,7 @@ import { AdminView } from "./_components/admin-view";
 
 const ADMIN_EMAIL = "saltedslightly@gmail.com";
 
-export const metadata = { title: "Admin — Needlebook" };
+export const metadata = { title: "Admin — Tatflow" };
 
 export default async function AdminPage() {
   const supabase = await createSupabaseServerClient();

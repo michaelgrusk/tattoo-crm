@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { WaiversView } from "./_components/waivers-view";
 import type { WaiverTemplate, SignedWaiver } from "./types";
 
-export const metadata = { title: "Waivers — Needlebook" };
+export const metadata = { title: "Waivers — Tatflow" };
 
 export default async function WaiversPage() {
   const supabase = await createSupabaseServerClient();
