@@ -237,7 +237,7 @@ export default async function StudioPage({
               </h2>
               <span className="text-xs text-white/30">{flashPieces.length} design{flashPieces.length !== 1 ? "s" : ""}</span>
             </div>
-            <FlashLightbox pieces={flashPieces} accent={accent} slug={slug} />
+            <FlashLightbox pieces={flashPieces} accent={accent} slug={slug} currency={profile.currency ?? "USD"} />
           </section>
         )}
 

@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { X, Maximize2 } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
+import type { CurrencyCode } from "@/lib/currency";
 
 type FlashPiece = {
   id: string;
@@ -21,10 +23,12 @@ export function FlashLightbox({
   pieces,
   accent,
   slug,
+  currency = "USD",
 }: {
   pieces: FlashPiece[];
   accent: string;
   slug: string;
+  currency?: CurrencyCode;
 }) {
   const [open, setOpen] = useState<FlashPiece | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
@@ -93,7 +97,7 @@ export function FlashLightbox({
               <p className="text-sm font-semibold text-white truncate">{piece.title}</p>
               <div className="flex items-center gap-2 mt-1 min-w-0">
                 {piece.price != null && (
-                  <span className="text-xs text-white/60">from ${piece.price}</span>
+                  <span className="text-xs text-white/60">from {formatCurrency(piece.price, currency)}</span>
                 )}
                 {piece.size_guidance && (
                   <span className="text-xs text-white/40 truncate">{piece.size_guidance}</span>
@@ -180,7 +184,7 @@ export function FlashLightbox({
               {/* Price */}
               {open.price != null && (
                 <p className="text-2xl font-bold text-white">
-                  from <span style={{ color: accent }}>${open.price}</span>
+                  from <span style={{ color: accent }}>{formatCurrency(open.price, currency)}</span>
                 </p>
               )}
 

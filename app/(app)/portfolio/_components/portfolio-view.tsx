@@ -12,6 +12,7 @@ import {
   ArrowUpRight,
   Users,
   Layers,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { supabase, getUserId } from "@/lib/supabase/client";
@@ -266,6 +267,8 @@ export function PortfolioView() {
   const [artistFilter, setArtistFilter] = useState<string>("");
   const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [lightboxItem, setLightboxItem] = useState<PortfolioTattoo | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const highlightRef = useRef<HTMLDivElement | null>(null);
 
   // Fetch all completed tattoos
@@ -296,6 +299,37 @@ export function PortfolioView() {
     }, 2500);
     return () => clearTimeout(t);
   }, [highlightId, loading, router]);
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  async function handleDelete(ct: PortfolioTattoo) {
+    if (deleteConfirm !== ct.id) {
+      setDeleteConfirm(ct.id);
+      return;
+    }
+    setDeleteConfirm(null);
+
+    // Delete from storage if photo exists
+    if (ct.photo_url) {
+      const parts = ct.photo_url.split("/completed-tattoos/");
+      if (parts[1]) {
+        await supabase.storage.from("completed-tattoos").remove([parts[1]]);
+      }
+    }
+
+    const { error } = await supabase.from("completed_tattoos").delete().eq("id", ct.id);
+    if (error) {
+      setToast({ message: "Failed to delete", type: "error" });
+    } else {
+      setAll((prev) => prev.filter((p) => p.id !== ct.id));
+      setToast({ message: "Photo deleted", type: "success" });
+    }
+  }
 
   // ── Derived data ──────────────────────────────────────────────────────────
 
@@ -526,27 +560,55 @@ export function PortfolioView() {
                 >
                   {/* Photo or placeholder */}
                   {ct.photo_url ? (
-                    <button
-                      type="button"
-                      onClick={() => setLightboxItem(ct)}
-                      className="block w-full"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={ct.photo_url}
-                        alt={ct.style ?? "Tattoo"}
-                        className="w-full h-auto object-cover group-hover:brightness-90 transition-all duration-300"
-                        loading="lazy"
-                      />
-                    </button>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => { setDeleteConfirm(null); setLightboxItem(ct); }}
+                        className="block w-full"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={ct.photo_url}
+                          alt={ct.style ?? "Tattoo"}
+                          className="w-full h-auto object-cover group-hover:brightness-90 transition-all duration-300"
+                          loading="lazy"
+                        />
+                      </button>
+                      {/* Delete button */}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleDelete(ct); }}
+                        className={`absolute top-2 right-2 transition-all rounded-lg px-2 py-1 text-[10px] font-semibold flex items-center gap-1 ${
+                          deleteConfirm === ct.id
+                            ? "opacity-100 bg-red-500 text-white"
+                            : "opacity-0 group-hover:opacity-100 bg-black/60 text-white/80 hover:bg-red-500 hover:text-white"
+                        }`}
+                      >
+                        <Trash2 size={11} />
+                        {deleteConfirm === ct.id ? "Confirm?" : "Delete"}
+                      </button>
+                    </div>
                   ) : (
-                    <div className={`w-full h-28 bg-gradient-to-br ${grad} flex items-center justify-center`}>
+                    <div className={`w-full h-28 bg-gradient-to-br ${grad} flex items-center justify-center relative`}>
                       <Palette size={22} className="text-[#7C3AED]/40" />
+                      {/* Delete button for no-photo cards */}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleDelete(ct); }}
+                        className={`absolute top-2 right-2 transition-all rounded-lg px-2 py-1 text-[10px] font-semibold flex items-center gap-1 ${
+                          deleteConfirm === ct.id
+                            ? "opacity-100 bg-red-500 text-white"
+                            : "opacity-0 group-hover:opacity-100 bg-black/20 text-white/70 hover:bg-red-500 hover:text-white"
+                        }`}
+                      >
+                        <Trash2 size={11} />
+                        {deleteConfirm === ct.id ? "Confirm?" : "Delete"}
+                      </button>
                     </div>
                   )}
 
                   {/* Card body */}
-                  <div className="px-3 py-2.5 space-y-1.5">
+                  <div className="px-3 py-2.5 space-y-1.5" onClick={() => deleteConfirm === ct.id && setDeleteConfirm(null)}>
                     {/* Style badge */}
                     {ct.style && (
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${sc.text} ${sc.bg}`}>
@@ -615,6 +677,19 @@ export function PortfolioView() {
           onClose={() => setLightboxItem(null)}
           onNav={setLightboxItem}
         />
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg transition-all ${
+            toast.type === "success"
+              ? "bg-emerald-500 text-white"
+              : "bg-red-500 text-white"
+          }`}
+        >
+          {toast.message}
+        </div>
       )}
     </>
   );
