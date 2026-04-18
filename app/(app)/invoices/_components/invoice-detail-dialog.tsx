@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, Download } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import type { Invoice } from "../page";
 import { useCurrency } from "@/components/currency-provider";
+import { generateInvoicePDF } from "@/lib/generate-invoice-pdf";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -84,12 +85,14 @@ export function InvoiceDetailDialog({
   onStatusChanged: (toast: string) => void;
   onDeleted: () => void;
 }) {
-  const { format } = useCurrency();
+  const { format, currency } = useCurrency();
   const [currentStatus, setCurrentStatus] = useState<Invoice["status"] | null>(null);
   const [updating, setUpdating] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [cachedStudioName, setCachedStudioName] = useState<string | null>(null);
 
   // Derive the displayed status: optimistic local override, or fall back to invoice data
   const displayStatus = (currentStatus ?? invoice?.status) as Invoice["status"] | undefined;
@@ -150,6 +153,28 @@ export function InvoiceDetailDialog({
     onDeleted();
   }
 
+  async function handleDownloadPDF() {
+    if (!invoice) return;
+    setDownloading(true);
+    let studioName = cachedStudioName;
+    if (!studioName) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("studio_name")
+          .eq("id", user.id)
+          .single();
+        studioName = data?.studio_name ?? "Your Studio";
+        setCachedStudioName(studioName);
+      } else {
+        studioName = "Your Studio";
+      }
+    }
+    generateInvoicePDF(invoice, studioName ?? "Your Studio", currency);
+    setDownloading(false);
+  }
+
   if (!invoice) return null;
 
   return (
@@ -200,14 +225,14 @@ export function InvoiceDetailDialog({
             </div>
 
             {invoice.tattoo_requests && (
-              <div className="flex items-start gap-2.5 rounded-lg bg-[var(--nb-active-bg)] border border-[#7C3AED]/15 px-3 py-2.5">
+              <div className="flex items-start gap-2.5 rounded-lg bg-[var(--nb-active-bg)] border border-[#7C3AED]/15 px-3 py-2.5 overflow-hidden">
                 <svg width="14" height="14" className="shrink-0 mt-0.5 text-[#7C3AED]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
                 </svg>
-                <div className="min-w-0">
+                <div className="min-w-0 overflow-hidden">
                   <p className="text-[10px] font-semibold text-[#7C3AED] uppercase tracking-wide mb-0.5">Linked Request</p>
-                  <p className="text-xs text-[var(--nb-text)] leading-snug truncate">{invoice.tattoo_requests.description.split("\n")[0]}</p>
-                  <p className="text-[11px] text-[var(--nb-text-2)] mt-0.5">{invoice.tattoo_requests.style}</p>
+                  <p className="text-xs text-[var(--nb-text)] leading-snug overflow-hidden" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{invoice.tattoo_requests.description.split("\n")[0]}</p>
+                  <p className="text-[11px] text-[var(--nb-text-2)] mt-0.5 truncate">{invoice.tattoo_requests.style}</p>
                 </div>
               </div>
             )}
@@ -289,9 +314,20 @@ export function InvoiceDetailDialog({
             {deleting && <Loader2 size={12} className="animate-spin" />}
             {deleteConfirm ? "Confirm Delete?" : "Delete Invoice"}
           </button>
-          <DialogClose asChild>
-            <Button variant="outline">Close</Button>
-          </DialogClose>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDownloadPDF}
+              disabled={downloading || deleting || updating}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#7C3AED]/30 bg-[var(--nb-active-bg)] text-[#7C3AED] hover:bg-[#7C3AED]/10 transition-colors disabled:opacity-50"
+            >
+              {downloading ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+              Download PDF
+            </button>
+            <DialogClose asChild>
+              <Button variant="outline">Close</Button>
+            </DialogClose>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
