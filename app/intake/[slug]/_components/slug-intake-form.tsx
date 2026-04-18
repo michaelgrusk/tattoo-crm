@@ -15,6 +15,7 @@ type FormData = {
   phone: string;
   instagram: string;
   whatsappOptIn: boolean;
+  referralSource: string;
   inquiryType: "custom" | "flash";
   selectedFlashId: string | null;
   description: string;
@@ -29,6 +30,15 @@ type FormData = {
 type Errors = Partial<Record<keyof FormData, string>>;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
+
+const REFERRAL_SOURCES = [
+  "Instagram",
+  "TikTok",
+  "Google",
+  "Friend / Word of mouth",
+  "Returning client",
+  "Other",
+];
 
 const STYLES = [
   "Blackwork",
@@ -50,6 +60,7 @@ const EMPTY: FormData = {
   phone: "",
   instagram: "",
   whatsappOptIn: false,
+  referralSource: "",
   inquiryType: "custom",
   selectedFlashId: null,
   description: "",
@@ -288,6 +299,7 @@ export function SlugIntakeForm({
       inquiry_type: form.inquiryType,
       flash_piece_id: form.inquiryType === "flash" ? form.selectedFlashId : null,
       source_type: "intake_form",
+      referral_source: form.referralSource || null,
     }).select("id").single();
 
     setSubmitting(false);
@@ -395,6 +407,13 @@ export function SlugIntakeForm({
                 <span className="text-[var(--nb-text)] font-medium">WhatsApp</span>
               </span>
             </label>
+
+            <Field label="How did you hear about us? (optional)">
+              <select value={form.referralSource} onChange={(e) => set("referralSource", e.target.value)} className={inputCls}>
+                <option value="">Select an option…</option>
+                {REFERRAL_SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </Field>
           </div>
         )}
 

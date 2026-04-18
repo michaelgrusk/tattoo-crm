@@ -25,6 +25,7 @@ type Invoice = {
 
 type AppointmentRow = { time: string; date: string };
 type RequestRow = { style: string };
+type ReferralRow = { referral_source: string | null };
 type ArtistApptRow = {
   artist_id: number | null;
   type: string;
@@ -420,6 +421,64 @@ function PopularStyles({
   );
 }
 
+// ─── Referral Sources ─────────────────────────────────────────────────────────
+
+function ReferralSources({
+  referrals,
+  loading,
+}: {
+  referrals: ReferralRow[];
+  loading: boolean;
+}) {
+  const counts: Record<string, number> = {};
+  for (const r of referrals) {
+    const src = r.referral_source?.trim();
+    if (src) counts[src] = (counts[src] ?? 0) + 1;
+  }
+
+  const total = Object.values(counts).reduce((s, n) => s + n, 0) || 1;
+  const sorted = Object.entries(counts).sort(([, a], [, b]) => b - a);
+
+  if (!loading && sorted.length === 0) {
+    return (
+      <p className="text-sm text-[var(--nb-text-2)] py-6 text-center">
+        Referral data will appear once clients start submitting intake forms
+      </p>
+    );
+  }
+
+  return (
+    <div className={`space-y-4 transition-opacity ${loading ? "opacity-40" : ""}`}>
+      {sorted.map(([source, count], i) => {
+        const pct = Math.round((count / total) * 100);
+        const color = STYLE_COLORS[i % STYLE_COLORS.length];
+        return (
+          <div key={source} className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-[var(--nb-text-2)] w-4 shrink-0 tabular-nums">
+              {i + 1}
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-sm font-medium text-[var(--nb-text)] truncate">{source}</span>
+                <div className="flex items-center gap-2 ml-3 shrink-0">
+                  <span className="text-xs font-semibold text-[var(--nb-text-2)] tabular-nums">{pct}%</span>
+                  <span className="text-xs text-[var(--nb-text-2)] tabular-nums">({count})</span>
+                </div>
+              </div>
+              <div className="h-1.5 bg-[var(--nb-bg)] rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${color}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Artist Performance ───────────────────────────────────────────────────────
 
 const ARTIST_AVATAR_COLORS = [
@@ -570,6 +629,7 @@ export function AnalyticsView() {
   const [allAppointments, setAllAppointments] = useState<AppointmentRow[]>([]);
   const [newClientCount, setNewClientCount] = useState(0);
   const [requests, setRequests] = useState<RequestRow[]>([]);
+  const [referrals, setReferrals] = useState<ReferralRow[]>([]);
   const [artistAppts, setArtistAppts] = useState<ArtistApptRow[]>([]);
   const [upcomingArtistAppts, setUpcomingArtistAppts] = useState<{ artist_id: number }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -597,6 +657,7 @@ export function AnalyticsView() {
         { data: appts },
         { data: clients },
         { data: reqs },
+        { data: refs },
         { data: allAppts },
         { data: artAppts },
         { data: upcomingArtAppts },
@@ -626,6 +687,13 @@ export function AnalyticsView() {
           .eq("user_id", userId)
           .gte("created_at", effectiveStart)
           .lte("created_at", effectiveEnd + "T23:59:59"),
+        supabase
+          .from("tattoo_requests")
+          .select("referral_source")
+          .eq("user_id", userId)
+          .not("referral_source", "is", null)
+          .gte("created_at", effectiveStart)
+          .lte("created_at", effectiveEnd + "T23:59:59"),
         // All-time appointments for busiest hours (never period-filtered)
         supabase
           .from("appointments")
@@ -653,6 +721,7 @@ export function AnalyticsView() {
       setAllAppointments((allAppts as AppointmentRow[]) ?? []);
       setNewClientCount((clients ?? []).length);
       setRequests((reqs as RequestRow[]) ?? []);
+      setReferrals((refs as ReferralRow[]) ?? []);
       setArtistAppts((artAppts as unknown as ArtistApptRow[]) ?? []);
       setUpcomingArtistAppts((upcomingArtAppts as unknown as { artist_id: number }[]) ?? []);
       setLoading(false);
@@ -857,6 +926,15 @@ export function AnalyticsView() {
           </div>
           <PopularStyles requests={requests} loading={loading} />
         </div>
+      </div>
+
+      {/* Referral Sources */}
+      <div className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-sm font-semibold text-[var(--nb-text)]">Referral Sources</h2>
+          <span className="text-xs text-[var(--nb-text-2)]">{periodLabel}</span>
+        </div>
+        <ReferralSources referrals={referrals} loading={loading} />
       </div>
 
       {/* Artist Performance */}

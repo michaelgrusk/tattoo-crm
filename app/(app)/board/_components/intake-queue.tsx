@@ -238,6 +238,15 @@ const STYLES = [
   "Traditional", "Realism", "Neo-traditional", "Tribal", "Portrait", "Anime",
 ];
 
+const REFERRAL_SOURCES = [
+  "Instagram",
+  "TikTok",
+  "Google",
+  "Friend / Word of mouth",
+  "Returning client",
+  "Other",
+];
+
 type ArtistOption = { id: number; name: string };
 
 function NewRequestModal({ open, onOpenChange, onSuccess }: {
@@ -254,6 +263,7 @@ function NewRequestModal({ open, onOpenChange, onSuccess }: {
   const [size, setSize] = useState("");
   const [preferredDate, setPreferredDate] = useState("");
   const [artistId, setArtistId] = useState<string>("");
+  const [referralSource, setReferralSource] = useState("");
   const [status, setStatus] = useState<"new request" | "quote sent" | "deposit paid">("new request");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -270,7 +280,7 @@ function NewRequestModal({ open, onOpenChange, onSuccess }: {
 
   function reset() {
     setName(""); setEmail(""); setPhone(""); setSelectedStyles(new Set()); setDescription("");
-    setPlacement(""); setSize(""); setPreferredDate(""); setArtistId("");
+    setPlacement(""); setSize(""); setPreferredDate(""); setArtistId(""); setReferralSource("");
     setStatus("new request"); setError(null);
   }
 
@@ -312,6 +322,7 @@ function NewRequestModal({ open, onOpenChange, onSuccess }: {
       description: parts.join("\n"),
       status,
       artist_id: artistId ? Number(artistId) : null,
+      referral_source: referralSource || null,
     }).select("id").single();
     if (dbError) { setSubmitting(false); setError(dbError.message); return; }
 
@@ -443,6 +454,14 @@ function NewRequestModal({ open, onOpenChange, onSuccess }: {
                 {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-[var(--nb-text)]">How did they hear about us?</label>
+            <select value={referralSource} onChange={e => setReferralSource(e.target.value)} className={inputCls}>
+              <option value="">Select an option…</option>
+              {REFERRAL_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
           </div>
 
           {error && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
