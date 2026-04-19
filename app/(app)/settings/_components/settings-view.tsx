@@ -112,6 +112,8 @@ export function SettingsView({
   initialAvatarUrl,
   initialFlashEnabled,
   initialFlashPreviewCount,
+  initialAftercareGuide,
+  initialAftercareEnabled,
   userId,
 }: {
   initialStudioName: string;
@@ -126,6 +128,8 @@ export function SettingsView({
   initialAvatarUrl: string | null;
   initialFlashEnabled: boolean;
   initialFlashPreviewCount: number;
+  initialAftercareGuide: string;
+  initialAftercareEnabled: boolean;
   userId: string;
 }) {
   const router = useRouter();
@@ -179,6 +183,17 @@ export function SettingsView({
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [pwSaving, setPwSaving] = useState(false);
+
+  // Aftercare guide
+  const AFTERCARE_DEFAULT = `Keep the tattoo clean and moisturised for the first 2 weeks.
+Avoid direct sunlight, swimming, and soaking in water.
+Do not pick or scratch the healing skin.
+Apply a thin layer of unscented moisturiser 2-3 times daily.
+If you notice any signs of infection (excessive redness, swelling, or discharge) contact us immediately.
+Most tattoos take 2-4 weeks to fully heal on the surface.`;
+  const [aftercareGuide, setAftercareGuide] = useState(initialAftercareGuide || AFTERCARE_DEFAULT);
+  const [aftercareEnabled, setAftercareEnabled] = useState(initialAftercareEnabled);
+  const [aftercareSaving, setAftercareSaving] = useState(false);
 
   // Delete
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -485,6 +500,20 @@ export function SettingsView({
     showToast(flashModalPiece ? "Flash piece updated!" : "Flash piece added!");
   }
 
+  // ── Save aftercare guide ─────────────────────────────────────────────────
+
+  async function handleSaveAftercare() {
+    setAftercareSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { showToast("Not authenticated", "error"); setAftercareSaving(false); return; }
+    const { error } = await supabase
+      .from("profiles")
+      .update({ aftercare_guide: aftercareGuide.trim() || null, aftercare_enabled: aftercareEnabled })
+      .eq("id", user.id);
+    setAftercareSaving(false);
+    if (error) showToast(error.message, "error"); else showToast("Aftercare guide saved!");
+  }
+
   // ── Save studio page settings ────────────────────────────────────────────
 
   async function handleSaveStudioPage() {
@@ -616,6 +645,9 @@ export function SettingsView({
     : null;
   const studioPageUrl = slug.trim()
     ? `${protocol}//${host}/studio/${slug.trim()}`
+    : null;
+  const aftercarePageUrl = slug.trim()
+    ? `${protocol}//${host}/aftercare/${slug.trim()}`
     : null;
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -1406,6 +1438,70 @@ export function SettingsView({
               })}
             </div>
           )}
+        </SectionCard>
+
+        {/* ── Aftercare Guide ────────────────────────────────────────────── */}
+        <SectionCard
+          title="Aftercare Guide"
+          description="Write your tattoo aftercare instructions. When enabled, clients can view this page after their session."
+        >
+          <div className="space-y-5">
+            {/* Enable toggle */}
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-[var(--nb-text)]">Enable aftercare page</p>
+                <p className="text-xs text-[var(--nb-text-2)] mt-0.5">Make your aftercare guide publicly accessible</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAftercareEnabled((v: boolean) => !v)}
+                role="switch"
+                aria-checked={aftercareEnabled}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors ${aftercareEnabled ? "bg-[#7C3AED]" : "bg-[var(--nb-border)]"}`}
+              >
+                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${aftercareEnabled ? "translate-x-5" : "translate-x-0"}`} />
+              </button>
+            </div>
+
+            {/* View link */}
+            {aftercarePageUrl && aftercareEnabled && (
+              <a
+                href={aftercarePageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#7C3AED]/30 bg-[#7C3AED]/5 text-sm font-medium text-[#7C3AED] hover:bg-[#7C3AED]/10 transition-colors"
+              >
+                <Globe size={14} />
+                View your aftercare page
+                <ExternalLink size={12} className="opacity-70" />
+              </a>
+            )}
+
+            {/* Guide textarea */}
+            <div>
+              <label className={labelCls}>Aftercare instructions</label>
+              <textarea
+                rows={10}
+                value={aftercareGuide}
+                onChange={(e) => setAftercareGuide(e.target.value)}
+                placeholder="Write your aftercare instructions here…"
+                className={`${inputCls} resize-none font-mono text-xs leading-relaxed`}
+                dir="auto"
+              />
+              <p className="mt-1.5 text-xs text-[var(--nb-text-2)]">Line breaks are preserved on the public page.</p>
+            </div>
+
+            <div className="pt-1">
+              <button
+                onClick={handleSaveAftercare}
+                disabled={aftercareSaving}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-medium transition-colors disabled:opacity-60"
+              >
+                {aftercareSaving && <Loader2 size={14} className="animate-spin" />}
+                {aftercareSaving ? "Saving…" : "Save Guide"}
+              </button>
+            </div>
+          </div>
         </SectionCard>
 
         {/* ── Danger Zone ────────────────────────────────────────────────── */}

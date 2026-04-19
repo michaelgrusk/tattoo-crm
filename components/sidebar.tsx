@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -21,9 +21,11 @@ import {
   Moon,
   X,
   Images,
+  Search,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useTheme } from "@/components/theme-provider";
+import { GlobalSearch } from "@/components/global-search";
 
 const navItems = [
   { href: "/board", label: "Board", icon: LayoutDashboard },
@@ -55,8 +57,24 @@ export function Sidebar({
   const [todayCount, setTodayCount] = useState<number>(0);
   const [boardCount, setBoardCount] = useState<number>(0);
   const [contactsBadge, setContactsBadge] = useState<number>(0);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  const openSearch = useCallback(() => setSearchOpen(true), []);
+  const closeSearch = useCallback(() => setSearchOpen(false), []);
 
   useEffect(() => { setMounted(true); }, []);
+
+  // Ctrl+K / Cmd+K global shortcut
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   // Real-time badge bump when a new board request is manually added
   useEffect(() => {
@@ -123,6 +141,7 @@ export function Sidebar({
   const intakeUrl = slug ? `/intake/${slug}` : null;
 
   return (
+    <>
     <aside
       className={`
         flex flex-col bg-[var(--nb-card)] border-r border-[var(--nb-border)]
@@ -143,6 +162,19 @@ export function Sidebar({
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto min-h-0">
+        {/* Search button */}
+        <button
+          type="button"
+          onClick={openSearch}
+          className="flex items-center gap-3 w-full px-3 py-2.5 mb-1 rounded-lg text-sm font-medium text-[var(--nb-text-2)] bg-[var(--nb-bg)] border border-[var(--nb-border)] hover:border-[#7C3AED]/40 hover:text-[var(--nb-text)] transition-colors"
+        >
+          <Search size={16} className="shrink-0 text-[var(--nb-text-2)]" />
+          <span className="flex-1 text-left">Search…</span>
+          <kbd className="hidden lg:inline-flex items-center gap-0.5 text-[10px] font-medium text-[var(--nb-text-2)] bg-[var(--nb-card)] border border-[var(--nb-border)] rounded px-1.5 py-0.5 shrink-0">
+            ⌘K
+          </kbd>
+        </button>
+
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/");
 
@@ -263,5 +295,8 @@ export function Sidebar({
 
       </div>{/* end bottom section */}
     </aside>
+
+    <GlobalSearch open={searchOpen} onClose={closeSearch} />
+    </>
   );
 }

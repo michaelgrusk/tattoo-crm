@@ -1052,6 +1052,11 @@ export function ClientDetailPanel({
   const [confirmDeleteTattooId, setConfirmDeleteTattooId] = useState<number | null>(null);
   const [deletingTattooId, setDeletingTattooId] = useState<number | null>(null);
 
+  // Aftercare
+  const [studioSlug, setStudioSlug] = useState<string | null>(null);
+  const [aftercareEnabled, setAftercareEnabled] = useState(false);
+  const [aftercareCopiedId, setAftercareCopiedId] = useState<string | null>(null);
+
   // Toast
   const [toast, setToast] = useState<ToastState>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1341,13 +1346,26 @@ export function ClientDetailPanel({
         .select("*, artists(name), tattoo_requests(description, style)")
         .eq("client_id", String(client.id))
         .order("session_date", { ascending: false }),
-    ]).then(([{ data: reqs }, { data: appts }, { data: waivers }, { data: artistAppts }, { data: apptRows }, { data: waMsgs }, { data: completedData }]) => {
+      supabase.auth.getUser().then(async ({ data: { user } }) => {
+        if (!user) return null;
+        const { data } = await supabase
+          .from("profiles")
+          .select("slug, aftercare_enabled")
+          .eq("id", user.id)
+          .single();
+        return data;
+      }),
+    ]).then(([{ data: reqs }, { data: appts }, { data: waivers }, { data: artistAppts }, { data: apptRows }, { data: waMsgs }, { data: completedData }, profileData]) => {
       setRequests((reqs as TattooRequest[]) ?? []);
       setNextAppt((appts?.[0] as NextAppointment) ?? null);
       setSignedWaivers((waivers as unknown as SignedWaiver[]) ?? []);
       setClientAppts((apptRows as unknown as ClientAppt[]) ?? []);
       setWaMessages((waMsgs as WaMessage[]) ?? []);
       setCompletedTattoos((completedData as unknown as CompletedTattoo[]) ?? []);
+      if (profileData) {
+        setStudioSlug((profileData as { slug: string | null; aftercare_enabled: boolean }).slug ?? null);
+        setAftercareEnabled((profileData as { slug: string | null; aftercare_enabled: boolean }).aftercare_enabled ?? false);
+      }
       // Aggregate artist history
       const map: Record<number, ArtistHistoryRow> = {};
       for (const row of (artistAppts ?? []) as unknown as { artist_id: number; artists: { id: number; name: string; avatar_url: string | null } | null }[]) {
@@ -2137,6 +2155,30 @@ export function ClientDetailPanel({
                                 <span className={`size-1.5 rounded-full ${ss.dot}`} />
                                 {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
                               </span>
+                              {appt.status === "completed" && studioSlug && aftercareEnabled && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const url = `${window.location.origin}/aftercare/${studioSlug}`;
+                                    navigator.clipboard.writeText(url);
+                                    setAftercareCopiedId(appt.id);
+                                    setTimeout(() => setAftercareCopiedId(null), 2500);
+                                  }}
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors ${
+                                    aftercareCopiedId === appt.id
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                      : "bg-[var(--nb-card)] text-[var(--nb-text-2)] border-[var(--nb-border)] hover:border-[#7C3AED]/40 hover:text-[#7C3AED]"
+                                  }`}
+                                  title="Copy aftercare guide link"
+                                >
+                                  {aftercareCopiedId === appt.id ? (
+                                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                  ) : (
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                  )}
+                                  {aftercareCopiedId === appt.id ? "Copied!" : "Aftercare"}
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>

@@ -14,6 +14,7 @@ const PUBLIC_PATHS = [
   "/api",
   "/studio",
   "/review",
+  "/aftercare",
   "/auth",
   "/pending-approval",
   "/rejected",
