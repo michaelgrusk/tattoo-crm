@@ -17,6 +17,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { PLACEMENTS } from "@/lib/placements";
 
 // ── Column config ─────────────────────────────────────────────────────────────
 
@@ -434,7 +435,10 @@ function NewRequestModal({ open, onOpenChange, onSuccess }: {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--nb-text)]">Placement</label>
-              <input type="text" value={placement} onChange={e => setPlacement(e.target.value)} placeholder="e.g. Left forearm" className={inputCls} dir="auto" />
+              <select value={placement} onChange={e => setPlacement(e.target.value)} className={inputCls}>
+                <option value="">Select placement…</option>
+                {PLACEMENTS.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--nb-text)]">Size / dimensions</label>

@@ -6,6 +6,7 @@ import { ChevronRight, ChevronLeft, Upload, X, ImageIcon, Loader2, Zap } from "l
 import { supabase } from "@/lib/supabase/client";
 import type { FlashPiecePreview } from "../page";
 import { AvailabilityDatePicker, type IntakeAvailabilityBlock } from "./availability-date-picker";
+import { PLACEMENTS } from "@/lib/placements";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -472,8 +473,10 @@ export function SlugIntakeForm({
 
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Placement" required error={errors.placement}>
-                    <input type="text" placeholder="e.g. Left forearm" value={form.placement}
-                      onChange={(e) => set("placement", e.target.value)} className={inputCls} dir="auto" />
+                    <select value={form.placement} onChange={(e) => set("placement", e.target.value)} className={inputCls}>
+                      <option value="">Select placement…</option>
+                      {PLACEMENTS.map((p) => <option key={p} value={p}>{p}</option>)}
+                    </select>
                   </Field>
                   <Field label="Rough size">
                     <input type="text" placeholder='e.g. "palm sized"' value={form.size}
@@ -534,8 +537,10 @@ export function SlugIntakeForm({
                 </div>
 
                 <Field label="Placement">
-                  <input type="text" placeholder="e.g. Left forearm" value={form.placement}
-                    onChange={(e) => set("placement", e.target.value)} className={inputCls} />
+                  <select value={form.placement} onChange={(e) => set("placement", e.target.value)} className={inputCls}>
+                    <option value="">Select placement…</option>
+                    {PLACEMENTS.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
                 </Field>
 
                 <Field label="Preferred appointment date">
