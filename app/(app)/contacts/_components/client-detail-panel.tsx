@@ -18,7 +18,10 @@ import {
   Copy,
   Check,
   Palette,
+  Star,
+  Lightbulb,
 } from "lucide-react";
+import { BodyMap } from "@/components/body-map";
 import { supabase, getUserId } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -89,6 +92,13 @@ type WaMessage = {
   message_text: string | null;
   status: string;
   status_updated_at: string;
+};
+
+type ClientInvoice = {
+  id: string;
+  amount: number;
+  status: string;
+  date: string;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -1057,6 +1067,13 @@ export function ClientDetailPanel({
   const [aftercareEnabled, setAftercareEnabled] = useState(false);
   const [aftercareCopiedId, setAftercareCopiedId] = useState<string | null>(null);
 
+  // Collector
+  const [isCollector, setIsCollector] = useState(client.is_collector ?? false);
+  const [collectorSince, setCollectorSince] = useState<string | null>(client.collector_since ?? null);
+  const [futureIdeas, setFutureIdeas] = useState(client.future_ideas ?? "");
+  const [futureIdeasSaving, setFutureIdeasSaving] = useState(false);
+  const [clientInvoices, setClientInvoices] = useState<ClientInvoice[]>([]);
+
   // Toast
   const [toast, setToast] = useState<ToastState>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1131,6 +1148,15 @@ export function ClientDetailPanel({
       setCompletedTattoos((prev) => prev.filter((t) => t.id !== id));
       showToast("Tattoo record deleted", "success");
     }
+  }
+
+  async function handleSaveFutureIdeas() {
+    setFutureIdeasSaving(true);
+    await supabase
+      .from("clients")
+      .update({ future_ideas: futureIdeas.trim() || null })
+      .eq("id", String(client.id));
+    setFutureIdeasSaving(false);
   }
 
   // Dialog
@@ -1302,6 +1328,13 @@ export function ClientDetailPanel({
     setLocalStatus(client.status ?? "");
   }, [client.id, client.status]);
 
+  // Sync collector state when client changes
+  useEffect(() => {
+    setIsCollector(client.is_collector ?? false);
+    setCollectorSince(client.collector_since ?? null);
+    setFutureIdeas(client.future_ideas ?? "");
+  }, [client.id, client.is_collector, client.collector_since, client.future_ideas]);
+
   useEffect(() => {
     setLoading(true);
     const today = new Date().toISOString().split("T")[0];
@@ -1355,17 +1388,40 @@ export function ClientDetailPanel({
           .single();
         return data;
       }),
-    ]).then(([{ data: reqs }, { data: appts }, { data: waivers }, { data: artistAppts }, { data: apptRows }, { data: waMsgs }, { data: completedData }, profileData]) => {
+      supabase
+        .from("invoices")
+        .select("id, amount, status, date")
+        .eq("client_id", String(client.id))
+        .order("date", { ascending: false }),
+    ]).then(async ([{ data: reqs }, { data: appts }, { data: waivers }, { data: artistAppts }, { data: apptRows }, { data: waMsgs }, { data: completedData }, profileData, { data: invoiceData }]) => {
       setRequests((reqs as TattooRequest[]) ?? []);
       setNextAppt((appts?.[0] as NextAppointment) ?? null);
       setSignedWaivers((waivers as unknown as SignedWaiver[]) ?? []);
       setClientAppts((apptRows as unknown as ClientAppt[]) ?? []);
       setWaMessages((waMsgs as WaMessage[]) ?? []);
       setCompletedTattoos((completedData as unknown as CompletedTattoo[]) ?? []);
+      setClientInvoices((invoiceData as unknown as ClientInvoice[]) ?? []);
       if (profileData) {
         setStudioSlug((profileData as { slug: string | null; aftercare_enabled: boolean }).slug ?? null);
         setAftercareEnabled((profileData as { slug: string | null; aftercare_enabled: boolean }).aftercare_enabled ?? false);
       }
+
+      // Auto-promote to collector
+      const allAppts = (apptRows as unknown as ClientAppt[]) ?? [];
+      const allInvoices = (invoiceData as unknown as ClientInvoice[]) ?? [];
+      const hasCompletedAppt = allAppts.some((a) => a.status === "completed");
+      const hasPaidInvoice = allInvoices.some((inv) => inv.status === "paid");
+      if (hasCompletedAppt && hasPaidInvoice && !client.is_collector) {
+        const now = new Date().toISOString();
+        await supabase
+          .from("clients")
+          .update({ is_collector: true, collector_since: now })
+          .eq("id", String(client.id));
+        setIsCollector(true);
+        setCollectorSince(now);
+        onUpdated({ ...client, is_collector: true, collector_since: now });
+      }
+
       // Aggregate artist history
       const map: Record<number, ArtistHistoryRow> = {};
       for (const row of (artistAppts ?? []) as unknown as { artist_id: number; artists: { id: number; name: string; avatar_url: string | null } | null }[]) {
@@ -1489,172 +1545,222 @@ export function ClientDetailPanel({
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  // Derived
+  const initials = client.name.trim().split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  const completedSessions = clientAppts.filter((a) => a.status === "completed").length;
+  const quickActions = (
+    <div className="flex flex-wrap items-center gap-2 shrink-0">
+      <button onClick={() => setApptBookOpen(true)} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[var(--nb-text-2)] hover:border-[#7C3AED] hover:text-[#7C3AED] transition-colors">
+        <Plus size={11} />Book
+      </button>
+      <button onClick={() => setInvoiceOpen(true)} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[var(--nb-text-2)] hover:border-[#7C3AED] hover:text-[#7C3AED] transition-colors">
+        <Plus size={11} />Invoice
+      </button>
+      <button onClick={() => setAddRequestOpen(true)} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[var(--nb-text-2)] hover:border-[#7C3AED] hover:text-[#7C3AED] transition-colors">
+        <Plus size={11} />Request
+      </button>
+      <button onClick={() => setEditOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[#7C3AED] hover:bg-[var(--nb-bg)] transition-colors">
+        Edit
+      </button>
+      <button onClick={() => setDeleteDialogOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[var(--nb-text-2)] hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors">
+        Delete
+      </button>
+    </div>
+  );
+
   return (
     <>
       <div className="p-8 max-w-3xl">
-        {/* Client header */}
-        <div className="flex items-start justify-between gap-4 mb-8">
-          <div className="flex items-start gap-4">
-            <div className="size-14 rounded-full bg-[var(--nb-active-bg)] flex items-center justify-center text-lg font-semibold text-[#7C3AED] shrink-0">
-              {client.name
-                .trim()
-                .split(/\s+/)
-                .map((p) => p[0])
-                .slice(0, 2)
-                .join("")
-                .toUpperCase()}
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-[var(--nb-text)]">
-                {client.name}
-              </h2>
-              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
-                <span className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)]">
-                  <Mail size={13} className="text-[var(--nb-text-2)]" />
-                  {client.email}
-                </span>
-                {client.phone && (
-                  <span className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)]">
-                    <Phone size={13} className="text-[var(--nb-text-2)]" />
-                    {client.phone}
-                  </span>
-                )}
-                {client.instagram ? (
-                  <a
-                    href={`https://instagram.com/${client.instagram.replace(/^@/, "")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
-                    </svg>
-                    {client.instagram.startsWith("@") ? client.instagram : `@${client.instagram}`}
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setEditOpen(true)}
-                    className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors group"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40 group-hover:opacity-100">
-                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
-                    </svg>
-                    <span className="opacity-50 group-hover:opacity-100">Add Instagram</span>
-                  </button>
-                )}
-                <span className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)]">
-                  <Calendar size={13} className="text-[var(--nb-text-2)]" />
-                  Client since{" "}
-                  {formatDate(client.created_at, {
-                    year: "numeric",
-                    month: "short",
-                  })}
-                </span>
-              </div>
-
-              {/* Status dropdown */}
-              <div className="mt-3 flex items-center gap-2">
-                <div className="relative">
-                  {localStatus && STATUS_CONFIG[localStatus] && (
-                    <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 size-2 rounded-full pointer-events-none ${STATUS_CONFIG[localStatus].dot}`} />
-                  )}
-                  <select
-                    value={localStatus}
-                    onChange={(e) => handleStatusChange(e.target.value)}
-                    disabled={statusSaving}
-                    className={`appearance-none pl-6 pr-6 py-1 text-xs font-medium rounded-full border transition-colors outline-none cursor-pointer disabled:opacity-60 ${
-                      localStatus && STATUS_CONFIG[localStatus]
-                        ? `${STATUS_CONFIG[localStatus].bg} ${STATUS_CONFIG[localStatus].text} border-transparent`
-                        : "bg-[var(--nb-bg)] text-[var(--nb-text-2)] border-[var(--nb-border)]"
-                    }`}
-                  >
-                    <option value="">No status</option>
-                    {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                      <option key={key} value={key}>{cfg.label}</option>
-                    ))}
-                  </select>
-                  <svg className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" width="10" height="10" viewBox="0 0 10 10" fill="currentColor" opacity="0.5">
-                    <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
-                  </svg>
+        {/* ── Collector header ─────────────────────────────────────── */}
+        {isCollector ? (
+          <div className="mb-8">
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div className="flex items-start gap-5">
+                {/* Avatar with gradient ring */}
+                <div className="shrink-0 relative">
+                  <div className="p-[3px] rounded-full" style={{ background: "linear-gradient(135deg, #F59E0B, #7C3AED, #F59E0B)" }}>
+                    <div className="size-16 rounded-full bg-[var(--nb-active-bg)] flex items-center justify-center text-xl font-bold text-[#7C3AED]">
+                      {initials}
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 size-6 rounded-full bg-yellow-400 border-2 border-[var(--nb-bg)] flex items-center justify-center">
+                    <Star size={11} className="text-white fill-white" />
+                  </div>
                 </div>
-                {statusSaving && <Loader2 size={12} className="animate-spin text-[var(--nb-text-2)]" />}
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <h2 className="text-2xl font-bold text-[var(--nb-text)]">{client.name}</h2>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
+                      <Star size={9} className="fill-violet-500 text-violet-500" />
+                      Collector
+                    </span>
+                  </div>
+                  {collectorSince && (
+                    <p className="text-sm text-[#7C3AED]/70 font-medium mb-1">
+                      Collector since {new Date(collectorSince).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                    <span className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)]">
+                      <Mail size={13} />
+                      {client.email}
+                    </span>
+                    {client.phone && (
+                      <span className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)]">
+                        <Phone size={13} />
+                        {client.phone}
+                      </span>
+                    )}
+                    {client.instagram && (
+                      <a href={`https://instagram.com/${client.instagram.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                        </svg>
+                        {client.instagram.startsWith("@") ? client.instagram : `@${client.instagram}`}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {quickActions}
+            </div>
+            {/* Collector stat boxes */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gradient-to-br from-[#7C3AED]/10 to-[#7C3AED]/5 rounded-xl border border-[#7C3AED]/20 px-5 py-4">
+                <p className="text-[10px] font-semibold text-[#7C3AED]/70 uppercase tracking-wide mb-1">Total Spent</p>
+                <p className="text-2xl font-bold text-[#7C3AED]">{format(client.totalSpent)}</p>
+              </div>
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200/60 px-5 py-4">
+                <p className="text-[10px] font-semibold text-amber-600/70 uppercase tracking-wide mb-1">Sessions</p>
+                <p className="text-2xl font-bold text-amber-600">{completedSessions}</p>
+                <p className="text-[10px] text-amber-600/60 mt-0.5">completed</p>
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            {/* Quick actions */}
-            <button
-              onClick={() => setApptBookOpen(true)}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[var(--nb-text-2)] hover:border-[#7C3AED] hover:text-[#7C3AED] transition-colors"
-            >
-              <Plus size={11} />
-              Book
-            </button>
-            <button
-              onClick={() => setInvoiceOpen(true)}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[var(--nb-text-2)] hover:border-[#7C3AED] hover:text-[#7C3AED] transition-colors"
-            >
-              <Plus size={11} />
-              Invoice
-            </button>
-            <button
-              onClick={() => setAddRequestOpen(true)}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[var(--nb-text-2)] hover:border-[#7C3AED] hover:text-[#7C3AED] transition-colors"
-            >
-              <Plus size={11} />
-              Request
-            </button>
-            {/* Edit / Delete */}
-            <button
-              onClick={() => setEditOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[#7C3AED] hover:bg-[var(--nb-bg)] transition-colors"
-            >
-              Edit
-            </button>
-            <button
-              onClick={() => setDeleteDialogOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--nb-border)] bg-[var(--nb-card)] text-[var(--nb-text-2)] hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
+        ) : (
+          /* ── Standard header ─────────────────────────────────────── */
+          <div className="flex items-start justify-between gap-4 mb-8">
+            <div className="flex items-start gap-4">
+              <div className="size-14 rounded-full bg-[var(--nb-active-bg)] flex items-center justify-center text-lg font-semibold text-[#7C3AED] shrink-0">
+                {initials}
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-[var(--nb-text)]">
+                  {client.name}
+                </h2>
+                <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+                  <span className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)]">
+                    <Mail size={13} className="text-[var(--nb-text-2)]" />
+                    {client.email}
+                  </span>
+                  {client.phone && (
+                    <span className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)]">
+                      <Phone size={13} className="text-[var(--nb-text-2)]" />
+                      {client.phone}
+                    </span>
+                  )}
+                  {client.instagram ? (
+                    <a
+                      href={`https://instagram.com/${client.instagram.replace(/^@/, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                      </svg>
+                      {client.instagram.startsWith("@") ? client.instagram : `@${client.instagram}`}
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEditOpen(true)}
+                      className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)] hover:text-[#7C3AED] transition-colors group"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40 group-hover:opacity-100">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                      </svg>
+                      <span className="opacity-50 group-hover:opacity-100">Add Instagram</span>
+                    </button>
+                  )}
+                  <span className="flex items-center gap-1.5 text-sm text-[var(--nb-text-2)]">
+                    <Calendar size={13} className="text-[var(--nb-text-2)]" />
+                    Client since{" "}
+                    {formatDate(client.created_at, {
+                      year: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                </div>
 
-        {/* Stat boxes */}
-        <div className="grid grid-cols-3 gap-2 md:gap-4 mb-8 items-stretch">
-          <StatBox
-            label="Total Spent"
-            value={format(client.totalSpent)}
-          />
-          <StatBox
-            label="Sessions"
-            value={String(client.sessions)}
-            sub={client.sessions === 1 ? "appointment" : "appointments"}
-          />
-          {/* Next Appointment — clickable when an appointment exists */}
-          {nextAppt ? (
-            <button
-              onClick={() => setApptDialogOpen(true)}
-              className="flex flex-col text-left bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-3 py-3 md:px-5 md:py-4 overflow-hidden hover:border-[#7C3AED]/50 hover:shadow-sm transition-all group"
-            >
-              <p className="text-[10px] md:text-xs font-medium text-[var(--nb-text-2)] uppercase tracking-wide mb-1 truncate group-hover:text-[#7C3AED] transition-colors">
-                Next Appointment
-              </p>
-              <p className="text-base md:text-xl font-semibold text-[var(--nb-text)] break-words leading-tight">
-                {formatAppointmentDate(nextAppt.date)}
-              </p>
-              <p className="text-[10px] md:text-xs text-[var(--nb-text-2)] mt-0.5 truncate">
-                {formatTime(nextAppt.time)} · {nextAppt.type}
-              </p>
-            </button>
-          ) : (
+                {/* Status dropdown */}
+                <div className="mt-3 flex items-center gap-2">
+                  <div className="relative">
+                    {localStatus && STATUS_CONFIG[localStatus] && (
+                      <span className={`absolute left-2.5 top-1/2 -translate-y-1/2 size-2 rounded-full pointer-events-none ${STATUS_CONFIG[localStatus].dot}`} />
+                    )}
+                    <select
+                      value={localStatus}
+                      onChange={(e) => handleStatusChange(e.target.value)}
+                      disabled={statusSaving}
+                      className={`appearance-none pl-6 pr-6 py-1 text-xs font-medium rounded-full border transition-colors outline-none cursor-pointer disabled:opacity-60 ${
+                        localStatus && STATUS_CONFIG[localStatus]
+                          ? `${STATUS_CONFIG[localStatus].bg} ${STATUS_CONFIG[localStatus].text} border-transparent`
+                          : "bg-[var(--nb-bg)] text-[var(--nb-text-2)] border-[var(--nb-border)]"
+                      }`}
+                    >
+                      <option value="">No status</option>
+                      {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+                        <option key={key} value={key}>{cfg.label}</option>
+                      ))}
+                    </select>
+                    <svg className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" width="10" height="10" viewBox="0 0 10 10" fill="currentColor" opacity="0.5">
+                      <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                    </svg>
+                  </div>
+                  {statusSaving && <Loader2 size={12} className="animate-spin text-[var(--nb-text-2)]" />}
+                </div>
+              </div>
+            </div>
+            {quickActions}
+          </div>
+        )}
+
+        {/* Stat boxes — standard clients only */}
+        {!isCollector && (
+          <div className="grid grid-cols-3 gap-2 md:gap-4 mb-8 items-stretch">
             <StatBox
-              label="Next Appointment"
-              value={loading ? "—" : "None scheduled"}
+              label="Total Spent"
+              value={format(client.totalSpent)}
             />
-          )}
-        </div>
+            <StatBox
+              label="Sessions"
+              value={String(client.sessions)}
+              sub={client.sessions === 1 ? "appointment" : "appointments"}
+            />
+            {nextAppt ? (
+              <button
+                onClick={() => setApptDialogOpen(true)}
+                className="flex flex-col text-left bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-3 py-3 md:px-5 md:py-4 overflow-hidden hover:border-[#7C3AED]/50 hover:shadow-sm transition-all group"
+              >
+                <p className="text-[10px] md:text-xs font-medium text-[var(--nb-text-2)] uppercase tracking-wide mb-1 truncate group-hover:text-[#7C3AED] transition-colors">
+                  Next Appointment
+                </p>
+                <p className="text-base md:text-xl font-semibold text-[var(--nb-text)] break-words leading-tight">
+                  {formatAppointmentDate(nextAppt.date)}
+                </p>
+                <p className="text-[10px] md:text-xs text-[var(--nb-text-2)] mt-0.5 truncate">
+                  {formatTime(nextAppt.time)} · {nextAppt.type}
+                </p>
+              </button>
+            ) : (
+              <StatBox
+                label="Next Appointment"
+                value={loading ? "—" : "None scheduled"}
+              />
+            )}
+          </div>
+        )}
 
         {/* Next Appointment detail dialog */}
         {nextAppt && (
@@ -1729,6 +1835,41 @@ export function ClientDetailPanel({
           </div>
         ) : (
           <>
+            {/* ── Body Map (collectors only) ────────────────────────────── */}
+            {isCollector && completedTattoos.length > 0 && (
+              <section className="mb-6">
+                <BodyMap
+                  tattoos={completedTattoos.map((ct) => ({
+                    placement: ct.placement,
+                    style: ct.style,
+                    session_date: ct.session_date,
+                  }))}
+                />
+              </section>
+            )}
+
+            {/* ── Future Ideas (collectors only) ───────────────────────── */}
+            {isCollector && (
+              <section className="mb-6">
+                <div className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] px-5 py-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Lightbulb size={13} className="text-amber-500" />
+                    <p className="text-xs font-semibold text-[var(--nb-text)] uppercase tracking-wide">Future Ideas</p>
+                    {futureIdeasSaving && <Loader2 size={11} className="animate-spin text-[var(--nb-text-2)] ml-auto" />}
+                  </div>
+                  <textarea
+                    value={futureIdeas}
+                    onChange={(e) => setFutureIdeas(e.target.value)}
+                    onBlur={handleSaveFutureIdeas}
+                    placeholder="Note down any future tattoo ideas this client has mentioned…"
+                    rows={3}
+                    dir="auto"
+                    className="w-full rounded-lg border border-[var(--nb-border)] bg-[var(--nb-bg)] px-3 py-2 text-sm text-[var(--nb-text)] outline-none placeholder:text-[var(--nb-text-2)] focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20 transition-colors resize-none"
+                  />
+                </div>
+              </section>
+            )}
+
             {/* ── Reference Images ─────────────────────────────────────── */}
             <section className="mb-8">
               <div className="flex items-center justify-between mb-3">
@@ -1914,26 +2055,27 @@ export function ClientDetailPanel({
 
             {/* ── Section tabs ──────────────────────────────────────── */}
             <div className="flex rounded-lg border border-[var(--nb-border)] bg-[var(--nb-bg)] p-0.5 gap-0.5 mb-6">
-              {(["requests","appointments","completed","messages"] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setApptTab(t)}
-                  type="button"
-                  className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-colors ${
-                    apptTab === t
-                      ? "bg-[var(--nb-card)] text-[#7C3AED] shadow-sm border border-[var(--nb-border)]"
-                      : "text-[var(--nb-text-2)] hover:text-[var(--nb-text)]"
-                  }`}
-                >
-                  {t === "requests"
-                    ? `Requests (${requests.length})`
-                    : t === "appointments"
-                    ? `Appts (${clientAppts.length})`
-                    : t === "completed"
-                    ? `Completed${completedTattoos.length > 0 ? ` (${completedTattoos.length})` : ""}`
-                    : `Messages${waMessages.length > 0 ? ` (${waMessages.length})` : ""}`}
-                </button>
-              ))}
+              {(["requests","appointments","completed","messages"] as const).map((t) => {
+                const label =
+                  t === "requests" ? `Requests (${requests.length})`
+                  : t === "appointments" ? (isCollector ? `Sessions (${clientAppts.filter(a => a.status === "completed").length})` : `Appts (${clientAppts.length})`)
+                  : t === "completed" ? `Completed${completedTattoos.length > 0 ? ` (${completedTattoos.length})` : ""}`
+                  : `Messages${waMessages.length > 0 ? ` (${waMessages.length})` : ""}`;
+                return (
+                  <button
+                    key={t}
+                    onClick={() => setApptTab(t)}
+                    type="button"
+                    className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-colors ${
+                      apptTab === t
+                        ? "bg-[var(--nb-card)] text-[#7C3AED] shadow-sm border border-[var(--nb-border)]"
+                        : "text-[var(--nb-text-2)] hover:text-[var(--nb-text)]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* ── Tattoo History ────────────────────────────────────────── */}
@@ -2094,8 +2236,8 @@ export function ClientDetailPanel({
               </section>
             )}
 
-            {/* ── Appointments ──────────────────────────────────────────── */}
-            {apptTab === "appointments" && (
+            {/* ── Appointments / Session History ─────────────────────── */}
+            {apptTab === "appointments" && !isCollector && (
               <section>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-[var(--nb-text)]">
@@ -2188,6 +2330,115 @@ export function ClientDetailPanel({
                 )}
               </section>
             )}
+
+            {/* ── Session History (collectors) ──────────────────────────── */}
+            {apptTab === "appointments" && isCollector && (() => {
+              const completedAppts = clientAppts.filter((a) => a.status === "completed");
+              return (
+                <section>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-[var(--nb-text)] flex items-center gap-2">
+                      <Star size={13} className="text-yellow-500 fill-yellow-400" />
+                      Session History
+                      {completedAppts.length > 0 && (
+                        <span className="text-xs font-medium text-[var(--nb-text-2)]">{completedAppts.length}</span>
+                      )}
+                    </h3>
+                    <Button
+                      size="sm"
+                      onClick={() => setApptBookOpen(true)}
+                      className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white gap-1.5"
+                    >
+                      <Plus size={13} />
+                      Book
+                    </Button>
+                  </div>
+                  {completedAppts.length === 0 ? (
+                    <div className="bg-[var(--nb-card)] rounded-xl border border-dashed border-[var(--nb-border)] p-8 text-center text-sm text-[var(--nb-text-2)]">
+                      No completed sessions yet
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {completedAppts.map((appt) => {
+                        const [h, m] = appt.time.split(":").map(Number);
+                        const timeStr = `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+                        const dateStr = new Date(appt.date + "T00:00:00").toLocaleDateString("en-US", {
+                          weekday: "short", month: "short", day: "numeric", year: "numeric",
+                        });
+                        const artistDisplay = appt.artists?.name ?? appt.artist_name ?? null;
+                        // Match completed_tattoo by date
+                        const matchedTattoo = completedTattoos.find((ct) => ct.session_date === appt.date);
+                        // Match invoice by date (±0)
+                        const matchedInvoice = clientInvoices.find((inv) => inv.date === appt.date && inv.status === "paid");
+                        return (
+                          <div key={appt.id} className="bg-[var(--nb-card)] rounded-xl border border-[var(--nb-border)] overflow-hidden">
+                            <div className="flex gap-3">
+                              {/* Photo thumbnail */}
+                              {matchedTattoo?.photo_url ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setLightboxUrl(matchedTattoo.photo_url!)}
+                                  className="shrink-0 w-20 self-stretch overflow-hidden border-r border-[var(--nb-border)] group"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={matchedTattoo.photo_url}
+                                    alt="Session photo"
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                </button>
+                              ) : (
+                                <div className="shrink-0 w-16 flex items-center justify-center border-r border-[var(--nb-border)] bg-[var(--nb-bg)]">
+                                  <Palette size={16} className="text-[var(--nb-border)]" />
+                                </div>
+                              )}
+                              <div className="flex-1 px-3 py-3 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-[var(--nb-text)]">{dateStr}</p>
+                                    <p className="text-xs text-[var(--nb-text-2)] mt-0.5">{timeStr}</p>
+                                  </div>
+                                  {matchedInvoice && (
+                                    <span className="shrink-0 text-sm font-bold text-[#7C3AED]">{format(matchedInvoice.amount)}</span>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                  {matchedTattoo?.style && (
+                                    <span className="inline-flex items-center rounded-full bg-[var(--nb-active-bg)] px-2 py-0.5 text-[11px] font-medium text-[#7C3AED]">
+                                      {matchedTattoo.style}
+                                    </span>
+                                  )}
+                                  {matchedTattoo?.placement && (
+                                    <span className="inline-flex items-center rounded-full bg-[var(--nb-bg)] border border-[var(--nb-border)] px-2 py-0.5 text-[11px] text-[var(--nb-text-2)]">
+                                      {matchedTattoo.placement}
+                                    </span>
+                                  )}
+                                  {artistDisplay && (
+                                    <span className="inline-flex items-center rounded-full bg-[var(--nb-bg)] border border-[var(--nb-border)] px-2 py-0.5 text-[11px] text-[var(--nb-text-2)]">
+                                      {artistDisplay}
+                                    </span>
+                                  )}
+                                </div>
+                                {matchedTattoo && (
+                                  <div className="mt-2">
+                                    <Link
+                                      href={`/portfolio?highlight=${matchedTattoo.id}`}
+                                      className="text-[11px] font-medium text-[#7C3AED]/70 hover:text-[#7C3AED] transition-colors"
+                                    >
+                                      View in Portfolio ↗
+                                    </Link>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              );
+            })()}
 
             {/* ── Completed Tattoos ─────────────────────────────────────── */}
             {apptTab === "completed" && (

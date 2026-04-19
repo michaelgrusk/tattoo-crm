@@ -13,6 +13,9 @@ export type ClientListItem = {
   status: string | null;
   sessions: number;
   totalSpent: number;
+  is_collector: boolean;
+  collector_since: string | null;
+  future_ideas: string | null;
 };
 
 export default async function ContactsPage() {
@@ -47,6 +50,9 @@ export default async function ContactsPage() {
     ...c,
     sessions: sessionCounts[c.id] ?? 0,
     totalSpent: spentTotals[c.id] ?? 0,
+    is_collector: c.is_collector ?? false,
+    collector_since: c.collector_since ?? null,
+    future_ideas: c.future_ideas ?? null,
   }));
 
   return <ContactsView clients={clientsWithStats} />;

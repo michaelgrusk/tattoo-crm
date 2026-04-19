@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Search, UserPlus, CheckCircle2, Users, ArrowLeft } from "lucide-react";
+import { Search, UserPlus, CheckCircle2, Users, ArrowLeft, Star } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ClientListItem } from "../page";
 import { ClientDetailPanel } from "./client-detail-panel";
@@ -91,17 +91,31 @@ function ClientRow({
           : "hover:bg-[var(--nb-card)]"
       }`}
     >
-      <div
-        className={`size-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${color.bg} ${color.text}`}
-      >
-        {initials}
+      <div className="relative shrink-0">
+        <div
+          className={`size-9 rounded-full flex items-center justify-center text-sm font-semibold ${color.bg} ${color.text} ${client.is_collector ? "ring-2 ring-offset-1 ring-yellow-400" : ""}`}
+        >
+          {initials}
+        </div>
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium truncate ${isSelected ? "text-[#7C3AED]" : "text-[var(--nb-text)]"}`}>
-          {client.name}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className={`text-sm font-medium truncate ${isSelected ? "text-[#7C3AED]" : "text-[var(--nb-text)]"}`}>
+            {client.name}
+          </p>
+          {client.is_collector && (
+            <Star size={10} className="text-yellow-500 shrink-0 fill-yellow-400" />
+          )}
+        </div>
         <div className="flex items-center gap-1.5 mt-0.5">
-          <StatusBadge status={client.status} />
+          {client.is_collector ? (
+            <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium text-violet-700 bg-violet-50">
+              <span className="size-1.5 rounded-full shrink-0 bg-violet-400" />
+              Collector
+            </span>
+          ) : (
+            <StatusBadge status={client.status} />
+          )}
         </div>
       </div>
       <div className="text-right shrink-0">
@@ -124,6 +138,7 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
   const [localClients, setLocalClients] = useState(clients);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [contactTab, setContactTab] = useState<"clients" | "collectors">("clients");
   const [selectedId, setSelectedId] = useState<string | number | null>(
     clients[0]?.id ?? null
   );
@@ -162,8 +177,13 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
     );
   }
 
-  // Search + status filter
-  const filtered = localClients.filter((c) => {
+  // Split clients/collectors for tabs
+  const tabClients = localClients.filter((c) => contactTab === "collectors" ? c.is_collector : !c.is_collector);
+  const clientsCount = localClients.filter((c) => !c.is_collector).length;
+  const collectorsCount = localClients.filter((c) => c.is_collector).length;
+
+  // Search + status filter (within current tab)
+  const filtered = tabClients.filter((c) => {
     const matchesSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -172,8 +192,8 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
     return matchesSearch && matchesStatus;
   });
 
-  // Counts per status (from all clients, not filtered by status)
-  const searchFiltered = localClients.filter(
+  // Counts per status (from current tab, not filtered by status)
+  const searchFiltered = tabClients.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -207,6 +227,38 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
               <UserPlus size={14} />
               Add Client
             </Button>
+          </div>
+
+          {/* Clients / Collectors tab switcher */}
+          <div className="flex rounded-lg border border-[var(--nb-border)] bg-[var(--nb-bg)] p-0.5 gap-0.5">
+            <button
+              onClick={() => { setContactTab("clients"); setStatusFilter(null); }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                contactTab === "clients"
+                  ? "bg-[var(--nb-card)] text-[#7C3AED] shadow-sm border border-[var(--nb-border)]"
+                  : "text-[var(--nb-text-2)] hover:text-[var(--nb-text)]"
+              }`}
+            >
+              <Users size={11} />
+              Clients
+              <span className={`rounded-full px-1.5 leading-none text-[10px] py-0.5 ${contactTab === "clients" ? "bg-[#7C3AED]/10 text-[#7C3AED]" : "bg-[var(--nb-border)] text-[var(--nb-text-2)]"}`}>
+                {clientsCount}
+              </span>
+            </button>
+            <button
+              onClick={() => { setContactTab("collectors"); setStatusFilter(null); }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                contactTab === "collectors"
+                  ? "bg-[var(--nb-card)] text-[#7C3AED] shadow-sm border border-[var(--nb-border)]"
+                  : "text-[var(--nb-text-2)] hover:text-[var(--nb-text)]"
+              }`}
+            >
+              <Star size={11} className={contactTab === "collectors" ? "fill-yellow-400 text-yellow-500" : ""} />
+              Collectors
+              <span className={`rounded-full px-1.5 leading-none text-[10px] py-0.5 ${contactTab === "collectors" ? "bg-[#7C3AED]/10 text-[#7C3AED]" : "bg-[var(--nb-border)] text-[var(--nb-text-2)]"}`}>
+                {collectorsCount}
+              </span>
+            </button>
           </div>
 
           {/* Search */}
@@ -268,7 +320,7 @@ export function ContactsView({ clients }: { clients: ClientListItem[] }) {
               <Users size={28} className="text-[var(--nb-border)] mb-3" />
               <p className="text-sm font-medium text-[var(--nb-text-2)]">No clients found</p>
               <p className="text-xs text-[var(--nb-text-2)] mt-1">
-                {search || statusFilter ? "Try a different filter" : "Add your first client above"}
+                {search || statusFilter ? "Try a different filter" : contactTab === "collectors" ? "Collectors appear when a client has a paid session" : "Add your first client above"}
               </p>
             </div>
           ) : (
